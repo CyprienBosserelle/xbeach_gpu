@@ -129,7 +129,7 @@ __global__ void offshorebndWav(int nx, int ny,int ntheta,float totaltime,float T
 	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
 	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
 	unsigned int i=ix+iy*nx;
-	float taper=min(totaltime/1000.0f,1.0f);
+	float taper=min(totaltime/100.0f,1.0f);
 	
 	sigm[i]=2*pi/Trep;
 	for (int itheta=0; itheta<ntheta; itheta++)

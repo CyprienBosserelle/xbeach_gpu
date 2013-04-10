@@ -674,7 +674,7 @@ void wavebnd(void)
 			{
 				for (int ni=0; ni<ny; ni++)
 				{
-					Stold[ni+i*ny]=Stnew[ni+i*ny];
+					Stold[ni+i*ny]=Stfile[ni+i*ny+nwbndstep*ntheta*ny];
 					
 				}
 			}
@@ -802,6 +802,12 @@ void wavestep(void)
 	dim3 blockDim4(4, 4, 1);
 	dim3 gridDim4(nx / blockDim4.x, ny / blockDim4.y, 1);
 	
+	
+	CUDA_SAFE_CALL( cudaMemcpy(St_g, St, ny*ntheta*sizeof(float ), cudaMemcpyHostToDevice) );
+	//offshorebndWav(nx,ny,ntheta,totaltime,Trep,St_g,sigm_g,ee_g)
+	offshorebndWav<<<gridDim, blockDim, 0>>>(nx,ny,ntheta,totaltime,Trep,St_g,sigm_g,ee_g);
+	CUT_CHECK_ERROR("Offshore Wave bnd execution failed\n");
+	CUDA_SAFE_CALL( cudaThreadSynchronize() );
 	
 //Sanity check
 	sanity<<<gridDim, blockDim, 0>>>(nx, ny,eps,hh_g,sigm_g,ntheta,ee_g);
@@ -1158,11 +1164,11 @@ if (roller==1)
 // Adjust Offshore Bnd
 //
 
-CUDA_SAFE_CALL( cudaMemcpy(St_g, St, ny*ntheta*sizeof(float ), cudaMemcpyHostToDevice) );
+//CUDA_SAFE_CALL( cudaMemcpy(St_g, St, ny*ntheta*sizeof(float ), cudaMemcpyHostToDevice) );
 //offshorebndWav(nx,ny,ntheta,totaltime,Trep,St_g,sigm_g,ee_g)
-offshorebndWav<<<gridDim, blockDim, 0>>>(nx,ny,ntheta,totaltime,Trep,St_g,sigm_g,ee_g);
-CUT_CHECK_ERROR("Offshore Wave bnd execution failed\n");
-CUDA_SAFE_CALL( cudaThreadSynchronize() );
+//offshorebndWav<<<gridDim, blockDim, 0>>>(nx,ny,ntheta,totaltime,Trep,St_g,sigm_g,ee_g);
+//CUT_CHECK_ERROR("Offshore Wave bnd execution failed\n");
+//CUDA_SAFE_CALL( cudaThreadSynchronize() );
 
 
 
