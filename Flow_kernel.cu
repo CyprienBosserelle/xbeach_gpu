@@ -50,8 +50,8 @@ __global__ void ubnd(int nx, int ny, float dx, float dt,float g, float rho,float
 	if (ix==0)
 	{
 
-	qx=0.0f;//(qbndold[iy]+(totaltime-wavbndtime+rt)*(qbndnew[iy]-qbndold[iy])/rt);
-	qy=0.0f;//(qbndold[iy+ny]+(totaltime-wavbndtime+rt)*(qbndnew[iy+ny]-qbndold[iy+ny])/rt);
+	qx=(qbndold[iy]+(totaltime-wavbndtime+rt)*(qbndnew[iy]-qbndold[iy])/rt);
+	qy=(qbndold[iy+ny]+(totaltime-wavbndtime+rt)*(qbndnew[iy+ny]-qbndold[iy+ny])/rt);
 	zsbnd=zsbndold+(totaltime-rtsl)*(zsbndnew-zsbndold)/(slbndtime-rtsl);
 	
 	ht=zsbnd+zb[i];
@@ -108,10 +108,11 @@ __global__ void ubnd(int nx, int ny, float dx, float dt,float g, float rho,float
 
 
     //
-	uu[i]=uumean;//(order-1)*ui+ur+uumean;//2.0f*ui-(sqrtf(g/(zs[i]+zb[i]))*(zs[i]-zsbnd));;//
-	zs[i]=zsbnd;//1.5*((bnp1-uu[i])*(bnp1-uu[i])/(4*g)-0.5*(zb[i]+zb[xplus+iy*nx]))-0.5*((betar-uu[xplus+iy*nx])*(betar-uu[xplus+iy*nx])/(4*g)-0.5*(zb[xplus+iy*nx]+zb[xplus2+iy*nx]));
+	uu[i]=0.0f;//(order-1)*ui+ur+uumean;//2.0f*ui-(sqrtf(g/(zs[i]+zb[i]))*(zs[i]-zsbnd));;//
+	zs[i]=zsbnd+qx*dt/(dx*dx);//1.5*((bnp1-uu[i])*(bnp1-uu[i])/(4*g)-0.5*(zb[i]+zb[xplus+iy*nx]))-0.5*((betar-uu[xplus+iy*nx])*(betar-uu[xplus+iy*nx])/(4*g)-0.5*(zb[xplus+iy*nx]+zb[xplus2+iy*nx]));
 	////
-	//zsbnd+qx/(dx*dx)/dt;//hh[i]=zsbnd+zb[i];
+	//zsbnd+qx/(dx*dx)*dt;//
+	hh[i]=zsbnd+zb[i];
 	vv[i]=vv[xplus+iy*nx];
 	}
 	
@@ -861,6 +862,8 @@ __global__ void smago(int nx,int ny,float dx,float * uu, float * vv,float nuh, f
 	{
 		nuhgrid[i]=nuh;
 	}
+
+	
 	
 
 }

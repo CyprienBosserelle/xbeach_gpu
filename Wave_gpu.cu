@@ -35,7 +35,7 @@ using namespace std;
 #include "Wave_kernel.cu"
 #include "Flow_kernel.cu"
 #include "Sediment_kernel.cu"
-#include "read_input.cpp"
+//#include "read_input.cpp"
 
 #define pi 3.14159265
 
@@ -625,7 +625,7 @@ for (int ii=0; ii<nx; ii++)
 
 void wavebnd(void)
 {
-    if (totaltime > dtwavbnd*(nwavbnd-1)*wxstep)
+    if (totaltime >= dtwavbnd*(nwavbnd-1)*wxstep)
 	{
 		if (wavebndtype==2)
 		{
