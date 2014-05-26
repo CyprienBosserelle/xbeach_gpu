@@ -264,6 +264,58 @@ __global__ void dispersion(int nx,int ny,float twopi,float g,float aphi,float bp
  
 }
 
+__global__ void dispersion_init(int nx,int ny,float twopi,float g,float aphi,float bphi,float * sigm,float * hh,float * cg)
+{
+	float L0, L1,L2, errdisp;
+	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
+	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
+	unsigned int i=ix+iy*nx;
+	int tx =threadIdx.x;
+	int ty= threadIdx.y;
+	
+
+	__shared__ float sigmi[16][16];
+	__shared__ float hhi[16][16];
+	sigmi[tx][ty]=sigm[i];
+	hhi[tx][ty]=hh[i];
+  
+        
+        L0=twopi*g/(sigmi[tx][ty]*sigmi[tx][ty]);
+        L1=L0;
+        
+        errdisp=1000.0f;
+        //while (errdisp > 0.0001f)
+        for (int k=1; k<200; k++)
+        {
+           L2        = L0*tanh(2*pi*hhi[tx][ty]/L1);        
+            errdisp       = abs(L2 - L1);
+            L1 = (L1*aphi + L2*bphi);//          ! Golden ratio
+            if (errdisp <= 0.0001f)
+            {
+				break;
+			}
+			if(k==199)
+			{
+				L1=L0*powf(tanh(powf(sigmi[tx][ty]*sigmi[tx][ty]*hhi[tx][ty]/g,3.0f/4.0f)),2.0f/3.0f);
+				break;
+			}
+        }
+        
+
+		//L1=L0*powf(tanh(powf(sigmi[tx][ty]*sigmi[tx][ty]*hhi[tx][ty]/g,3/4)),2/3);
+        
+		float kk=2*pi/L1;
+		//k[i]  = kk;
+		float cc=sigmi[tx][ty]/kk;
+        //c[i]  = cc;
+		float kkhh=min(kk*hhi[tx][ty],10.0f);
+       // kh[i]   = kkhh;
+		float s2kh=sinhf(2.0f*kkhh);
+        //sinh2kh[i]=s2kh;
+		cg[i] = cc*(0.5f+kkhh/s2kh);
+ 
+}
+
 __device__ float slopes2Dx(int nx,float dx,int i,int ix, int iy,float * hh)
 {
 
@@ -1049,12 +1101,12 @@ __global__ void roelvink(int nx, int ny,float rho,float g,float gamma,float alph
     htmp=sqrtf(fac*etmp);
 
 
-    Qb=1-exp(-1*pow((htmp/gamma/hroelvink),n));
+    Qb=1-exp(max(-1.0f*pow((htmp/gamma/hroelvink),n),-100.0f));
 
 	Qb=min(Qb,1.0f);
 
 
- 	D[i]=Qb*2*alpha/Trep*etmp;
+ 	D[i]=Qb*2*alpha/Trep*etmp*htmp/hroelvink;
 	
 	float fw;
 	float sqrt2=1.4142136;
@@ -1200,6 +1252,58 @@ __global__ void rollerlatbnd(int nx,int ny,int ntheta,float eps,float *hh,float 
 
 }
 
+__global__ void twodimbndnoix(int nx,int ny,float eps,float * hh,float * F)
+{
+	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
+	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
+	unsigned int i=ix+iy*nx;
+	int tx =threadIdx.x;
+	int ty= threadIdx.y;
+
+	unsigned int xminus=mminus(ix,nx);
+	unsigned int xplus=pplus(ix,nx);
+	unsigned int yminus=mminus(iy,ny);
+	unsigned int yplus=pplus(iy,ny);
+	
+	__shared__ float hhi[16][16];
+	__shared__ float Fi[16][16];
+	__shared__ float Ft[16][16];
+	__shared__ float Fb[16][16];
+	__shared__ float Fr[16][16];
+
+	
+	
+
+
+	hhi[tx][ty]=hh[i];
+	float wet=0.0f;
+
+	if (hhi[tx][ty]>eps)
+	{
+		wet=1.0f;
+	}
+	
+
+		Fi[tx][ty]=F[i];
+		Ft[tx][ty]=F[ix+yplus*nx];
+		Fb[tx][ty]=F[ix+yminus*nx];
+		Fr[tx][ty]=F[xplus+iy*nx];
+
+		//F[i]=Fi[tx][ty]*wet;
+		if (iy==0)
+		{
+			F[i]=Ft[tx][ty]*wet;
+		}
+		if (iy==ny-1)
+		{
+			F[i]=Fb[tx][ty]*wet;
+		}
+		//if (ix==0)
+		//{
+		//	F[i]=Fr[tx][ty]*wet;
+		//}
+
+}
 __global__ void twodimbnd(int nx,int ny,float eps,float * hh,float * F)
 {
 	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;

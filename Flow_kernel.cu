@@ -21,7 +21,6 @@
 #define pi 3.14159265
 
 
-
 __global__ void ubnd(int nx, int ny, float dx, float dt,float g, float rho,float totaltime,float wavbndtime,float rt,float slbndtime, float rtsl,float zsbndold,float zsbndnew,float Trep,float * qbndold, float * qbndnew,float *zs, float * uu,float * vv, float *vu, float * umean, float * vmean,float * zb,float * cg,float * hum, float * zo, float *Fx,float *hh)
 {	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
 	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
@@ -33,73 +32,88 @@ __global__ void ubnd(int nx, int ny, float dx, float dt,float g, float rho,float
 	unsigned int yplus=pplus(iy,ny);
 
 	float ui,vi,thetai,vert;
-	float beta, betar,betat,bnp1,bn;
+	float beta, betar,betat,betab,bnp1,bn;
 	float ht,htr;
 	float theta0=0.0f;
-	float alpha2=-1*theta0;
-	float epsi=0.005; //??
+	float alpha2=-1.0f*theta0;
+	float epsi=0.005; //Not used!
 	float ur,uumean,vvmean,urr,alphanew;
 	float dbetadx,dbetady,dvudy,dhdx;
 	float qx,qy,zsbnd;
-	float order=1;
+	float order=2.0f;
 	float ccg=cg[i];
-	float cats=12;//4; // number of wave period to average the current from
-	float factime= 1.0f/cats/Trep*dt;
-
+	float cats=4; // number of wave period to average the current from
+	float factime=0.0f;// 1.0f/cats/Trep*dt;
+	float taper=min(totaltime/100.0f,1.0f);
 
 	if (ix==0)
 	{
 
-	qx=(qbndold[iy]+(totaltime-wavbndtime+rt)*(qbndnew[iy]-qbndold[iy])/rt);
-	qy=(qbndold[iy+ny]+(totaltime-wavbndtime+rt)*(qbndnew[iy+ny]-qbndold[iy+ny])/rt);
+	qx=(qbndold[iy]+(totaltime-wavbndtime+rt)*(qbndnew[iy]-qbndold[iy])/rt)*taper;
+	qy=(qbndold[iy+ny]+(totaltime-wavbndtime+rt)*(qbndnew[iy+ny]-qbndold[iy+ny])/rt)*taper;
 	zsbnd=zsbndold+(totaltime-rtsl)*(zsbndnew-zsbndold)/(slbndtime-rtsl);
 	
 	ht=zsbnd+zb[i];
 	htr=zsbnd+zb[xplus+iy*nx];
 	ui=qx/ht;
 	vi=qy/ht;
-	beta=uu[i]-2*sqrt(g*hum[i]);
-	betar=uu[xplus+iy*nx]-2*sqrt(g*hum[xplus+iy*nx]);
-	betat=uu[ix+yplus*nx]-2*sqrt(g*hum[ix+yplus*nx]);
+	beta=uu[i]-2.0f*sqrt(g*hum[i]);
+	betar=uu[xplus+iy*nx]-2.0f*sqrtf(g*hum[xplus+iy*nx]);
+	betat=uu[ix+yplus*nx]-2.0f*sqrtf(g*hum[ix+yplus*nx]);
+	betab=uu[ix+yminus*nx]-2.0f*sqrtf(g*hum[ix+yminus*nx]);
 	
-	dvudy=(vu[ix+(yminus)*nx]-vu[ix+(yplus)*nx])/(2*dx);
+	dvudy=(vu[ix+(yminus)*nx]-vu[ix+(yplus)*nx])/(2.0f*dx);
     dbetadx=(betar-beta)/dx;
-    dbetady=(betat-beta)/dx;
+    dbetady=(betat-betab)/(2.0f*dx);
 
 	dhdx=(htr-ht)/dx;
 
-	bn=-1*(uu[i]-sqrt(g*hum[i]))*dbetadx-vu[i]*dbetady+sqrt(g*hum[i])*dvudy+1/rho*Fx[i]/hum[i]-zo[i]*sqrt(uu[i]*uu[i]+vu[i]*vu[i])*uu[i]/hum[i]+g*dhdx;
+	bn=-1.0f*(uu[i]-sqrt(g*hum[i]))*dbetadx-vu[i]*dbetady+sqrtf(g*hum[i])*dvudy+1/rho*Fx[i]/hum[i]-zo[i]*sqrtf(uu[i]*uu[i]+vu[i]*vu[i])*uu[i]/hum[i]+g*dhdx;
 	bnp1=beta+bn*dt;
-	uumean=factime*uu[i];//+umean[iy]*(1-factime);
-	vvmean=factime*vv[i];//+vmean[iy]*(1-factime);
+	
+	//WARNING this should be very inefficient. Need to find a better way. possibly inside another kernel
+	// not neededd when epsi ==0.0...or factime==0.0
+	float uumm=0.0f;
+	float vvmm=0.0f;
+	/*for (int jj=0; jj<ny; jj++)
+	{
+		uumm=uumm+uu[ix+jj*nx];
+		vvmm=vvmm+vv[ix+jj*nx];
+	}*/
+
+
+
+	uumean=factime*uumm+umean[iy]*(1-factime);
+	vvmean=factime*vvmm+vmean[iy]*(1-factime);
 	umean[iy]=uumean;
 	vmean[iy]=vvmean;
-	if (ui==0.0f)
-	{
-		ui=0.00001f;
-	}
+	
 	
 
 
-	thetai=atanf(vi/ui);
+	thetai=atanf(vi/(ui+0.0000001f));
 	
 	vert=vu[i]-vvmean-vi;
 	
-	urr=(bnp1-uumean+2*sqrtf(g*0.5*(ht+htr))-ui*(ccg*(cosf(thetai))-sqrtf(g*0.5*(ht+htr)))/(ccg*cosf(thetai)));
+	urr=(bnp1-uumean+2.0f*sqrtf(g*0.5f*(ht+htr))-ui*(ccg*(cosf(thetai))-sqrtf(g*0.5f*(ht+htr)))/(ccg*cosf(thetai)));
 	
 	for (int jj=0; jj<50; jj++)
 	{
-		ur=cosf(alpha2)/(cosf(alpha2)+1)*urr;
-		alphanew=atanf(vert/max(ur,0.00000001f));
-		if (alphanew>pi*0.5)
+		ur=cosf(alpha2)/(cosf(alpha2)+1.0f)*urr;
+		/*if(ur==0.0f)
+		{
+			ur=0.0000001f;
+		}*/
+		alphanew=atanf(vert/(ur+0.0000001f));
+		if (alphanew>pi*0.5f)
 		{
 			alphanew=alphanew-pi;
 		}
-		if (alphanew<-0.5*pi)
+		if (alphanew<=-0.5f*pi)
 		{
 			alphanew=alphanew+pi;
 		}
-		if((alphanew-alpha2)<0.001)
+		if(abs(alphanew-alpha2)<0.001f)
 		{
 			break;
 		}
@@ -108,11 +122,12 @@ __global__ void ubnd(int nx, int ny, float dx, float dt,float g, float rho,float
 
 
     //
-	uu[i]=0.0f;//(order-1)*ui+ur+uumean;//2.0f*ui-(sqrtf(g/(zs[i]+zb[i]))*(zs[i]-zsbnd));;//
-	zs[i]=zsbnd+qx*dt/(dx*dx);//1.5*((bnp1-uu[i])*(bnp1-uu[i])/(4*g)-0.5*(zb[i]+zb[xplus+iy*nx]))-0.5*((betar-uu[xplus+iy*nx])*(betar-uu[xplus+iy*nx])/(4*g)-0.5*(zb[xplus+iy*nx]+zb[xplus2+iy*nx]));
+	uu[i]=(order-1.0f)*ui+ur+uumean;//2.0f*ui-(sqrtf(g/(zs[i]+zb[i]))*(zs[i]-zsbnd));;//
+	zs[i]=1.5f*((bnp1-uu[i])*(bnp1-uu[i])/(4.0f*g)-0.5f*(zb[i]+zb[xplus+iy*nx]))-0.5f*((betar-uu[xplus+iy*nx])*(betar-uu[xplus+iy*nx])/(4.0f*g)-0.5f*(zb[xplus+iy*nx]+zb[xplus2+iy*nx]));
 	////
 	//zsbnd+qx/(dx*dx)*dt;//
-	hh[i]=zsbnd+zb[i];
+	
+	hh[i]=zs[i]+zb[i];
 	vv[i]=vv[xplus+iy*nx];
 	}
 	
@@ -916,6 +931,7 @@ __global__ void viscov(int nx,int ny,float dx,float rho,float eps,float nuhfac, 
 	float nnuh,dvdx1,dvdx2,dvdy1,dvdy2;
 
 	nnuh=max(nuh,nuhfac*hh[i]*powf(DR[i]/rho,1.0f/3.0f));
+
 	dvdx1=0.5f*(hum[i]+hum[ix+yplus*nx])*(vv[xplus+iy*nx]-vv[i])/dx;
 	dvdx2=0.5f*(hum[xminus+iy*nx]+hum[xminus+yplus*nx])*(vv[i]-vv[xminus+iy*nx])/dx;
 	dvdy1=hh[ix+yplus*nx]*(vv[ix+yplus*nx]-vv[i])/dx;
@@ -956,7 +972,7 @@ __global__ void eulerustep(int nx,int ny,float dx,float dt,float g,float rho,flo
 
 	float ueu;
 	float taubx;
-	float hmin=1.0;
+	float hmin=0.2;
 	unsigned int xminus=mminus(ix,nx);
 	unsigned int xplus=pplus(ix,nx);
 	unsigned int yminus=mminus(iy,ny);
@@ -987,7 +1003,7 @@ __global__ void eulerustep(int nx,int ny,float dx,float dt,float g,float rho,flo
 		viscu[i]=0.0f;	
 
 	}
-	//if (ix>0)
+	if (ix>0)
 	{
 		uu[i]=uui[tx][ty];
 		
@@ -1018,7 +1034,7 @@ __global__ void eulervstep(int nx,int ny,float dx,float dt,float g,float rho,flo
 
 	float tauby,vev;
 
-	float hmin=1.0;
+	float hmin=0.2;
 
 	vvi[tx][ty]=vv[i];
 	urmsi[tx][ty]=urms[i];
@@ -1041,7 +1057,7 @@ __global__ void eulervstep(int nx,int ny,float dx,float dt,float g,float rho,flo
 		vvi[tx][ty]=0.0f;
 		viscv[i]=0.0f;
 	}
-	//if(ix>0 && iy>0 && iy<ny)
+	if(ix>0)// && iy>0 && iy<ny)
 	{
 		vv[i]=vvi[tx][ty];
 	}//vdvdy[i]=tauby;
@@ -1148,6 +1164,66 @@ __global__ void hsbnd(int nx,int ny,float eps,float * hh,float *zb,float *zs)
 
 }
 
+__global__ void uvlatbnd(int nx,int ny,float * vu,float * uv,float * ueu,float * vev,float * vmageu,float * vmagev)
+{
+	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
+	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
+	unsigned int i=ix+iy*nx;
+	int tx =threadIdx.x;
+	int ty= threadIdx.y;
+
+	unsigned int xminus=mminus(ix,nx);
+	unsigned int xplus=pplus(ix,nx);
+	unsigned int yminus=mminus(iy,ny);
+	unsigned int yplus=pplus(iy,ny);
+
+	__shared__ float vut[16][16];
+	__shared__ float vub[16][16];
+	__shared__ float uvt[16][16];
+	__shared__ float uvb[16][16];
+	__shared__ float ueub[16][16];
+	__shared__ float ueut[16][16];
+	__shared__ float vevt[16][16];
+	__shared__ float vevb[16][16];
+	__shared__ float vmagevt[16][16];
+	__shared__ float vmagevb[16][16];
+	__shared__ float vmageut[16][16];
+	__shared__ float vmageub[16][16];
+
+	uvt[tx][ty]=uv[ix+yplus*nx];
+	uvb[tx][ty]=uv[ix+yminus*nx];
+	vut[tx][ty]=vu[ix+yplus*nx];
+	vub[tx][ty]=vu[ix+yminus*nx];
+	ueut[tx][ty]=ueu[ix+yplus*nx];
+	ueub[tx][ty]=ueu[ix+yminus*nx];
+	vevt[tx][ty]=vev[ix+yplus*nx];
+	vevb[tx][ty]=vev[ix+yminus*nx];
+	vmageut[tx][ty]=vmageu[ix+yplus*nx];
+	vmageub[tx][ty]=vmageu[ix+yminus*nx];
+	vmagevt[tx][ty]=vmagev[ix+yplus*nx];
+	vmagevb[tx][ty]=vmagev[ix+yminus*nx];
+
+	if (iy==0)
+	{
+		uv[i]=uvt[tx][ty];
+		vu[i]=vut[tx][ty];
+		ueu[i]=ueut[tx][ty];
+		vev[i]=vevt[tx][ty];
+		vmageu[i]=vmageut[tx][ty];
+		vmagev[i]=vmagevt[tx][ty];
+	}
+	if (iy==ny-1)
+	{
+		uv[i]=uvb[tx][ty];
+		vu[i]=vub[tx][ty];
+		ueu[i]=ueub[tx][ty];
+		vev[i]=vevb[tx][ty];
+		vmageu[i]=vmageub[tx][ty];
+		vmagev[i]=vmagevb[tx][ty];
+	}
+
+}
+
 
 __global__ void uuvvzslatbnd(int nx,int ny,float * uu,float * vv,float *zs)
 {
@@ -1194,20 +1270,21 @@ __global__ void uuvvzslatbnd(int nx,int ny,float * uu,float * vv,float *zs)
 		if (iy==ny-1)
 		{
 			uu[i]=uub[tx][ty];
-			vv[i]=vvb[tx][ty];
+			vv[i]=0.0f;//vvb[tx][ty];// THis is to follow XBeach definition although I don't really agree with it
 			zs[i]=zsb[tx][ty];
 		}
-		//if (iy==ny-2)
-		//{
-		//	vv[i]=0.0f;
-		//}
+		if (iy==ny-2)
+		{
+			vv[i]=vvb[tx][ty];// THis is to follow XBeach definition although I don't really agree with it 
+							  // It should be that vv(i,ny-1)=vv(i,ny-2) end of story
+		}
 		if (ix==0)
 		{
-			vv[i]=vvr[tx][ty];
+			//vv[i]=vvr[tx][ty];//Imcompatible with abs_2d front boundary 
 		}
 		if (ix==nx-1)
 		{
-			//zs[i]=zsl[tx][ty];
+			//zs[i]=zsl[tx][ty];//Need to fix 
 		}
 
 }

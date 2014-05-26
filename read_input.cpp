@@ -75,7 +75,7 @@ extern "C" void readXbbndstep(int nx, int ny,int ntheta,char * wavebnd,int step,
 		{
 			
 			
-			for (int nn=0; nn<3*ny*nwavbnd; nn++)
+			for (int nn=0; nn<4*ny*nwavbnd; nn++)
 			{
 				result=fread (&dummy,sizeof(double),1,fXq);
 				qfile[nn]=dummy;
@@ -90,7 +90,7 @@ extern "C" void readXbbndstep(int nx, int ny,int ntheta,char * wavebnd,int step,
 		{
 			fread (&dummy,sizeof(double),1,fXE);
 			//printf("St=%f\n ",dummy);
-			Stfile[nn]=dummy;
+			Stfile[nn]=(float)dummy;
 		}
 		fclose(fXE);
 
