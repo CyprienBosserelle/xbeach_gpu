@@ -1101,12 +1101,12 @@ __global__ void roelvink(int nx, int ny,float rho,float g,float gamma,float alph
     htmp=sqrtf(fac*etmp);
 
 
-    Qb=1-exp(max(-1.0f*pow((htmp/gamma/hroelvink),n),-100.0f));
+    Qb=1.0f-exp(max(-1.0f*pow((htmp/gamma/hroelvink),n),-100.0f));
 
 	Qb=min(Qb,1.0f);
 
 
- 	D[i]=Qb*2*alpha/Trep*etmp*htmp/hroelvink;
+ 	D[i]=Qb*2.0f*alpha/Trep*etmp*htmp/hroelvink;
 	
 	float fw;
 	float sqrt2=1.4142136;
