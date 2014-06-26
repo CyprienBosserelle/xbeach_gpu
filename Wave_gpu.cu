@@ -961,7 +961,7 @@ void wavestep(void)
     ////CUT_CHECK_ERROR("eulerupwind thetaadvecuw execution failed\n");
     //CUDA_CHECK( cudaThreadSynchronize() );
     
-	thetaadvecupwind<<<gridDim, blockDim, 0>>>(nx,ny,ntheta,dtheta,dx,wdt,wci,ee_g,ctheta_g,thetaadvec_g);
+	thetaadvecuw1ho<<<gridDim, blockDim, 0>>>(nx,ny,ntheta,dtheta,dx,wdt,wci,ee_g,ctheta_g,thetaadvec_g);
 	//CUT_CHECK_ERROR("eulerupwind thetaadvec execution failed\n");
     CUDA_CHECK( cudaThreadSynchronize() );
      //CUDA_CHECK( cudaMemcpy(ctheta,yadvec_g,  ny*nx*ntheta*sizeof(float ), cudaMemcpyDeviceToHost) );
@@ -1078,7 +1078,7 @@ if (roller==1)
     ////CUT_CHECK_ERROR("eulerupwind thetaadvecuw execution failed\n");
     //CUDA_CHECK( cudaThreadSynchronize() );	
 
-	thetaadvecupwind<<<gridDim, blockDim, 0>>>(nx,ny,ntheta,dtheta,dx,wdt,wci,rr_g,ctheta_g,thetaadvec_g);
+	thetaadvecuw1ho<<<gridDim, blockDim, 0>>>(nx,ny,ntheta,dtheta,dx,wdt,wci,rr_g,ctheta_g,thetaadvec_g);
 	//CUT_CHECK_ERROR("eulerupwind thetaadvec execution failed\n");
     CUDA_CHECK( cudaThreadSynchronize() );
 

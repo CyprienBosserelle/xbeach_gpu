@@ -901,6 +901,74 @@ __global__ void thetaadvecupwind(int nx,int ny,int ntheta,float dtheta,float dx,
 	
 		
 }
+__global__ void thetaadvecuw1ho(int nx,int ny,int ntheta,float dtheta,float dx,float dt,float wci,float *ee,float *ctheta,float * thetaadvec){
+	
+	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
+	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
+	unsigned int i=ix+iy*nx;
+	int tx =threadIdx.x;
+	int ty= threadIdx.y;
+	
+	float dxplus_i = 1.0f/dx;
+	float dxcent_i = 1.0f/(2.0f*dx);
+	float tthetaadvec,cthetab;
+	float costhet,sinthet;
+	float arrint,arrmint,arrmaxt;
+	
+	
+	unsigned int xminus=mminus(ix,nx);
+	unsigned int xplus=pplus(ix,nx);
+	unsigned int yminus=mminus(iy,ny);
+	unsigned int yplus=pplus(iy,ny);
+	
+	for (int itheta=0; itheta<ntheta; itheta++)
+	{
+		unsigned int Tminus=mminus(itheta,ntheta);
+		unsigned int Tplus=pplus(itheta,ntheta);
+		
+		tthetaadvec=0.0;
+
+
+		cthetab=0.5f*(ctheta[i+itheta*nx*ny]+ctheta[i+Tplus*nx*ny]);
+		if (cthetab>0.0f)
+		{
+			arrint=ee[i+itheta*nx*ny]*cthetab;
+		}
+		else
+		{
+			arrint=ee[i+Tplus*nx*ny]*cthetab;
+		}
+
+
+
+		cthetab=0.5f*(ctheta[i+Tminus*nx*ny]+ctheta[i+itheta*nx*ny]);
+		if (cthetab>0.0f)
+		{
+			arrmint=ee[i+Tminus*nx*ny]*cthetab;
+		}
+		else
+		{
+			arrmint=ee[i+itheta*nx*ny]*cthetab;
+		}
+
+
+
+		tthetaadvec=(arrint-arrmint)/dtheta;
+		if (itheta==ntheta-1)
+		{
+			tthetaadvec=(0.0f-arrmint)/dtheta;
+		}
+		if (itheta==0)
+		{
+			tthetaadvec=(arrint-0.0f)/dtheta;
+		}
+
+		
+		thetaadvec[i+itheta*nx*ny]=tthetaadvec;
+	}
+	
+	
+}
 
 __global__ void thetaadvecupwind2(int nx,int ny,int ntheta,float dtheta,float dx,float dt,float wci,float *ee,float *ctheta,float * thetaadvec)
 {
