@@ -21,7 +21,7 @@
 #define pi 3.14159265
 
 
-__global__ void ubnd(int nx, int ny, float dx, float dt,float g, float rho,float totaltime,float wavbndtime,float rt,float slbndtime, float rtsl,float zsbndold,float zsbndnew,float Trep,float * qbndold, float * qbndnew,float *zs, float * uu,float * vv, float *vu, float * umean, float * vmean,float * zb,float * cg,float * hum, float * zo, float *Fx,float *hh)
+__global__ void ubnd(int nx, int ny, DECNUM dx, DECNUM dt,DECNUM g, DECNUM rho,DECNUM totaltime,DECNUM wavbndtime,DECNUM rt,DECNUM slbndtime, DECNUM rtsl,DECNUM zsbndold,DECNUM zsbndnew,DECNUM Trep,DECNUM * qbndold, DECNUM * qbndnew,DECNUM *zs, DECNUM * uu,DECNUM * vv, DECNUM *vu, DECNUM * umean, DECNUM * vmean,DECNUM * zb,DECNUM * cg,DECNUM * hum, DECNUM * zo, DECNUM *Fx,DECNUM *hh)
 {	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
 	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
 	unsigned int i=ix+iy*nx;
@@ -31,20 +31,20 @@ __global__ void ubnd(int nx, int ny, float dx, float dt,float g, float rho,float
 	unsigned int yminus=mminus(iy,ny);
 	unsigned int yplus=pplus(iy,ny);
 
-	float ui,vi,thetai,vert;
-	float beta, betar,betat,betab,bnp1,bn;
-	float ht,htr;
-	float theta0=0.0f;
-	float alpha2=-1.0f*theta0;
-	float epsi=0.005; //Not used!
-	float ur,uumean,vvmean,urr,alphanew;
-	float dbetadx,dbetady,dvudy,dhdx;
-	float qx,qy,zsbnd;
-	float order=2.0f;
-	float ccg=cg[i];
-	float cats=4; // number of wave period to average the current from
-	float factime=0.0f;// 1.0f/cats/Trep*dt;
-	float taper=min(totaltime/100.0f,1.0f);
+	DECNUM ui,vi,thetai,vert;
+	DECNUM beta, betar,betat,betab,bnp1,bn;
+	DECNUM ht,htr;
+	DECNUM theta0=0.0f;
+	DECNUM alpha2=-1.0f*theta0;
+	DECNUM epsi=0.005; //Not used!
+	DECNUM ur,uumean,vvmean,urr,alphanew;
+	DECNUM dbetadx,dbetady,dvudy,dhdx;
+	DECNUM qx,qy,zsbnd;
+	DECNUM order=2.0f;
+	DECNUM ccg=cg[i];
+	DECNUM cats=4; // number of wave period to average the current from
+	DECNUM factime=0.0f;// 1.0f/cats/Trep*dt;
+	DECNUM taper=min(totaltime/100.0f,1.0f);
 
 	if (ix==0)
 	{
@@ -73,8 +73,8 @@ __global__ void ubnd(int nx, int ny, float dx, float dt,float g, float rho,float
 	
 	//WARNING this should be very inefficient. Need to find a better way. possibly inside another kernel
 	// not neededd when epsi ==0.0...or factime==0.0
-	float uumm=0.0f;
-	float vvmm=0.0f;
+	DECNUM uumm=0.0f;
+	DECNUM vvmm=0.0f;
 	/*for (int jj=0; jj<ny; jj++)
 	{
 		uumm=uumm+uu[ix+jj*nx];
@@ -139,7 +139,7 @@ __global__ void ubnd(int nx, int ny, float dx, float dt,float g, float rho,float
 
 
 }
-__global__ void wlevslopes(int nx, int ny,float dx,float eps,float *zs,float * dzsdx,float *dzsdy,float*hh)
+__global__ void wlevslopes(int nx, int ny,DECNUM dx,DECNUM eps,DECNUM *zs,DECNUM * dzsdx,DECNUM *dzsdy,DECNUM*hh)
 {
 	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
 	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
@@ -152,9 +152,9 @@ __global__ void wlevslopes(int nx, int ny,float dx,float eps,float *zs,float * d
 	unsigned int yminus=mminus(iy,ny);
 	unsigned int yplus=pplus(iy,ny);
 
-	__shared__ float zsi[16][16];
-	__shared__ float zsr[16][16];
-	__shared__ float zst[16][16];
+	__shared__ DECNUM zsi[16][16];
+	__shared__ DECNUM zsr[16][16];
+	__shared__ DECNUM zst[16][16];
 	 //int whi;
 	//int whr;
 	//int wht;
@@ -192,7 +192,7 @@ __global__ void wlevslopes(int nx, int ny,float dx,float eps,float *zs,float * d
         
         	
 }
-__global__ void calcuvvu(int nx,int ny,float dx,float *uu,float *vv,float *vu,float *uv,float * ust,float *thetamean,float *ueu_g,float *vev_g,float *vmageu,float *vmagev,int* wetu, int* wetv)
+__global__ void calcuvvu(int nx,int ny,DECNUM dx,DECNUM *uu,DECNUM *vv,DECNUM *vu,DECNUM *uv,DECNUM * ust,DECNUM *thetamean,DECNUM *ueu_g,DECNUM *vev_g,DECNUM *vmageu,DECNUM *vmagev,int* wetu, int* wetv)
 {
 	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
 	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
@@ -206,15 +206,15 @@ __global__ void calcuvvu(int nx,int ny,float dx,float *uu,float *vv,float *vu,fl
 	unsigned int yminus=mminus(iy,ny);
 	unsigned int yplus=pplus(iy,ny);
 
-	float vsu,usu,ueu,veu,usv,vsv,vev,uev;
+	DECNUM vsu,usu,ueu,veu,usv,vsv,vev,uev;
 
-	__shared__ float usti[16][16];
-	__shared__ float ustr[16][16];
-	__shared__ float ustt[16][16];
+	__shared__ DECNUM usti[16][16];
+	__shared__ DECNUM ustr[16][16];
+	__shared__ DECNUM ustt[16][16];
 
-	__shared__ float tmeani[16][16];
-	__shared__ float tmeanr[16][16];
-	__shared__ float tmeant[16][16];
+	__shared__ DECNUM tmeani[16][16];
+	__shared__ DECNUM tmeanr[16][16];
+	__shared__ DECNUM tmeant[16][16];
 	__shared__ int wetui[16][16];
 	__shared__ int wetvi[16][16];
 
@@ -264,7 +264,7 @@ __global__ void calcuvvu(int nx,int ny,float dx,float *uu,float *vv,float *vu,fl
 
 
 
-__global__ void udepthmomcont(int nx,int ny,float dx,float eps,float ummn,int* wetu,float * zs,float * uu,float * hh,float *hum, float *hu,float * zb)
+__global__ void udepthmomcont(int nx,int ny,DECNUM dx,DECNUM eps,DECNUM ummn,int* wetu,DECNUM * zs,DECNUM * uu,DECNUM * hh,DECNUM *hum, DECNUM *hu,DECNUM * zb)
 {
 	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
 	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
@@ -279,12 +279,12 @@ __global__ void udepthmomcont(int nx,int ny,float dx,float eps,float ummn,int* w
 	unsigned int yplus=pplus(iy,ny);
 
 
-	float humi;
-	float hui;
+	DECNUM humi;
+	DECNUM hui;
 	
-	__shared__ float  hhi[16][16];
-	__shared__ float  hhip[16][16];
-	//__shared__ float  hhjp[4][4];
+	__shared__ DECNUM  hhi[16][16];
+	__shared__ DECNUM  hhip[16][16];
+	//__shared__ DECNUM  hhjp[4][4];
 	
 	hui=hu[i];
 	hhi[tx][ty]=hh[i];
@@ -315,7 +315,7 @@ __global__ void udepthmomcont(int nx,int ny,float dx,float eps,float ummn,int* w
 
 }
 
-__global__ void vdepthmomcont(int nx,int ny,float dx,float eps,float ummn,int* wetv,float * zs,float * vv,float * hh,float *hvm, float *hv,float * zb)
+__global__ void vdepthmomcont(int nx,int ny,DECNUM dx,DECNUM eps,DECNUM ummn,int* wetv,DECNUM * zs,DECNUM * vv,DECNUM * hh,DECNUM *hvm, DECNUM *hv,DECNUM * zb)
 {
 	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
 	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
@@ -329,11 +329,11 @@ __global__ void vdepthmomcont(int nx,int ny,float dx,float eps,float ummn,int* w
 	unsigned int yminus=mminus(iy,ny);
 	unsigned int yplus=pplus(iy,ny);
 
-	float hvmi,hvi;
+	DECNUM hvmi,hvi;
 	
-	__shared__ float  hhi[16][16];
-	//__shared__ float  hhip[4][4];
-	__shared__ float  hhjp[16][16];
+	__shared__ DECNUM  hhi[16][16];
+	//__shared__ DECNUM  hhip[4][4];
+	__shared__ DECNUM  hhjp[16][16];
 	
 	
 	hhi[tx][ty]=hh[i];
@@ -365,7 +365,7 @@ __global__ void vdepthmomcont(int nx,int ny,float dx,float eps,float ummn,int* w
     hvm[i]=max(hvmi,eps);
 }
 
-__global__ void depthhu(int nx,int ny,float dx,float ummn,float eps,float *hh,float * uu,float * hu,float *zs,float *zb)
+__global__ void depthhu(int nx,int ny,DECNUM dx,DECNUM ummn,DECNUM eps,DECNUM *hh,DECNUM * uu,DECNUM * hu,DECNUM *zs,DECNUM *zb)
 {
 	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
 	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
@@ -380,10 +380,10 @@ __global__ void depthhu(int nx,int ny,float dx,float ummn,float eps,float *hh,fl
 	unsigned int yplus=pplus(iy,ny);
 	
 
-	float hui=0.0f;
+	DECNUM hui=0.0f;
 	
-	__shared__ float  hhi[16][16];
-	__shared__ float  hhip[16][16];
+	__shared__ DECNUM  hhi[16][16];
+	__shared__ DECNUM  hhip[16][16];
 	hhi[tx][ty]=hh[i];
 	hhip[tx][ty]=hh[xplus+iy*nx];
 
@@ -411,7 +411,7 @@ __global__ void depthhu(int nx,int ny,float dx,float ummn,float eps,float *hh,fl
 
 }
 
-__global__ void depthhv(int nx,int ny,float dx,float ummn,float eps,float *hh,float * vv,float * hv,float *zs,float *zb)
+__global__ void depthhv(int nx,int ny,DECNUM dx,DECNUM ummn,DECNUM eps,DECNUM *hh,DECNUM * vv,DECNUM * hv,DECNUM *zs,DECNUM *zb)
 {
 	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
 	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
@@ -424,11 +424,11 @@ __global__ void depthhv(int nx,int ny,float dx,float ummn,float eps,float *hh,fl
 	unsigned int xplus=pplus(ix,nx);
 	unsigned int yminus=mminus(iy,ny);
 	unsigned int yplus=pplus(iy,ny);
-	float hvi=0.0f;
+	DECNUM hvi=0.0f;
 
-	__shared__ float  hhi[16][16];
-	//__shared__ float  hhip[4][4];
-	__shared__ float  hhjp[16][16];
+	__shared__ DECNUM  hhi[16][16];
+	//__shared__ DECNUM  hhip[4][4];
+	__shared__ DECNUM  hhjp[16][16];
 	
 	
 	hhi[tx][ty]=hh[i];
@@ -458,7 +458,7 @@ __global__ void depthhv(int nx,int ny,float dx,float ummn,float eps,float *hh,fl
 	hv[i]=hvi;
 }
 
-__global__ void ududx_adv(int nx,int ny,float dx,float * hu,float * hum, float * uu, float * ududx)
+__global__ void ududx_adv(int nx,int ny,DECNUM dx,DECNUM * hu,DECNUM * hum, DECNUM * uu, DECNUM * ududx)
 {
 	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
 	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
@@ -470,19 +470,19 @@ __global__ void ududx_adv(int nx,int ny,float dx,float * hu,float * hum, float *
 	unsigned int xplus=pplus(ix,nx);
 	unsigned int yminus=mminus(iy,ny);
 	unsigned int yplus=pplus(iy,ny);
-	float qin,uududx;
+	DECNUM qin,uududx;
 
-	__shared__ float uui[16][16];
-	__shared__ float uur[16][16];
-	__shared__ float uul[16][16];
-
-
-	__shared__ float hui[16][16];
+	__shared__ DECNUM uui[16][16];
+	__shared__ DECNUM uur[16][16];
+	__shared__ DECNUM uul[16][16];
 
 
+	__shared__ DECNUM hui[16][16];
 
 
-	__shared__ float humi[16][16];
+
+
+	__shared__ DECNUM humi[16][16];
 
 
 	uui[tx][ty]=uu[i];
@@ -511,7 +511,7 @@ __global__ void ududx_adv(int nx,int ny,float dx,float * hu,float * hum, float *
 }
 
 
-__global__ void ududx_adv2(int nx,int ny,float dx,float * hu,float * hum, float * uu, float * ududx)
+__global__ void ududx_adv2(int nx,int ny,DECNUM dx,DECNUM * hu,DECNUM * hum, DECNUM * uu, DECNUM * ududx)
 {
 	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
 	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
@@ -524,18 +524,18 @@ __global__ void ududx_adv2(int nx,int ny,float dx,float * hu,float * hum, float 
 	unsigned int xplus=pplus(ix,nx);
 	unsigned int xplus2=pplus2(ix,nx);
 
-	float qin,uududx;
+	DECNUM qin,uududx;
 
-	__shared__ float uui[16][16];
-	__shared__ float uur[16][16];
-	__shared__ float uur2[16][16];
-	__shared__ float uul[16][16];
-	__shared__ float uul2[16][16];
+	__shared__ DECNUM uui[16][16];
+	__shared__ DECNUM uur[16][16];
+	__shared__ DECNUM uur2[16][16];
+	__shared__ DECNUM uul[16][16];
+	__shared__ DECNUM uul2[16][16];
 
-	__shared__ float hui[16][16];
-	__shared__ float hur[16][16];
-	__shared__ float hul[16][16];
-	__shared__ float humi[16][16];
+	__shared__ DECNUM hui[16][16];
+	__shared__ DECNUM hur[16][16];
+	__shared__ DECNUM hul[16][16];
+	__shared__ DECNUM humi[16][16];
 
 
 	uui[tx][ty]=uu[i];
@@ -569,7 +569,7 @@ __global__ void ududx_adv2(int nx,int ny,float dx,float * hu,float * hum, float 
 
 
 
-	__global__ void vdudy_adv(int nx,int ny,float dx,float * hv,float * hum, float * uu,float *vv, float * vdudy)
+	__global__ void vdudy_adv(int nx,int ny,DECNUM dx,DECNUM * hv,DECNUM * hum, DECNUM * uu,DECNUM *vv, DECNUM * vdudy)
 {
 	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
 	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
@@ -581,11 +581,11 @@ __global__ void ududx_adv2(int nx,int ny,float dx,float * hu,float * hum, float 
 	unsigned int xplus=pplus(ix,nx);
 	unsigned int yminus=mminus(iy,ny);
 	unsigned int yplus=pplus(iy,ny);
-	float qin,vvdudy;
+	DECNUM qin,vvdudy;
 
-	__shared__ float uui[16][16];
-	__shared__ float uut[16][16];
-	__shared__ float uub[16][16];
+	__shared__ DECNUM uui[16][16];
+	__shared__ DECNUM uut[16][16];
+	__shared__ DECNUM uub[16][16];
 
 	uui[tx][ty]=uu[i];
 	uut[tx][ty]=uu[ix+yplus*nx];
@@ -607,7 +607,7 @@ __global__ void ududx_adv2(int nx,int ny,float dx,float * hu,float * hum, float 
 
 }
 
-	__global__ void vdudy_adv2(int nx,int ny,float dx,float * hv,float * hum, float * uu,float *vv, float * vdudy)
+	__global__ void vdudy_adv2(int nx,int ny,DECNUM dx,DECNUM * hv,DECNUM * hum, DECNUM * uu,DECNUM *vv, DECNUM * vdudy)
 {
 	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
 	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
@@ -621,23 +621,23 @@ __global__ void ududx_adv2(int nx,int ny,float dx,float * hu,float * hum, float 
 	unsigned int yplus=pplus(iy,ny);
 	unsigned int yminus2=mminus2(iy,ny);
 	unsigned int yplus2=pplus2(iy,ny);
-	float qin,vvdudy;
+	DECNUM qin,vvdudy;
 
-	__shared__ float uui[16][16];
-	__shared__ float uut[16][16];
-	__shared__ float uut2[16][16];
-	__shared__ float uub[16][16];
-	__shared__ float uub2[16][16];
+	__shared__ DECNUM uui[16][16];
+	__shared__ DECNUM uut[16][16];
+	__shared__ DECNUM uut2[16][16];
+	__shared__ DECNUM uub[16][16];
+	__shared__ DECNUM uub2[16][16];
 
-	__shared__ float vvi[16][16];
-	__shared__ float vvr[16][16];
-	__shared__ float vvb[16][16];
-	__shared__ float vvbr[16][16];
-	__shared__ float hvi[16][16];
-	__shared__ float hvr[16][16];
-	__shared__ float hvb[16][16];
-	__shared__ float hvbr[16][16];
-	__shared__ float humi[16][16];
+	__shared__ DECNUM vvi[16][16];
+	__shared__ DECNUM vvr[16][16];
+	__shared__ DECNUM vvb[16][16];
+	__shared__ DECNUM vvbr[16][16];
+	__shared__ DECNUM hvi[16][16];
+	__shared__ DECNUM hvr[16][16];
+	__shared__ DECNUM hvb[16][16];
+	__shared__ DECNUM hvbr[16][16];
+	__shared__ DECNUM humi[16][16];
 
 
 	uui[tx][ty]=uu[i];
@@ -675,7 +675,7 @@ __global__ void ududx_adv2(int nx,int ny,float dx,float * hu,float * hum, float 
 
 
 
-__global__ void vdvdy_adv(int nx,int ny,float dx,float * hv,float * hvm, float * vv, float * vdvdy)
+__global__ void vdvdy_adv(int nx,int ny,DECNUM dx,DECNUM * hv,DECNUM * hvm, DECNUM * vv, DECNUM * vdvdy)
 {
 	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
 	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
@@ -686,7 +686,7 @@ __global__ void vdvdy_adv(int nx,int ny,float dx,float * hv,float * hvm, float *
 	unsigned int yminus=mminus(iy,ny);
 	unsigned int yplus=pplus(iy,ny);
 
-	float qin,vvdvdy;
+	DECNUM qin,vvdvdy;
 
 	vvdvdy=0.0f;
 
@@ -703,7 +703,7 @@ __global__ void vdvdy_adv(int nx,int ny,float dx,float * hv,float * hvm, float *
 	vdvdy[i]=vvdvdy;
 }
 
-__global__ void vdvdy_adv2(int nx,int ny,float dx,float * hv,float * hvm, float * vv, float * vdvdy)
+__global__ void vdvdy_adv2(int nx,int ny,DECNUM dx,DECNUM * hv,DECNUM * hvm, DECNUM * vv, DECNUM * vdvdy)
 {
 	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
 	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
@@ -718,15 +718,15 @@ __global__ void vdvdy_adv2(int nx,int ny,float dx,float * hv,float * hvm, float 
 	unsigned int yminus2=mminus2(iy,ny);
 	unsigned int yplus2=pplus2(iy,ny);
 
-	__shared__ float vvi[16][16];
-	__shared__ float vvb[16][16];
-	__shared__ float vvb2[16][16];
-	__shared__ float vvt[16][16];
-	__shared__ float vvt2[16][16];
-	__shared__ float hvi[16][16];
-	__shared__ float hvb[16][16];
-	__shared__ float hvt[16][16];
-	__shared__ float hvmi[16][16];
+	__shared__ DECNUM vvi[16][16];
+	__shared__ DECNUM vvb[16][16];
+	__shared__ DECNUM vvb2[16][16];
+	__shared__ DECNUM vvt[16][16];
+	__shared__ DECNUM vvt2[16][16];
+	__shared__ DECNUM hvi[16][16];
+	__shared__ DECNUM hvb[16][16];
+	__shared__ DECNUM hvt[16][16];
+	__shared__ DECNUM hvmi[16][16];
 
 	vvi[tx][ty]=vv[i];
 	vvb[tx][ty]=vv[ix+yminus*nx];
@@ -739,7 +739,7 @@ __global__ void vdvdy_adv2(int nx,int ny,float dx,float * hv,float * hvm, float 
 	hvmi[tx][ty]=hvm[i];
 
 
-	float qin,vvdvdy;
+	DECNUM qin,vvdvdy;
 
 	vvdvdy=0.0f;
 
@@ -756,7 +756,7 @@ __global__ void vdvdy_adv2(int nx,int ny,float dx,float * hv,float * hvm, float 
 	vdvdy[i]=vvdvdy;
 }
 
-__global__ void udvdx_adv(int nx,int ny,float dx,float * hu,float * hvm,float * uu, float * vv, float * udvdx)
+__global__ void udvdx_adv(int nx,int ny,DECNUM dx,DECNUM * hu,DECNUM * hvm,DECNUM * uu, DECNUM * vv, DECNUM * udvdx)
 {
 	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
 	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
@@ -767,7 +767,7 @@ __global__ void udvdx_adv(int nx,int ny,float dx,float * hu,float * hvm,float * 
 	unsigned int yminus=mminus(iy,ny);
 	unsigned int yplus=pplus(iy,ny);
 
-	float qin,uudvdx;
+	DECNUM qin,uudvdx;
 
 	uudvdx=0.0f;
 	qin=0.5*(uu[xminus+iy*nx]*hu[xminus+iy*nx]+uu[xminus+yplus*nx]*hu[xminus+yplus*nx]);
@@ -786,7 +786,7 @@ __global__ void udvdx_adv(int nx,int ny,float dx,float * hu,float * hvm,float * 
 
 }
 
-__global__ void udvdx_adv2(int nx,int ny,float dx,float * hu,float * hvm,float * uu, float * vv, float * udvdx)
+__global__ void udvdx_adv2(int nx,int ny,DECNUM dx,DECNUM * hu,DECNUM * hvm,DECNUM * uu, DECNUM * vv, DECNUM * udvdx)
 {
 	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
 	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
@@ -802,20 +802,20 @@ __global__ void udvdx_adv2(int nx,int ny,float dx,float * hu,float * hvm,float *
 	unsigned int yminus=mminus(iy,ny);
 	unsigned int yplus=pplus(iy,ny);
 
-	__shared__ float uui[16][16];
-	__shared__ float uut[16][16];
-	__shared__ float uul[16][16];
-	__shared__ float uutl[16][16];
-	__shared__ float vvi[16][16];
-	__shared__ float vvl[16][16];
-	__shared__ float vvl2[16][16];
-	__shared__ float vvr[16][16];
-	__shared__ float vvr2[16][16];
-	__shared__ float hui[16][16];
-	__shared__ float hut[16][16];
-	__shared__ float hul[16][16];
-	__shared__ float hutl[16][16];
-	__shared__ float hvmi[16][16];
+	__shared__ DECNUM uui[16][16];
+	__shared__ DECNUM uut[16][16];
+	__shared__ DECNUM uul[16][16];
+	__shared__ DECNUM uutl[16][16];
+	__shared__ DECNUM vvi[16][16];
+	__shared__ DECNUM vvl[16][16];
+	__shared__ DECNUM vvl2[16][16];
+	__shared__ DECNUM vvr[16][16];
+	__shared__ DECNUM vvr2[16][16];
+	__shared__ DECNUM hui[16][16];
+	__shared__ DECNUM hut[16][16];
+	__shared__ DECNUM hul[16][16];
+	__shared__ DECNUM hutl[16][16];
+	__shared__ DECNUM hvmi[16][16];
 
 	uui[tx][ty]=uu[i];
 	uut[tx][ty]=uu[ix+yplus*nx];
@@ -833,7 +833,7 @@ __global__ void udvdx_adv2(int nx,int ny,float dx,float * hu,float * hvm,float *
 	hvmi[tx][ty]=hvm[i];
 
 
-	float qin,uudvdx;
+	DECNUM qin,uudvdx;
 
 	uudvdx=0.0f;
 	qin=0.5*(uul[tx][ty]*hul[tx][ty]+uutl[tx][ty]*hutl[tx][ty]);
@@ -853,7 +853,7 @@ __global__ void udvdx_adv2(int nx,int ny,float dx,float * hu,float * hvm,float *
 }
 
 
-__global__ void smago(int nx,int ny,float dx,float * uu, float * vv,float nuh, float * nuhgrid,int usesmago)
+__global__ void smago(int nx,int ny,DECNUM dx,DECNUM * uu, DECNUM * vv,DECNUM nuh, DECNUM * nuhgrid,int usesmago)
 {
 	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
 	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
@@ -863,7 +863,7 @@ __global__ void smago(int nx,int ny,float dx,float * uu, float * vv,float nuh, f
 	unsigned int yminus=mminus(iy,ny);
 	unsigned int yplus=pplus(iy,ny);
 
-	float dudx,dudy,dvdx,dvdy,tau;
+	DECNUM dudx,dudy,dvdx,dvdy,tau;
 	if (usesmago==1)
 	{
 		dudx=(uu[i]-uu[xminus+iy*nx])/dx;
@@ -883,7 +883,7 @@ __global__ void smago(int nx,int ny,float dx,float * uu, float * vv,float nuh, f
 
 }
 	
-__global__ void viscou(int nx,int ny,float dx,float rho,float eps,float nuhfac, float * nuhgrid,float *hh,float *hum,float *hvm,float * DR,float *uu,int * wetu,float * viscu)
+__global__ void viscou(int nx,int ny,DECNUM dx,DECNUM rho,DECNUM eps,DECNUM nuhfac, DECNUM * nuhgrid,DECNUM *hh,DECNUM *hum,DECNUM *hvm,DECNUM * DR,DECNUM *uu,int * wetu,DECNUM * viscu)
 {						
 	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
 	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
@@ -894,9 +894,9 @@ __global__ void viscou(int nx,int ny,float dx,float rho,float eps,float nuhfac, 
 	unsigned int yplus=pplus(iy,ny);
 
 	
-	float nuh=nuhgrid[i];
+	DECNUM nuh=nuhgrid[i];
 
-	float nnuh,dudx1,dudx2,dudy1,dudy2;
+	DECNUM nnuh,dudx1,dudx2,dudy1,dudy2;
 	
 	//if(ix>3)
 	//{
@@ -915,7 +915,7 @@ __global__ void viscou(int nx,int ny,float dx,float rho,float eps,float nuhfac, 
 //*wetu[xplus+iy*nx]*wetu[xplus+iy*nx]
 }
 
-__global__ void viscov(int nx,int ny,float dx,float rho,float eps,float nuhfac, float * nuhgrid,float *hh,float *hum,float *hvm,float * DR,float *vv,int * wetv,float * viscv)
+__global__ void viscov(int nx,int ny,DECNUM dx,DECNUM rho,DECNUM eps,DECNUM nuhfac, DECNUM * nuhgrid,DECNUM *hh,DECNUM *hum,DECNUM *hvm,DECNUM * DR,DECNUM *vv,int * wetv,DECNUM * viscv)
 {						
 	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
 	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
@@ -926,9 +926,9 @@ __global__ void viscov(int nx,int ny,float dx,float rho,float eps,float nuhfac, 
 	unsigned int yplus=pplus(iy,ny);
 
 	
-	float nuh=nuhgrid[i];
+	DECNUM nuh=nuhgrid[i];
 
-	float nnuh,dvdx1,dvdx2,dvdy1,dvdy2;
+	DECNUM nnuh,dvdx1,dvdx2,dvdy1,dvdy2;
 
 	nnuh=max(nuh,nuhfac*hh[i]*powf(DR[i]/rho,1.0f/3.0f));
 
@@ -940,7 +940,7 @@ __global__ void viscov(int nx,int ny,float dx,float rho,float eps,float nuhfac, 
 
 }
 
-__global__ void viscovbnd(int nx,int ny,float * viscv )
+__global__ void viscovbnd(int nx,int ny,DECNUM * viscv )
 {
 	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
 	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
@@ -962,7 +962,7 @@ __global__ void viscovbnd(int nx,int ny,float * viscv )
 
 
 
-__global__ void eulerustep(int nx,int ny,float dx,float dt,float g,float rho,float * zo,float fc,float windth,float windv,float Cd,float *uu,float * urms,float *ududx,float *vdudy,float *viscu,float *dzsdx,float *hu,float *hum,float *Fx,float *vu,float * ueu_g,float * vmageu,int *wetu)
+__global__ void eulerustep(int nx,int ny,DECNUM dx,DECNUM dt,DECNUM g,DECNUM rho,DECNUM * zo,DECNUM fc,DECNUM windth,DECNUM windv,DECNUM Cd,DECNUM *uu,DECNUM * urms,DECNUM *ududx,DECNUM *vdudy,DECNUM *viscu,DECNUM *dzsdx,DECNUM *hu,DECNUM *hum,DECNUM *Fx,DECNUM *vu,DECNUM * ueu_g,DECNUM * vmageu,int *wetu)
 {
 	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
 	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
@@ -970,9 +970,9 @@ __global__ void eulerustep(int nx,int ny,float dx,float dt,float g,float rho,flo
 	int tx =threadIdx.x;
 	int ty= threadIdx.y;
 
-	float ueu;
-	float taubx;
-	float hmin=0.2;
+	DECNUM ueu;
+	DECNUM taubx;
+	DECNUM hmin=0.2;
 	unsigned int xminus=mminus(ix,nx);
 	unsigned int xplus=pplus(ix,nx);
 	unsigned int yminus=mminus(iy,ny);
@@ -980,7 +980,7 @@ __global__ void eulerustep(int nx,int ny,float dx,float dt,float g,float rho,flo
 
 	
 
-	__shared__ float  uui[16][16];
+	__shared__ DECNUM  uui[16][16];
 	
 	uui[tx][ty]=uu[i];
 	ueu=ueu_g[i];
@@ -1012,7 +1012,7 @@ __global__ void eulerustep(int nx,int ny,float dx,float dt,float g,float rho,flo
 
 }
 
-__global__ void eulervstep(int nx,int ny,float dx,float dt,float g,float rho,float * zo,float fc,float windth,float windv,float Cd,float *vv,float * urms,float *udvdx,float *vdvdy,float *viscv,float *dzsdy,float *hv,float *hvm,float *Fy,float *uv,float * vev_g,float * vmagev,int *wetv)
+__global__ void eulervstep(int nx,int ny,DECNUM dx,DECNUM dt,DECNUM g,DECNUM rho,DECNUM * zo,DECNUM fc,DECNUM windth,DECNUM windv,DECNUM Cd,DECNUM *vv,DECNUM * urms,DECNUM *udvdx,DECNUM *vdvdy,DECNUM *viscv,DECNUM *dzsdy,DECNUM *hv,DECNUM *hvm,DECNUM *Fy,DECNUM *uv,DECNUM * vev_g,DECNUM * vmagev,int *wetv)
 {
 	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
 	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
@@ -1027,14 +1027,14 @@ __global__ void eulervstep(int nx,int ny,float dx,float dt,float g,float rho,flo
 	unsigned int yminus=mminus(iy,ny);
 	unsigned int yplus=pplus(iy,ny);
 
-	__shared__ float  vvi[16][16];
-	__shared__ float  urmsi[16][16];
-	__shared__ float  vmagvi[16][16];
-	__shared__ float  hvmi[16][16];
+	__shared__ DECNUM  vvi[16][16];
+	__shared__ DECNUM  urmsi[16][16];
+	__shared__ DECNUM  vmagvi[16][16];
+	__shared__ DECNUM  hvmi[16][16];
 
-	float tauby,vev;
+	DECNUM tauby,vev;
 
-	float hmin=0.2;
+	DECNUM hmin=0.2;
 
 	vvi[tx][ty]=vv[i];
 	urmsi[tx][ty]=urms[i];
@@ -1067,7 +1067,7 @@ __global__ void eulervstep(int nx,int ny,float dx,float dt,float g,float rho,flo
 
 
 
-__global__ void continuity(int nx,int ny,float dx,float dt,float eps,float * uu,float* hu,float* vv,float* hv,float* zs,float *hh,float *zb,float * dzsdt)
+__global__ void continuity(int nx,int ny,DECNUM dx,DECNUM dt,DECNUM eps,DECNUM * uu,DECNUM* hu,DECNUM* vv,DECNUM* hv,DECNUM* zs,DECNUM *hh,DECNUM *zb,DECNUM * dzsdt)
 {
 	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
 	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
@@ -1081,17 +1081,17 @@ __global__ void continuity(int nx,int ny,float dx,float dt,float eps,float * uu,
 	unsigned int yminus=mminus(iy,ny);
 	unsigned int yplus=pplus(iy,ny);
 
-	float qx,qy,qxm,qym,dzdt;
-	float zz;
+	DECNUM qx,qy,qxm,qym,dzdt;
+	DECNUM zz;
 	
-	__shared__ float uui[16][16];
-	__shared__ float uul[16][16];
-	__shared__ float vvi[16][16];
-	__shared__ float vvb[16][16];
-	__shared__ float hui[16][16];
-	__shared__ float hul[16][16];
-	__shared__ float hvi[16][16];
-	__shared__ float hvb[16][16];
+	__shared__ DECNUM uui[16][16];
+	__shared__ DECNUM uul[16][16];
+	__shared__ DECNUM vvi[16][16];
+	__shared__ DECNUM vvb[16][16];
+	__shared__ DECNUM hui[16][16];
+	__shared__ DECNUM hul[16][16];
+	__shared__ DECNUM hvi[16][16];
+	__shared__ DECNUM hvb[16][16];
 	
 	uui[tx][ty]=uu[i];
 	vvi[tx][ty]=vv[i];
@@ -1130,7 +1130,7 @@ __global__ void continuity(int nx,int ny,float dx,float dt,float eps,float * uu,
 	
 }
 
-__global__ void hsbnd(int nx,int ny,float eps,float * hh,float *zb,float *zs)
+__global__ void hsbnd(int nx,int ny,DECNUM eps,DECNUM * hh,DECNUM *zb,DECNUM *zs)
 {
 	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
 	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
@@ -1144,10 +1144,10 @@ __global__ void hsbnd(int nx,int ny,float eps,float * hh,float *zb,float *zs)
 	unsigned int yplus=pplus(iy,ny);
 	
 	
-	__shared__ float Fi[16][16];
-	__shared__ float Ft[16][16];
-	__shared__ float Fb[16][16];
-	__shared__ float Fr[16][16];
+	__shared__ DECNUM Fi[16][16];
+	__shared__ DECNUM Ft[16][16];
+	__shared__ DECNUM Fb[16][16];
+	__shared__ DECNUM Fr[16][16];
 
 	
 		Fi[tx][ty]=max(hh[i],eps);
@@ -1164,7 +1164,7 @@ __global__ void hsbnd(int nx,int ny,float eps,float * hh,float *zb,float *zs)
 
 }
 
-__global__ void uvlatbnd(int nx,int ny,float * vu,float * uv,float * ueu,float * vev,float * vmageu,float * vmagev)
+__global__ void uvlatbnd(int nx,int ny,DECNUM * vu,DECNUM * uv,DECNUM * ueu,DECNUM * vev,DECNUM * vmageu,DECNUM * vmagev)
 {
 	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
 	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
@@ -1177,18 +1177,18 @@ __global__ void uvlatbnd(int nx,int ny,float * vu,float * uv,float * ueu,float *
 	unsigned int yminus=mminus(iy,ny);
 	unsigned int yplus=pplus(iy,ny);
 
-	__shared__ float vut[16][16];
-	__shared__ float vub[16][16];
-	__shared__ float uvt[16][16];
-	__shared__ float uvb[16][16];
-	__shared__ float ueub[16][16];
-	__shared__ float ueut[16][16];
-	__shared__ float vevt[16][16];
-	__shared__ float vevb[16][16];
-	__shared__ float vmagevt[16][16];
-	__shared__ float vmagevb[16][16];
-	__shared__ float vmageut[16][16];
-	__shared__ float vmageub[16][16];
+	__shared__ DECNUM vut[16][16];
+	__shared__ DECNUM vub[16][16];
+	__shared__ DECNUM uvt[16][16];
+	__shared__ DECNUM uvb[16][16];
+	__shared__ DECNUM ueub[16][16];
+	__shared__ DECNUM ueut[16][16];
+	__shared__ DECNUM vevt[16][16];
+	__shared__ DECNUM vevb[16][16];
+	__shared__ DECNUM vmagevt[16][16];
+	__shared__ DECNUM vmagevb[16][16];
+	__shared__ DECNUM vmageut[16][16];
+	__shared__ DECNUM vmageub[16][16];
 
 	uvt[tx][ty]=uv[ix+yplus*nx];
 	uvb[tx][ty]=uv[ix+yminus*nx];
@@ -1225,7 +1225,7 @@ __global__ void uvlatbnd(int nx,int ny,float * vu,float * uv,float * ueu,float *
 }
 
 
-__global__ void uuvvzslatbnd(int nx,int ny,float * uu,float * vv,float *zs)
+__global__ void uuvvzslatbnd(int nx,int ny,DECNUM * uu,DECNUM * vv,DECNUM *zs)
 {
 	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
 	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
@@ -1238,14 +1238,14 @@ __global__ void uuvvzslatbnd(int nx,int ny,float * uu,float * vv,float *zs)
 	unsigned int yminus=mminus(iy,ny);
 	unsigned int yplus=pplus(iy,ny);
 	
-	__shared__ float vvr[16][16];
-	__shared__ float vvb[16][16];
-	__shared__ float vvt[16][16];
-	__shared__ float uut[16][16];
-	__shared__ float uub[16][16];
-	__shared__ float zst[16][16];
-	__shared__ float zsb[16][16];
-	__shared__ float zsl[16][16];
+	__shared__ DECNUM vvr[16][16];
+	__shared__ DECNUM vvb[16][16];
+	__shared__ DECNUM vvt[16][16];
+	__shared__ DECNUM uut[16][16];
+	__shared__ DECNUM uub[16][16];
+	__shared__ DECNUM zst[16][16];
+	__shared__ DECNUM zsb[16][16];
+	__shared__ DECNUM zsl[16][16];
 	
 	
 
@@ -1270,14 +1270,14 @@ __global__ void uuvvzslatbnd(int nx,int ny,float * uu,float * vv,float *zs)
 		if (iy==ny-1)
 		{
 			uu[i]=uub[tx][ty];
-			vv[i]=0.0f;//vvb[tx][ty];// THis is to follow XBeach definition although I don't really agree with it
+			vv[i]=vvb[tx][ty];// THis is to follow XBeach definition although I don't really agree with it
 			zs[i]=zsb[tx][ty];
 		}
-		if (iy==ny-2)
-		{
-			vv[i]=vvb[tx][ty];// THis is to follow XBeach definition although I don't really agree with it 
-							  // It should be that vv(i,ny-1)=vv(i,ny-2) end of story
-		}
+//		if (iy==ny-2)
+//		{
+//			vv[i]=vvb[tx][ty];// THis is to follow XBeach definition although I don't really agree with it 
+//							  // It should be that vv(i,ny-1)=vv(i,ny-2) end of story
+//		}
 		if (ix==0)
 		{
 			//vv[i]=vvr[tx][ty];//Imcompatible with abs_2d front boundary 

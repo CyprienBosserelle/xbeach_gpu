@@ -19,12 +19,12 @@
 
 #define pi 3.14159265
 
-// declare texture reference for 2D float texture
-//texture<float, 2, cudaReadModeElementType> texU;
-//texture<float, 2, cudaReadModeElementType> texV;
-//texture<float, 2, cudaReadModeElementType> texZ;
+// declare texture reference for 2D DECNUM texture
+//texture<DECNUM, 2, cudaReadModeElementType> texU;
+//texture<DECNUM, 2, cudaReadModeElementType> texV;
+//texture<DECNUM, 2, cudaReadModeElementType> texZ;
 
-__global__ void longturb(int nx, int ny,float dx, float rho,float g,float dt,float beta,float * c,float *kturb,float * rolthick,float *dzsdt,float * uu,float *vv, float *hu, float *hv,int * wetu, int * wetv,float *h)
+__global__ void longturb(int nx, int ny,DECNUM dx, DECNUM rho,DECNUM g,DECNUM dt,DECNUM beta,DECNUM * c,DECNUM *kturb,DECNUM * rolthick,DECNUM *dzsdt,DECNUM * uu,DECNUM *vv, DECNUM *hu, DECNUM *hv,int * wetu, int * wetv,DECNUM *h)
 {
 	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
 	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
@@ -38,27 +38,27 @@ __global__ void longturb(int nx, int ny,float dx, float rho,float g,float dt,flo
 	unsigned int yplus=pplus(iy,ny);
 	
 	
-	__shared__ float  uui[16][16];
-	__shared__ float  uul[16][16];
-	__shared__ float  vvi[16][16];
-	__shared__ float  vvb[16][16];
-	__shared__ float kturbi[16][16];
-	__shared__ float kturbl[16][16];
-	__shared__ float kturbr[16][16];
-	__shared__ float kturbb[16][16];
-	__shared__ float kturbt[16][16];
+	__shared__ DECNUM  uui[16][16];
+	__shared__ DECNUM  uul[16][16];
+	__shared__ DECNUM  vvi[16][16];
+	__shared__ DECNUM  vvb[16][16];
+	__shared__ DECNUM kturbi[16][16];
+	__shared__ DECNUM kturbl[16][16];
+	__shared__ DECNUM kturbr[16][16];
+	__shared__ DECNUM kturbb[16][16];
+	__shared__ DECNUM kturbt[16][16];
 
 	// use lagrangian velocities
-    float kturbu= 0.0f;  
-    float kturbv= 0.0f;
-	float dzsdt_cr=beta*c[i];
-	float kkturb;
-	float kturbumin,kturbvmin;
-	float Sturbu,Sturbv,Sturbumin,Sturbvmin;
-	float ksource,rolth;
-	float betad=1.0f;
+    DECNUM kturbu= 0.0f;  
+    DECNUM kturbv= 0.0f;
+	DECNUM dzsdt_cr=beta*c[i];
+	DECNUM kkturb;
+	DECNUM kturbumin,kturbvmin;
+	DECNUM Sturbu,Sturbv,Sturbumin,Sturbvmin;
+	DECNUM ksource,rolth;
+	DECNUM betad=1.0f;
 
-	float hold=h[i]-dzsdt[i]*dt;
+	DECNUM hold=h[i]-dzsdt[i]*dt;
 	
 	kturbi[tx][ty]=kturb[i];
 	kturbr[tx][ty]=kturb[xplus+iy*nx];
@@ -159,7 +159,7 @@ __global__ void longturb(int nx, int ny,float dx, float rho,float g,float dt,flo
 
 }
 
-__global__ void Sbvr(int nx, int ny, float rho,float g,float eps, float Trep,float D50, float D90, float rhosed,float ws,float nuhfac,float * ueu, float * vev,float *H,float * DR,float * R, float * c,float * hh,float *urms,float * ceqsg,float * ceqbg, float *Tsg, float *zom, float * kturb)
+__global__ void Sbvr(int nx, int ny, DECNUM rho,DECNUM g,DECNUM eps, DECNUM Trep,DECNUM D50, DECNUM D90, DECNUM rhosed,DECNUM ws,DECNUM nuhfac,DECNUM * ueu, DECNUM * vev,DECNUM *H,DECNUM * DR,DECNUM * R, DECNUM * c,DECNUM * hh,DECNUM *urms,DECNUM * ceqsg,DECNUM * ceqbg, DECNUM *Tsg, DECNUM *zom, DECNUM * kturb)
 {
 	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
 	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
@@ -175,27 +175,27 @@ __global__ void Sbvr(int nx, int ny, float rho,float g,float eps, float Trep,flo
 
 	
 
-	__shared__ float  hhi[16][16];
-	//__shared__ float  Hi[16][16];
-	__shared__ float  ueui[16][16];
-	__shared__ float  ueul[16][16];
-	__shared__ float  vevi[16][16];
-	__shared__ float  vevb[16][16];
+	__shared__ DECNUM  hhi[16][16];
+	//__shared__ DECNUM  Hi[16][16];
+	__shared__ DECNUM  ueui[16][16];
+	__shared__ DECNUM  ueul[16][16];
+	__shared__ DECNUM  vevi[16][16];
+	__shared__ DECNUM  vevb[16][16];
 	
-	float ue,ve;
+	DECNUM ue,ve;
 	
-	float vmags,vmag,ML,Tbore,dcfin,dcf,kb,Urms2;
-	float B2,T1,Ucrc,Ucrw,Ucr,Ass,Asb,Cd,ceqb,ceqs;
-	//float D50=0.0038;
-	//float D90=0.0053;
-	float zo=0.006f;//zom[i];
-	float sedcal=1.0f;
+	DECNUM vmags,vmag,ML,Tbore,dcfin,dcf,kb,Urms2;
+	DECNUM B2,T1,Ucrc,Ucrw,Ucr,Ass,Asb,Cd,ceqb,ceqs;
+	//DECNUM D50=0.0038;
+	//DECNUM D90=0.0053;
+	DECNUM zo=0.006f;//zom[i];
+	DECNUM sedcal=1.0f;
 	int wetz;
-	float bulk=1.0f;//1.0f;
+	DECNUM bulk=1.0f;//1.0f;
 	
-	//float rhosed=2500; //Sediment density
-	float drho = (rhosed-rho)/rho;
-	float dester= powf(drho*g,1.0f/3.0f)/0.0001f*D50; //1.19e-4 comes from (Kb^2)^1/3 with Kb = 1.3e-6 m2s-2 kinematic viscosity of water
+	//DECNUM rhosed=2500; //Sediment density
+	DECNUM drho = (rhosed-rho)/rho;
+	DECNUM dester= powf(drho*g,1.0f/3.0f)/0.0001f*D50; //1.19e-4 comes from (Kb^2)^1/3 with Kb = 1.3e-6 m2s-2 kinematic viscosity of water
 	// Calc euler velocities at cell center
 	hhi[tx][ty]=max(hh[i],0.01f);;
 	ueui[tx][ty]=ueu[i];
@@ -232,9 +232,9 @@ __global__ void Sbvr(int nx, int ny, float rho,float g,float eps, float Trep,flo
 	
 		
 
-	float tsfac=0.1f;
-	//float ws=0.0509f;
-	float Tsmin=0.5f;
+	DECNUM tsfac=0.1f;
+	//DECNUM ws=0.0509f;
+	DECNUM Tsmin=0.5f;
 	Tsg[i]=max(tsfac*hhi[tx][ty]/ws,Tsmin); //should be different for each sediment class
 
 	
@@ -257,7 +257,7 @@ __global__ void Sbvr(int nx, int ny, float rho,float g,float eps, float Trep,flo
 	}
 
 	//drag coeff
-	float hdrag=max(hhi[tx][ty],10.0f*zo);
+	DECNUM hdrag=max(hhi[tx][ty],10.0f*zo);
 	Cd=0.4f/(logf(hdrag/zo)-1.0f);
 	Cd=Cd*Cd;
 
@@ -266,7 +266,7 @@ __global__ void Sbvr(int nx, int ny, float rho,float g,float eps, float Trep,flo
 	Asb=0.005f*hhi[tx][ty]*powf(1/hhi[tx][ty]/(drho*g),1.2f);//simplified from above to limit the propagation of round of error with D50
 
 	//Suspended Sediment
-	Ass=0.012f*D50*pow(dester,-0.6f)/(powf(drho*g*D50,1.2f));
+	Ass=0.012f*D50*powf(dester,-0.6f)/(powf(drho*g*D50,1.2f));
 	
 
 	
@@ -291,7 +291,7 @@ __global__ void Sbvr(int nx, int ny, float rho,float g,float eps, float Trep,flo
 	}
 
    
-	float T2;
+	DECNUM T2;
 	T2=0.0f;
 	
 	if(T1>Ucr && hhi[tx][ty]>eps)
@@ -315,7 +315,7 @@ __global__ void Sbvr(int nx, int ny, float rho,float g,float eps, float Trep,flo
 }
 
 
-__global__ void Sednew(int nx, int ny, float rho,float g,float eps, float Trep,float D50, float D90, float rhosed,float ws,float nuhfac,float * ueu, float * vev,float *H,float * DR,float * R, float * c,float * hh,float *urms,float * ceqsg,float * ceqbg, float *Tsg, float *zom, float * kturb)
+__global__ void Sednew(int nx, int ny, DECNUM rho,DECNUM g,DECNUM eps, DECNUM Trep,DECNUM D50, DECNUM D90, DECNUM rhosed,DECNUM ws,DECNUM nuhfac,DECNUM * ueu, DECNUM * vev,DECNUM *H,DECNUM * DR,DECNUM * R, DECNUM * c,DECNUM * hh,DECNUM *urms,DECNUM * ceqsg,DECNUM * ceqbg, DECNUM *Tsg, DECNUM *zom, DECNUM * kturb)
 {
 	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
 	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
@@ -331,27 +331,27 @@ __global__ void Sednew(int nx, int ny, float rho,float g,float eps, float Trep,f
 
 	
 
-	__shared__ float  hhi[16][16];
-	//__shared__ float  Hi[16][16];
-	__shared__ float  ueui[16][16];
-	__shared__ float  ueul[16][16];
-	__shared__ float  vevi[16][16];
-	__shared__ float  vevb[16][16];
+	__shared__ DECNUM  hhi[16][16];
+	//__shared__ DECNUM  Hi[16][16];
+	__shared__ DECNUM  ueui[16][16];
+	__shared__ DECNUM  ueul[16][16];
+	__shared__ DECNUM  vevi[16][16];
+	__shared__ DECNUM  vevb[16][16];
 	
-	float ue,ve;
+	DECNUM ue,ve;
 	
-	float vmags,vmag,ML,Tbore,dcfin,dcf,kb,Urms2;
-	float B2,T1,Ucrc,Ucrw,Ucr,Ass,Asb,Cd,ceqb,ceqs;
-	//float D50=0.0038;
-	//float D90=0.0053;
-	float zo=zom[i];
-	float sedcal=1.0f;
+	DECNUM vmags,vmag,ML,Tbore,dcfin,dcf,kb,Urms2;
+	DECNUM B2,T1,Ucrc,Ucrw,Ucr,Ass,Asb,Cd,ceqb,ceqs;
+	//DECNUM D50=0.0038;
+	//DECNUM D90=0.0053;
+	DECNUM zo=zom[i];
+	DECNUM sedcal=1.0f;
 	int wetz;
-	float bulk=1.0f;
+	DECNUM bulk=1.0f;
 	
-	//float rhosed=25000; //Sediment density
-	float drho = (rhosed-rho)/rho;
-	float dester= powf(drho*g,1.0f/3.0f)/0.0001*D50;
+	//DECNUM rhosed=25000; //Sediment density
+	DECNUM drho = (rhosed-rho)/rho;
+	DECNUM dester= powf(drho*g,1.0f/3.0f)/0.0001*D50;
 	// Calc euler velocities at cell center
 	hhi[tx][ty]=hh[i];
 	ueui[tx][ty]=ueu[i];
@@ -385,14 +385,14 @@ __global__ void Sednew(int nx, int ny, float rho,float g,float eps, float Trep,f
 	kb=nuhfac*powf(DR[i]/rho,0.6666667f)*dcf;
 	
 	Urms2=urms[i]*urms[i]+1.45f*(kb+kturb[i]);//not been tested yet!!!
-	//float dester=rhosed*D50;//dester=25296*D50;
-	//float dster=(drho*g/1.0f-12)**onethird*s%D50(jg) 
-	float tsfac=0.1f;
-	//float ws=0.043f;
-	float Tsmin=0.5f;
+	//DECNUM dester=rhosed*D50;//dester=25296*D50;
+	//DECNUM dster=(drho*g/1.0f-12)**onethird*s%D50(jg) 
+	DECNUM tsfac=0.1f;
+	//DECNUM ws=0.043f;
+	DECNUM Tsmin=0.5f;
 	Tsg[i]=max(tsfac*hhi[tx][ty]/ws,Tsmin); //should be different for each sediment class
 
-	//float Ucrc,Ucrw;
+	//DECNUM Ucrc,Ucrw;
 	if (D50<=0.0005)
 	{
 		Ucrc=powf(0.19f*D50,0.10f)*log10f(4.0f*hhi[tx][ty]/D90);
@@ -401,10 +401,10 @@ __global__ void Sednew(int nx, int ny, float rho,float g,float eps, float Trep,f
 	if (D50<0.002 && D50>0.0005)
 	{
 	//critical U due to current
-	Ucrc=8.5f*pow(D50,0.6f)*log(4.0f*hhi[tx][ty]/D90)/log(10.0f);//Shields
+	Ucrc=8.5f*powf(D50,0.6f)*log(4.0f*hhi[tx][ty]/D90)/log(10.0f);//Shields
 	
 	//Critical U due to Waves
-	Ucrw=0.95f*pow(1.65f*g,0.57f)*pow(D50,0.43f)*pow(Trep,0.14f);//Komar and Miller 1975
+	Ucrw=0.95f*powf(1.65f*g,0.57f)*powf(D50,0.43f)*powf(Trep,0.14f);//Komar and Miller 1975
 	}
 
 
@@ -416,7 +416,7 @@ __global__ void Sednew(int nx, int ny, float rho,float g,float eps, float Trep,f
 	Asb=0.015f*hhi[tx][ty]*powf(D50/hhi[tx][ty],1.2f)/powf(drho*g*D50,0.75f);
 
 	//Suspended Sediment
-	Ass=0.012f*D50*pow(dester,-0.6f)/(powf(drho*g*D50,1.2f));
+	Ass=0.012f*D50*powf(dester,-0.6f)/(powf(drho*g*D50,1.2f));
 	
 	//
 	T1=vmags+0.64f*Urms2;
@@ -438,7 +438,7 @@ __global__ void Sednew(int nx, int ny, float rho,float g,float eps, float Trep,f
 	}
 
    
-	float T2;
+	DECNUM T2;
 	T2=0.0f;
 	
 	if(T1>Ucr && hhi[tx][ty]>eps)
@@ -458,24 +458,24 @@ __global__ void Sednew(int nx, int ny, float rho,float g,float eps, float Trep,f
 
 
 
-__global__ void Rvr(int nx, int ny,float Trep,float facsk,float facas,float * H, float * hh, float * urms, float * c, float *ua)
+__global__ void Rvr(int nx, int ny,DECNUM Trep,DECNUM facsk,DECNUM facas,DECNUM * H, DECNUM * hh, DECNUM * urms, DECNUM * c, DECNUM *ua)
 {
 	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
 	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
 	unsigned int i=ix+iy*nx;
 	// time averaged flows due to wave asymmetry
 	
-	float m1 = 0.0f;       // a = 0
-float m2 = 0.7939f;  // b = 0.79 +/- 0.023
-float m3 = -0.6065f; // c = -0.61 +/- 0.041
-float m4 = 0.3539f;  // d = -0.35 +/- 0.032 
-float m5 = 0.6373f;  // e = 0.64 +/- 0.025
-float m6 = 0.5995f;  // f = 0.60 +/- 0.043
-float alpha = -1.0f*log10(exp(1.0f))/m4;
-float beta  = exp(m3/m4);
-float k=2*pi/(c[i]*Trep);
+	DECNUM m1 = 0.0f;       // a = 0
+DECNUM m2 = 0.7939f;  // b = 0.79 +/- 0.023
+DECNUM m3 = -0.6065f; // c = -0.61 +/- 0.041
+DECNUM m4 = 0.3539f;  // d = -0.35 +/- 0.032 
+DECNUM m5 = 0.6373f;  // e = 0.64 +/- 0.025
+DECNUM m6 = 0.5995f;  // f = 0.60 +/- 0.043
+DECNUM alpha = -1.0f*log10(exp(1.0f))/m4;
+DECNUM beta  = exp(m3/m4);
+DECNUM k=2*pi/(c[i]*Trep);
 
-float Ur,Bm,B1,Sk,As;
+DECNUM Ur,Bm,B1,Sk,As;
 //	if (abs(facua)>0.d0f)
 //	{
    Ur = 3.0f/8.0f*sqrt(2.0f)*H[i]*k/powf(k*hh[i],3.0f);                  //Ursell number
@@ -488,16 +488,16 @@ float Ur,Bm,B1,Sk,As;
 //	}
 }
 
-__global__ void Erosus(int nx, int ny, float dt,float morfac,float por ,float * hh,float * ceqsg,float * ceqbg, float *Tsg, float * facero, float * structdepth)
+__global__ void Erosus(int nx, int ny, DECNUM dt,DECNUM morfac,DECNUM por ,DECNUM * hh,DECNUM * ceqsg,DECNUM * ceqbg, DECNUM *Tsg, DECNUM * facero, DECNUM * structdepth)
 {
 	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
 	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
 	unsigned int i=ix+iy*nx;
 	
-	//float morfac=0.0f; //Morphological factor 0.0= no bed update 1.0= normal bed update >1.0= enhance bed update
-	//float por=0.4f;
-	float pbbed=1.0f;// sand fraction everywhere
-	float exp_ero;
+	//DECNUM morfac=0.0f; //Morphological factor 0.0= no bed update 1.0= normal bed update >1.0= enhance bed update
+	//DECNUM por=0.4f;
+	DECNUM pbbed=1.0f;// sand fraction everywhere
+	DECNUM exp_ero;
 	//to be done for each sediment class
 
 	
@@ -507,7 +507,7 @@ __global__ void Erosus(int nx, int ny, float dt,float morfac,float por ,float * 
 }
 
 
-__global__ void Susp(int nx, int ny,float dx, float eps, float nuh,float nuhfac, float rho,float sus,float bed,float * ueu,float * vev,float * uu,float * uvg,float * hug,float * vv,float *vug,float *hvg,float * zb,float *h,float * DR, float * C,float * ceqbg,float * Sus, float * Svs,float * Sub, float * Svb,float * thetamean,float * ua)
+__global__ void Susp(int nx, int ny,DECNUM dx, DECNUM eps, DECNUM nuh,DECNUM nuhfac, DECNUM rho,DECNUM sus,DECNUM bed,DECNUM * ueu,DECNUM * vev,DECNUM * uu,DECNUM * uvg,DECNUM * hug,DECNUM * vv,DECNUM *vug,DECNUM *hvg,DECNUM * zb,DECNUM *h,DECNUM * DR, DECNUM * C,DECNUM * ceqbg,DECNUM * Sus, DECNUM * Svs,DECNUM * Sub, DECNUM * Svb,DECNUM * thetamean,DECNUM * ua)
 {
 
 	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
@@ -517,46 +517,46 @@ __global__ void Susp(int nx, int ny,float dx, float eps, float nuh,float nuhfac,
 	int ty= threadIdx.y;
 
 
-	float cu,cv,Dc,dcsdx,dcsdy,hu,hv;
-	float dzbdx,dzbdy;
-	float wetu,wetv;
+	DECNUM cu,cv,Dc,dcsdx,dcsdy,hu,hv;
+	DECNUM dzbdx,dzbdy;
+	DECNUM wetu,wetv;
 	
-	float vmagu, vmagv;
-	float uau,uav;
-	float uv,vu;
-	float cub,cvb;
+	DECNUM vmagu, vmagv;
+	DECNUM uau,uav;
+	DECNUM uv,vu;
+	DECNUM cub,cvb;
 	
-	//float sus=1.0f;
-	//float bed=1.0f;
+	//DECNUM sus=1.0f;
+	//DECNUM bed=1.0f;
 	
-	float pbbed=1.0f; // WARNING sand fraction every where
+	DECNUM pbbed=1.0f; // WARNING sand fraction every where
 	
-	float facsl=1.6f; // between 0 and 1.6 tke into account the bed slope in bed load calculations
-	float urep,vrep;
+	DECNUM facsl=1.6f; // between 0 and 1.6 tke into account the bed slope in bed load calculations
+	DECNUM urep,vrep;
 	unsigned int xminus=mminus(ix,nx);
 	unsigned int xplus=pplus(ix,nx);
 	unsigned int yminus=mminus(iy,ny);
 	unsigned int yplus=pplus(iy,ny);
 	
-	__shared__ float  cci[16][16];
-	__shared__ float  ccr[16][16];
-	__shared__ float  cct[16][16];
+	__shared__ DECNUM  cci[16][16];
+	__shared__ DECNUM  ccr[16][16];
+	__shared__ DECNUM  cct[16][16];
 
 
-	__shared__ float  cbi[16][16];
-	__shared__ float  cbr[16][16];
-	__shared__ float  cbt[16][16];
+	__shared__ DECNUM  cbi[16][16];
+	__shared__ DECNUM  cbr[16][16];
+	__shared__ DECNUM  cbt[16][16];
 
-	__shared__ float hhi[16][16];
+	__shared__ DECNUM hhi[16][16];
 	
-	__shared__ float zbi[16][16];
-	__shared__ float zbr[16][16];
-	__shared__ float zbt[16][16];
+	__shared__ DECNUM zbi[16][16];
+	__shared__ DECNUM zbr[16][16];
+	__shared__ DECNUM zbt[16][16];
 	
-	__shared__ float uui[16][16];
+	__shared__ DECNUM uui[16][16];
 
 	
-	__shared__ float vvi[16][16];
+	__shared__ DECNUM vvi[16][16];
 
 	
 	
@@ -689,7 +689,7 @@ __global__ void Susp(int nx, int ny,float dx, float eps, float nuh,float nuhfac,
 
 
 
-__global__ void Conc(int nx, int ny, float dx, float dt,float eps,float * hh,float * C, float * ceqsg, float *Tsg,float *facero,float * ero,float * depo,float * Sus,float *Svs)
+__global__ void Conc(int nx, int ny, DECNUM dx, DECNUM dt,DECNUM eps,DECNUM * hh,DECNUM * C, DECNUM * ceqsg, DECNUM *Tsg,DECNUM *facero,DECNUM * ero,DECNUM * depo,DECNUM * Sus,DECNUM *Svs)
 {
 	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
 	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
@@ -702,14 +702,14 @@ __global__ void Conc(int nx, int ny, float dx, float dt,float eps,float * hh,flo
 	unsigned int yminus=mminus(iy,ny);
 	unsigned int yplus=pplus(iy,ny);
 
-	__shared__ float  Susi[16][16];
-	__shared__ float  Susl[16][16];
-	__shared__ float  Svsi[16][16];
-	__shared__ float  Svsb[16][16];
-	__shared__ float  hhi[16][16];
+	__shared__ DECNUM  Susi[16][16];
+	__shared__ DECNUM  Susl[16][16];
+	__shared__ DECNUM  Svsi[16][16];
+	__shared__ DECNUM  Svsb[16][16];
+	__shared__ DECNUM  hhi[16][16];
 
-	float cs,dsusdx,dsvsdy,wetz;
-	float Pbed=1.0f;
+	DECNUM cs,dsusdx,dsvsdy,wetz;
+	DECNUM Pbed=1.0f;
 	
 	hhi[tx][ty]=hh[i];
 
@@ -746,7 +746,7 @@ __global__ void Conc(int nx, int ny, float dx, float dt,float eps,float * hh,flo
 }
 
 
-__global__ void CClatbnd(int nx, int ny,float eps,float * hh,float * C)
+__global__ void CClatbnd(int nx, int ny,DECNUM eps,DECNUM * hh,DECNUM * C)
 {
 	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
 	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
@@ -758,10 +758,10 @@ __global__ void CClatbnd(int nx, int ny,float eps,float * hh,float * C)
 	unsigned int yminus=mminus(iy,ny);
 	unsigned int yplus=pplus(iy,ny);
 
-	__shared__ float cci[16][16];
-	__shared__ float cct[16][16];
-	__shared__ float ccb[16][16];
-	__shared__ float ccr[16][16];
+	__shared__ DECNUM cci[16][16];
+	__shared__ DECNUM cct[16][16];
+	__shared__ DECNUM ccb[16][16];
+	__shared__ DECNUM ccr[16][16];
 
 	//cci[tx][ty]=C[i];
 	//cct[tx][ty]=C[ix+yplus*nx];
@@ -789,7 +789,7 @@ __global__ void CClatbnd(int nx, int ny,float eps,float * hh,float * C)
 
 }
 
-__global__ void hardlayer(int nx, int ny,float dx,float dt,float * Sub, float * Svb, float * Sout, int * indSub,int * indSvb)
+__global__ void hardlayer(int nx, int ny,DECNUM dx,DECNUM dt,DECNUM * Sub, DECNUM * Svb, DECNUM * Sout, int * indSub,int * indSvb)
 {
 
 	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
@@ -802,11 +802,11 @@ __global__ void hardlayer(int nx, int ny,float dx,float dt,float * Sub, float * 
 	unsigned int yminus=mminus(iy,ny);
 	unsigned int yplus=pplus(iy,ny);
 	
-	__shared__ float  Subi[16][16];
-	__shared__ float  Subl[16][16];
-	__shared__ float  Svbi[16][16];
-	__shared__ float  Svbb[16][16];
-	__shared__ float  Souti[16][16];
+	__shared__ DECNUM  Subi[16][16];
+	__shared__ DECNUM  Subl[16][16];
+	__shared__ DECNUM  Svbi[16][16];
+	__shared__ DECNUM  Svbb[16][16];
+	__shared__ DECNUM  Souti[16][16];
 	
 	Subi[tx][ty]=Sub[i];
 	Subl[tx][ty]=Sub[xminus+iy*nx];
@@ -842,7 +842,7 @@ __global__ void hardlayer(int nx, int ny,float dx,float dt,float * Sub, float * 
 
 }
 
-__global__ void bedupdate(int nx, int ny,float eps,float dx,float dt,float morfac,float por ,float * hh,float * ero,float * depo,float * Sub, float * Svb,float * Sout, int * indSub,int * indSvb, float * zb, float *ddzb,float * structdepth)
+__global__ void bedupdate(int nx, int ny,DECNUM eps,DECNUM dx,DECNUM dt,DECNUM morfac,DECNUM por ,DECNUM * hh,DECNUM * ero,DECNUM * depo,DECNUM * Sub, DECNUM * Svb,DECNUM * Sout, int * indSub,int * indSvb, DECNUM * zb, DECNUM *ddzb,DECNUM * structdepth)
 {
 	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
 	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
@@ -854,18 +854,18 @@ __global__ void bedupdate(int nx, int ny,float eps,float dx,float dt,float morfa
 	unsigned int yminus=mminus(iy,ny);
 	unsigned int yplus=pplus(iy,ny);
 	
-	float oldzb=zb[i];
-	float fac;
-	float Savailable;
-	float pbbed=1.0f;
+	DECNUM oldzb=zb[i];
+	DECNUM fac;
+	DECNUM Savailable;
+	DECNUM pbbed=1.0f;
 	
 	
 	
 	
-	__shared__ float  Subi[16][16];
-	__shared__ float  Subl[16][16];
-	__shared__ float  Svbi[16][16];
-	__shared__ float  Svbb[16][16];
+	__shared__ DECNUM  Subi[16][16];
+	__shared__ DECNUM  Subl[16][16];
+	__shared__ DECNUM  Svbi[16][16];
+	__shared__ DECNUM  Svbb[16][16];
 	
 	__shared__ int indSubi[16][16];
 	__shared__ int indSubl[16][16];
@@ -909,7 +909,7 @@ __global__ void bedupdate(int nx, int ny,float eps,float dx,float dt,float morfa
 
 
 	
-	float dzg;
+	DECNUM dzg;
 	
 	
 	 dzg=morfac*dt/(1.0f-por)*(ero[i]-depo[i] /*+ (Subi[tx][ty]-Subl[tx][ty])/dx + (Svbi[tx][ty]-Svbb[tx][ty])/dx*/);
@@ -927,7 +927,7 @@ __global__ void bedupdate(int nx, int ny,float eps,float dx,float dt,float morfa
 
 
 
-__global__ void zblatbnd(int nx,int ny,float * F)
+__global__ void zblatbnd(int nx,int ny,DECNUM * F)
 {
 	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
 	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
@@ -941,10 +941,10 @@ __global__ void zblatbnd(int nx,int ny,float * F)
 	unsigned int yplus=pplus(iy,ny);
 	
 	
-	//__shared__ float Fi[16][16];
-	//__shared__ float Ft[16][16];
-	//__shared__ float Fb[16][16];
-	//__shared__ float Fr[16][16];
+	//__shared__ DECNUM Fi[16][16];
+	//__shared__ DECNUM Ft[16][16];
+	//__shared__ DECNUM Fb[16][16];
+	//__shared__ DECNUM Fr[16][16];
 	
 	
 
@@ -975,7 +975,7 @@ __global__ void zblatbnd(int nx,int ny,float * F)
 
 }
 
-__global__ void avalanching(int nx, int ny,float eps,float dx,float dt,float por,float drydzmax,float wetdzmax,float maxslpchg,float * hh,float * zb,float * dzb,float * structdepth)
+__global__ void avalanching(int nx, int ny,DECNUM eps,DECNUM dx,DECNUM dt,DECNUM por,DECNUM drydzmax,DECNUM wetdzmax,DECNUM maxslpchg,DECNUM * hh,DECNUM * zb,DECNUM * dzb,DECNUM * structdepth)
 {
 	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
 	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
@@ -989,17 +989,17 @@ __global__ void avalanching(int nx, int ny,float eps,float dx,float dt,float por
 	unsigned int yplus=pplus(iy,ny);
 	
 	
-	__shared__ float Zbi[16][16];
-	__shared__ float Zbt[16][16];
-	__shared__ float Zbr[16][16];
+	__shared__ DECNUM Zbi[16][16];
+	__shared__ DECNUM Zbt[16][16];
+	__shared__ DECNUM Zbr[16][16];
 	
-	__shared__ float dzbi[16][16];
-	__shared__ float dzbt[16][16];
-	__shared__ float dzbr[16][16];
+	__shared__ DECNUM dzbi[16][16];
+	__shared__ DECNUM dzbt[16][16];
+	__shared__ DECNUM dzbr[16][16];
 	
-	__shared__ float stdepi[16][16];
-	__shared__ float stdept[16][16];
-	__shared__ float stdepr[16][16];
+	__shared__ DECNUM stdepi[16][16];
+	__shared__ DECNUM stdept[16][16];
+	__shared__ DECNUM stdepr[16][16];
 	
 	
 	Zbi[tx][ty]=zb[i];
@@ -1015,12 +1015,12 @@ __global__ void avalanching(int nx, int ny,float eps,float dx,float dt,float por
 	stdepr[tx][ty]=structdepth[xplus+iy*nx];
 	__syncthreads;
 	
-	float dzmaxdry=drydzmax;//1.0; // critical avalanching slope above water (dzbdx)
-	float dzmaxwet=wetdzmax;//0.3; // critical avalanching slope under water
-	float maxchg=maxslpchg;//0.05; // 0.05max bedlavel change due to Avalanching in m/s/m This avoid generatng tsunamis from avalanching
-	float dzbdx,dzbdy,dzmax,dzbdxsign,dzbdysign;
-	float dzbx=0.0f;
-	float dzby=0.0f;
+	DECNUM dzmaxdry=drydzmax;//1.0; // critical avalanching slope above water (dzbdx)
+	DECNUM dzmaxwet=wetdzmax;//0.3; // critical avalanching slope under water
+	DECNUM maxchg=maxslpchg;//0.05; // 0.05max bedlavel change due to Avalanching in m/s/m This avoid generatng tsunamis from avalanching
+	DECNUM dzbdx,dzbdy,dzmax,dzbdxsign,dzbdysign;
+	DECNUM dzbx=0.0f;
+	DECNUM dzby=0.0f;
 	
 	if (hh[i]>eps)
 	{
@@ -1091,7 +1091,7 @@ __global__ void avalanching(int nx, int ny,float eps,float dx,float dt,float por
 
 }
 
-__global__ void updatezb(int nx,int ny,float dx,float dt,float * zb,float * ddzb,float * dzb,float * zs,float *hh, float * structdepth)
+__global__ void updatezb(int nx,int ny,DECNUM dx,DECNUM dt,DECNUM * zb,DECNUM * ddzb,DECNUM * dzb,DECNUM * zs,DECNUM *hh, DECNUM * structdepth)
 						
 {
 	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
@@ -1113,7 +1113,7 @@ __global__ void updatezb(int nx,int ny,float dx,float dt,float * zb,float * ddzb
 }
 
 
-__global__ void updatezom(int nx, int ny,float cf,float cf2,float fw,float fw2,float * structdepth, float * cfm,float * fwm)
+__global__ void updatezom(int nx, int ny,DECNUM cf,DECNUM cf2,DECNUM fw,DECNUM fw2,DECNUM * structdepth, DECNUM * cfm,DECNUM * fwm)
 {
 	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
 	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
@@ -1142,7 +1142,7 @@ __global__ void updatezom(int nx, int ny,float cf,float cf2,float fw,float fw2,f
 
 
 
-//__global__ void SedEnt(int nx, int ny,float dx,float dt, float rho,float g,float eps, float Trep,float * ueu, float * vev,float *H, float *DR,float *R,float *c,float * hh,float *urms,float *Sedup)
+//__global__ void SedEnt(int nx, int ny,DECNUM dx,DECNUM dt, DECNUM rho,DECNUM g,DECNUM eps, DECNUM Trep,DECNUM * ueu, DECNUM * vev,DECNUM *H, DECNUM *DR,DECNUM *R,DECNUM *c,DECNUM * hh,DECNUM *urms,DECNUM *Sedup)
 //{
 //	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
 //	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
@@ -1151,18 +1151,18 @@ __global__ void updatezom(int nx, int ny,float cf,float cf2,float fw,float fw2,f
 //	int ty= threadIdx.y;
 //
 //
-//	float Urms2,kb,teta,tau,Ab,fw,abkb,fent;
+//	DECNUM Urms2,kb,teta,tau,Ab,fw,abkb,fent;
 //
-//	float D50=0.0038;
-//	float D90=0.0090;
-//	float zo=0.05;
-//	float ggm=0.05;
+//	DECNUM D50=0.0038;
+//	DECNUM D90=0.0090;
+//	DECNUM zo=0.05;
+//	DECNUM ggm=0.05;
 //
-//    float ws=0.043f;
-//	float wp=0.00001f;
+//    DECNUM ws=0.043f;
+//	DECNUM wp=0.00001f;
 //	
-//	float rhosed=25000; //Sediment density
-//	float drho = (rhosed-rho)/rho;
+//	DECNUM rhosed=25000; //Sediment density
+//	DECNUM drho = (rhosed-rho)/rho;
 //
 //
 //	//Short wave turbulence (Breaking):
@@ -1204,29 +1204,29 @@ __global__ void updatezom(int nx, int ny,float cf,float cf2,float fw,float fw2,f
 //
 //}
 //
-//__global__ void up3ddGPU(int nx, float *uu,float *vv,float *xx, float *yy, float *zz, float *dd_rand, float dx, float dt)
+//__global__ void up3ddGPU(int nx, DECNUM *uu,DECNUM *vv,DECNUM *xx, DECNUM *yy, DECNUM *zz, DECNUM *dd_rand, DECNUM dx, DECNUM dt)
 //{
-//      float Dpx=10.0;
-//      float Ux=0.05;
-//      float Vx=0.05;
+//      DECNUM Dpx=10.0;
+//      DECNUM Ux=0.05;
+//      DECNUM Vx=0.05;
 //     
-//      //__shared__ float xxx[256];
-//      //__shared__ float yyy[256];
-//      float xxx,yyy;
+//      //__shared__ DECNUM xxx[256];
+//      //__shared__ DECNUM yyy[256];
+//      DECNUM xxx,yyy;
 //	  
 // 
 //      
 // 
 // 
 //      
-//      float Eh=0.001;//m2/s
-//      float Ev=0.001;//m2/s
-//      float ws=-0.043f;
-//	  //float ws=-0.1;//m/s
+//      DECNUM Eh=0.001;//m2/s
+//      DECNUM Ev=0.001;//m2/s
+//      DECNUM ws=-0.043f;
+//	  //DECNUM ws=-0.1;//m/s
 //      int a=0;//abitrary number
-//      //float dt=1;
-//      float zo=0.001;//m roughness length
-//      float ttc=0.01;// critical resuspension velocity m/s
+//      //DECNUM dt=1;
+//      DECNUM zo=0.001;//m roughness length
+//      DECNUM ttc=0.01;// critical resuspension velocity m/s
 //     
 //      int i = blockIdx.x * blockDim.x * blockDim.y + blockDim.x * threadIdx.y + threadIdx.x;
 //      int tx = threadIdx.x;
@@ -1235,8 +1235,8 @@ __global__ void updatezom(int nx, int ny,float cf,float cf2,float fw,float fw2,f
 //      xxx=xx[i];
 //      yyy=yy[i];
 //
-//      //float xp=xxx/dx;
-//      //float yp=yyy/dx;
+//      //DECNUM xp=xxx/dx;
+//      //DECNUM yp=yyy/dx;
 //      
 //      //int x1=floor(xxx/dx);
 //      //int y1=floor(yyy/dx);
@@ -1244,8 +1244,8 @@ __global__ void updatezom(int nx, int ny,float cf,float cf2,float fw,float fw2,f
 //      //int x2=x1+1;
 //      //int y2=y1+1;
 //
-//      //float den=(x2-x1)*(y2-y1);
-//      //float U11,U12,U21,U22,V11,V12,V21,V22;
+//      //DECNUM den=(x2-x1)*(y2-y1);
+//      //DECNUM U11,U12,U21,U22,V11,V12,V21,V22;
 //      
 //      //U11=uu[x1+y1*nx];
 //      //U21=uu[x2+y1*nx];
@@ -1270,7 +1270,7 @@ __global__ void updatezom(int nx, int ny,float cf,float cf2,float fw,float fw2,f
 //	      
 //	//Ux=U11;//den*(x2-xp)*(y2-yp)+U21/den*(xp-x1)*(y2-yp)+U12/den*(x2-xp)*(yp-y1)+U22/den*(xp-x1)*(yp-y1);
 //	//Vx=V11;//den*(x2-xp)*(y2-yp)+V21/den*(xp-x1)*(y2-yp)+V12/den*(x2-xp)*(yp-y1)+V22/den*(xp-x1)*(yp-y1);
-//      //float T=9.81*1021*(Ux*Ux+Vx*Vx)/(18*log10(0.37*Dpx/zo));//Warning doggy equation!!!!!
+//      //DECNUM T=9.81*1021*(Ux*Ux+Vx*Vx)/(18*log10(0.37*Dpx/zo));//Warning doggy equation!!!!!
 //      
 //     
 //     

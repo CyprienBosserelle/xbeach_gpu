@@ -76,13 +76,13 @@ __device__ int pplus2(int ix, int nx)
 
 }
 
-__device__ int sign(float x)
+__device__ int sign(DECNUM x)
 {
 	return((x>0.0f) - (x<0.0f));
 }
 
 
-__global__ void addavg_var(int nx, int ny,float * Varmean,float * Var)
+__global__ void addavg_var(int nx, int ny,DECNUM * Varmean,DECNUM * Var)
 {
 	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
 	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
@@ -90,8 +90,8 @@ __global__ void addavg_var(int nx, int ny,float * Varmean,float * Var)
 	unsigned int tx =threadIdx.x;
 	unsigned int ty= threadIdx.y;
 
-	__shared__ float mvari[16][16];
-	__shared__ float vari[16][16];
+	__shared__ DECNUM mvari[16][16];
+	__shared__ DECNUM vari[16][16];
 
 	mvari[tx][ty]=Varmean[i];
 	vari[tx][ty]=Var[i];
@@ -101,7 +101,7 @@ __global__ void addavg_var(int nx, int ny,float * Varmean,float * Var)
 
 }
 
-__global__ void divavg_var(int nx, int ny,float ntdiv,float * Varmean)
+__global__ void divavg_var(int nx, int ny,DECNUM ntdiv,DECNUM * Varmean)
 {
 	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
 	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
@@ -109,14 +109,14 @@ __global__ void divavg_var(int nx, int ny,float ntdiv,float * Varmean)
 	unsigned int tx =threadIdx.x;
 	unsigned int ty= threadIdx.y;
 
-	__shared__ float mvari[16][16];
+	__shared__ DECNUM mvari[16][16];
 	mvari[tx][ty]=Varmean[i];
 	Varmean[i]=mvari[tx][ty]/ntdiv;
 	
 
 }
 
-__global__ void resetavg_var(int nx, int ny,float * Varmean)
+__global__ void resetavg_var(int nx, int ny,DECNUM * Varmean)
 {
 	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
 	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
@@ -124,12 +124,12 @@ __global__ void resetavg_var(int nx, int ny,float * Varmean)
 	Varmean[i]=0.0f;
 }
 
-__global__ void offshorebndWav(int nx, int ny,int ntheta,float totaltime,float Trep,float *St,float *sigm, float *ee)
+__global__ void offshorebndWav(int nx, int ny,int ntheta,DECNUM totaltime,DECNUM Trep,DECNUM *St,DECNUM *sigm, DECNUM *ee)
 {
 	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
 	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
 	unsigned int i=ix+iy*nx;
-	float taper=min(totaltime/100.0f,1.0f);
+	DECNUM taper=min(totaltime/100.0f,1.0f);
 	
 	sigm[i]=2*pi/Trep;
 	for (int itheta=0; itheta<ntheta; itheta++)
@@ -140,7 +140,7 @@ __global__ void offshorebndWav(int nx, int ny,int ntheta,float totaltime,float T
 
 }
 
-__global__ void set_bnd(int nx, int ny,float Trep,int ntheta,float * theta,float *sigm)
+__global__ void set_bnd(int nx, int ny,DECNUM Trep,int ntheta,DECNUM * theta,DECNUM *sigm)
 {
 	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
 	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
@@ -164,7 +164,7 @@ __global__ void set_bnd(int nx, int ny,float Trep,int ntheta,float * theta,float
 			
 }
 
-__global__ void inituv(int nx, int ny,float *uu,float *vv)
+__global__ void inituv(int nx, int ny,DECNUM *uu,DECNUM *vv)
 {
 	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
 	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
@@ -172,7 +172,7 @@ __global__ void inituv(int nx, int ny,float *uu,float *vv)
 	int yminus=mminus(iy,ny);
 	
 
-	float dummy;
+	DECNUM dummy;
 	uu[i]=0.0f;
 	vv[i]=0.0f;
 
@@ -185,7 +185,7 @@ __global__ void inituv(int nx, int ny,float *uu,float *vv)
 			
 }
 
-__global__ void sanity(int nx, int ny,float eps,float * hh,float * sigm, int ntheta,float * ee)
+__global__ void sanity(int nx, int ny,DECNUM eps,DECNUM * hh,DECNUM * sigm, int ntheta,DECNUM * ee)
 {
 	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
 	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
@@ -194,8 +194,8 @@ __global__ void sanity(int nx, int ny,float eps,float * hh,float * sigm, int nth
 	int ty= threadIdx.y;
 	
 
-	//__shared__ float hhi[16][16];
-	//__shared__ float ssigm[16][16];
+	//__shared__ DECNUM hhi[16][16];
+	//__shared__ DECNUM ssigm[16][16];
 	//ssigm[tx][ty]=0.0f;
 	//hhi[tx][ty]=hh[i];
 	//hh[i]=max(hhi[tx][ty],eps);
@@ -212,9 +212,9 @@ __global__ void sanity(int nx, int ny,float eps,float * hh,float * sigm, int nth
 
 }
 
-__global__ void dispersion(int nx,int ny,float twopi,float g,float aphi,float bphi,float * sigm,float * hh,float * k,float * c,float * kh,float * sinh2kh,float * cg)
+__global__ void dispersion(int nx,int ny,DECNUM twopi,DECNUM g,DECNUM aphi,DECNUM bphi,DECNUM * sigm,DECNUM * hh,DECNUM * k,DECNUM * c,DECNUM * kh,DECNUM * sinh2kh,DECNUM * cg)
 {
-	float L0, L1,L2, errdisp;
+	DECNUM L0, L1,L2, errdisp;
 	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
 	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
 	unsigned int i=ix+iy*nx;
@@ -222,8 +222,8 @@ __global__ void dispersion(int nx,int ny,float twopi,float g,float aphi,float bp
 	int ty= threadIdx.y;
 	
 
-	__shared__ float sigmi[16][16];
-	__shared__ float hhi[16][16];
+	__shared__ DECNUM sigmi[16][16];
+	__shared__ DECNUM hhi[16][16];
 	sigmi[tx][ty]=sigm[i];
 	hhi[tx][ty]=hh[i];
   
@@ -252,21 +252,21 @@ __global__ void dispersion(int nx,int ny,float twopi,float g,float aphi,float bp
 
 		//L1=L0*powf(tanh(powf(sigmi[tx][ty]*sigmi[tx][ty]*hhi[tx][ty]/g,3/4)),2/3);
         
-		float kk=2*pi/L1;
+		DECNUM kk=2*pi/L1;
 		k[i]  = kk;
-		float cc=sigmi[tx][ty]/kk;
+		DECNUM cc=sigmi[tx][ty]/kk;
         c[i]  = cc;
-		float kkhh=min(kk*hhi[tx][ty],10.0f);
+		DECNUM kkhh=min(kk*hhi[tx][ty],10.0f);
         kh[i]   = kkhh;
-		float s2kh=sinhf(2.0f*kkhh);
+		DECNUM s2kh=sinhf(2.0f*kkhh);
         sinh2kh[i]=s2kh;
 		cg[i] = cc*(0.5f+kkhh/s2kh);
  
 }
 
-__global__ void dispersion_init(int nx,int ny,float twopi,float g,float aphi,float bphi,float * sigm,float * hh,float * cg)
+__global__ void dispersion_init(int nx,int ny,DECNUM twopi,DECNUM g,DECNUM aphi,DECNUM bphi,DECNUM * sigm,DECNUM * hh,DECNUM * cg)
 {
-	float L0, L1,L2, errdisp;
+	DECNUM L0, L1,L2, errdisp;
 	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
 	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
 	unsigned int i=ix+iy*nx;
@@ -274,8 +274,8 @@ __global__ void dispersion_init(int nx,int ny,float twopi,float g,float aphi,flo
 	int ty= threadIdx.y;
 	
 
-	__shared__ float sigmi[16][16];
-	__shared__ float hhi[16][16];
+	__shared__ DECNUM sigmi[16][16];
+	__shared__ DECNUM hhi[16][16];
 	sigmi[tx][ty]=sigm[i];
 	hhi[tx][ty]=hh[i];
   
@@ -304,23 +304,23 @@ __global__ void dispersion_init(int nx,int ny,float twopi,float g,float aphi,flo
 
 		//L1=L0*powf(tanh(powf(sigmi[tx][ty]*sigmi[tx][ty]*hhi[tx][ty]/g,3/4)),2/3);
         
-		float kk=2*pi/L1;
+		DECNUM kk=2*pi/L1;
 		//k[i]  = kk;
-		float cc=sigmi[tx][ty]/kk;
+		DECNUM cc=sigmi[tx][ty]/kk;
         //c[i]  = cc;
-		float kkhh=min(kk*hhi[tx][ty],10.0f);
+		DECNUM kkhh=min(kk*hhi[tx][ty],10.0f);
        // kh[i]   = kkhh;
-		float s2kh=sinhf(2.0f*kkhh);
+		DECNUM s2kh=sinhf(2.0f*kkhh);
         //sinh2kh[i]=s2kh;
 		cg[i] = cc*(0.5f+kkhh/s2kh);
  
 }
 
-__device__ float slopes2Dx(int nx,float dx,int i,int ix, int iy,float * hh)
+__device__ DECNUM slopes2Dx(int nx,DECNUM dx,int i,int ix, int iy,DECNUM * hh)
 {
 
 
-	float dhdx;
+	DECNUM dhdx;
 	unsigned int xminus=mminus(ix,nx);
 	unsigned int xplus=pplus(ix,nx);
 	
@@ -330,9 +330,9 @@ __device__ float slopes2Dx(int nx,float dx,int i,int ix, int iy,float * hh)
 	dhdx=(hh[xplus+iy*nx]-hh[xminus+iy*nx])/((xplus-xminus)*dx);
 	return(dhdx);
 }
-__device__ float slopes2Dy(int nx,int ny,float dx,int i,int ix, int iy,float * hh)
+__device__ DECNUM slopes2Dy(int nx,int ny,DECNUM dx,int i,int ix, int iy,DECNUM * hh)
 {
-	float dhdy;
+	DECNUM dhdy;
 	
 	unsigned int yminus=mminus(iy,ny);
 	unsigned int yplus=pplus(iy,ny);
@@ -343,7 +343,7 @@ __device__ float slopes2Dy(int nx,int ny,float dx,int i,int ix, int iy,float * h
 	return(dhdy);
 }
 
-__global__ void slopes(int nx,int ny,float dx,float * hh,float * uu,float * vv,float * dhdx,float * dhdy,float * dudx,float * dudy,float * dvdx,float * dvdy)//
+__global__ void slopes(int nx,int ny,DECNUM dx,DECNUM * hh,DECNUM * uu,DECNUM * vv,DECNUM * dhdx,DECNUM * dhdy,DECNUM * dudx,DECNUM * dudy,DECNUM * dvdx,DECNUM * dvdy)//
 {
 	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
 	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
@@ -366,26 +366,26 @@ __global__ void slopes(int nx,int ny,float dx,float * hh,float * uu,float * vv,f
 }
 
 				
-__global__ void propagtheta(int nx,int ny,int ntheta,float * wci,float *ctheta,/*float *c,float * cx,float *cy,*/float *cxsth,float *sxnth,/*float *uu,float *vv,*/float *dhdx,float *dhdy,float *dudx,float *dudy,float *dvdx,float *dvdy,float *sigm,float *kh)//
+__global__ void propagtheta(int nx,int ny,int ntheta,DECNUM * wci,DECNUM *ctheta,/*DECNUM *c,DECNUM * cx,DECNUM *cy,*/DECNUM *cxsth,DECNUM *sxnth,/*DECNUM *uu,DECNUM *vv,*/DECNUM *dhdx,DECNUM *dhdy,DECNUM *dudx,DECNUM *dudy,DECNUM *dvdx,DECNUM *dvdy,DECNUM *sigm,DECNUM *kh)//
 {
 	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
 	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
 	unsigned int i=ix+iy*nx;
 	int tx =threadIdx.x;
 	int ty= threadIdx.y;
-	float ctht;
+	DECNUM ctht;
 
-	__shared__ float sigmiosinh2kh[16][16];
-	 __shared__ float dhdxi[16][16];
-	 __shared__ float dhdyi[16][16];
-	 __shared__ float dudxi[16][16];
-	 __shared__ float dudyi[16][16];
-	 __shared__ float dvdxi[16][16];
-	 __shared__ float dvdyi[16][16];
+	__shared__ DECNUM sigmiosinh2kh[16][16];
+	 __shared__ DECNUM dhdxi[16][16];
+	 __shared__ DECNUM dhdyi[16][16];
+	 __shared__ DECNUM dudxi[16][16];
+	 __shared__ DECNUM dudyi[16][16];
+	 __shared__ DECNUM dvdxi[16][16];
+	 __shared__ DECNUM dvdyi[16][16];
 
-	//float ci=c[i];
-	//float uui=uu[i]*wci;
-	//float vvi=vv[i]*wci;
+	//DECNUM ci=c[i];
+	//DECNUM uui=uu[i]*wci;
+	//DECNUM vvi=vv[i]*wci;
     sigmiosinh2kh[tx][ty]=sigm[i]/sinhf(2.0f*kh[i]);
 	 
 	dhdxi[tx][ty]=dhdx[i];
@@ -407,14 +407,14 @@ __global__ void propagtheta(int nx,int ny,int ntheta,float * wci,float *ctheta,/
 
 }
 
-__global__ void action(int ntheta,int nx,int ny,float * ee,float * sigm)
+__global__ void action(int ntheta,int nx,int ny,DECNUM * ee,DECNUM * sigm)
 {
 	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
 	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
 	unsigned int i=ix+iy*nx;
 	int tx =threadIdx.x;
 	int ty= threadIdx.y;
-	__shared__ float ssigm[16][16];
+	__shared__ DECNUM ssigm[16][16];
 	ssigm[tx][ty]=sigm[i];
 	
 	
@@ -426,7 +426,7 @@ __global__ void action(int ntheta,int nx,int ny,float * ee,float * sigm)
 }
 		
 
-__global__ void xadvecupwind(int nx,int ny,int ntheta,float dtheta,float dx,float dt,float * wci,float *ee,float *cg,float *cxsth,float *uu,float * xadvec)
+__global__ void xadvecupwind(int nx,int ny,int ntheta,DECNUM dtheta,DECNUM dx,DECNUM dt,DECNUM * wci,DECNUM *ee,DECNUM *cg,DECNUM *cxsth,DECNUM *uu,DECNUM * xadvec)
 {
 	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
 	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
@@ -434,20 +434,20 @@ __global__ void xadvecupwind(int nx,int ny,int ntheta,float dtheta,float dx,floa
 	int tx =threadIdx.x;
 	int ty= threadIdx.y;
 	
-	float dxplus_i = 1.0f/dx;
-	float dxcent_i = 1.0f/(2*dx);
-	float xxadvec;
-	float costhet;
-	float arrinx, arrminx, arrmaxx;
-	float cgx,cgxmin;
-	__shared__ float ccg[16][16];
-	__shared__ float ccgxmin[16][16];
-	__shared__ float ccgxmax[16][16];
-	__shared__ float uui[16][16];
+	DECNUM dxplus_i = 1.0f/dx;
+	DECNUM dxcent_i = 1.0f/(2*dx);
+	DECNUM xxadvec;
+	DECNUM costhet;
+	DECNUM arrinx, arrminx, arrmaxx;
+	DECNUM cgx,cgxmin;
+	__shared__ DECNUM ccg[16][16];
+	__shared__ DECNUM ccgxmin[16][16];
+	__shared__ DECNUM ccgxmax[16][16];
+	__shared__ DECNUM uui[16][16];
 
-	__shared__ float uuixmin[16][16];
-	__shared__ float uuixmax[16][16];
-	//__shared__ float eet[16][16];
+	__shared__ DECNUM uuixmin[16][16];
+	__shared__ DECNUM uuixmax[16][16];
+	//__shared__ DECNUM eet[16][16];
 	
 	unsigned int xminus=mminus(ix,nx);//max(ix-1,0);
 	unsigned int xplus=pplus(ix,nx);//min(ix+1,nx-1);
@@ -509,7 +509,7 @@ __global__ void xadvecupwind(int nx,int ny,int ntheta,float dtheta,float dx,floa
 
 
 
-__global__ void xadvecupwind2(int nx,int ny,int ntheta,float dtheta,float dx,float dt,float * wci,float *ee,float *cg,float *cxsth,float *uu,float * xadvec)
+__global__ void xadvecupwind2(int nx,int ny,int ntheta,DECNUM dtheta,DECNUM dx,DECNUM dt,DECNUM * wci,DECNUM *ee,DECNUM *cg,DECNUM *cxsth,DECNUM *uu,DECNUM * xadvec)
 {
 	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
 	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
@@ -517,19 +517,19 @@ __global__ void xadvecupwind2(int nx,int ny,int ntheta,float dtheta,float dx,flo
 	int tx =threadIdx.x;
 	int ty= threadIdx.y;
 	
-	float dxplus_i = 1.0f/dx;
-	float dxcent_i = 1.0f/(2*dx);
-	float xxadvec;
-	float costhet;
-	float arrinx, arrminx, arrmaxx;
-	float cgx,cgxmin;
-	__shared__ float ccg[16][16];
-	__shared__ float ccgxmin[16][16];
-	__shared__ float ccgxmax[16][16];
-	__shared__ float uui[16][16];
+	DECNUM dxplus_i = 1.0f/dx;
+	DECNUM dxcent_i = 1.0f/(2*dx);
+	DECNUM xxadvec;
+	DECNUM costhet;
+	DECNUM arrinx, arrminx, arrmaxx;
+	DECNUM cgx,cgxmin;
+	__shared__ DECNUM ccg[16][16];
+	__shared__ DECNUM ccgxmin[16][16];
+	__shared__ DECNUM ccgxmax[16][16];
+	__shared__ DECNUM uui[16][16];
 
-	__shared__ float uuixmin[16][16];
-	__shared__ float uuixmax[16][16];
+	__shared__ DECNUM uuixmin[16][16];
+	__shared__ DECNUM uuixmax[16][16];
 	
 	unsigned int xminus=mminus(ix,nx);//max(ix-1,0);
 	unsigned int xplus=pplus(ix,nx);//min(ix+1,nx-1);
@@ -562,6 +562,8 @@ __global__ void xadvecupwind2(int nx,int ny,int ntheta,float dtheta,float dx,flo
 		cgx=0.5f*(ccg[tx][ty]*costhet+uui[tx][ty]+ccgxmax[tx][ty]*costhet+uuixmax[tx][ty]);
 		cgxmin=0.5f*(ccg[tx][ty]*costhet+uui[tx][ty]+ccgxmin[tx][ty]*costhet+uuixmin[tx][ty]);
 		xxadvec=0;
+
+		
 			
 		if (cgx>0.0f)
 		{			
@@ -609,7 +611,7 @@ __global__ void xadvecupwind2(int nx,int ny,int ntheta,float dtheta,float dx,flo
 
 
 		
-__global__ void yadvecupwind(int nx,int ny,int ntheta,float dtheta,float dx,float dt,float * wci,float *ee,float *cg,float *sxnth,float *vv,float * yadvec){
+__global__ void yadvecupwind(int nx,int ny,int ntheta,DECNUM dtheta,DECNUM dx,DECNUM dt,DECNUM * wci,DECNUM *ee,DECNUM *cg,DECNUM *sxnth,DECNUM *vv,DECNUM * yadvec){
 
 	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
 	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
@@ -617,19 +619,19 @@ __global__ void yadvecupwind(int nx,int ny,int ntheta,float dtheta,float dx,floa
 	int tx =threadIdx.x;
 	int ty= threadIdx.y;
 	
-	float dxplus_i = 1.0f/dx;
-	float dxcent_i = 1.0f/(2.0f*dx);
-	float yyadvec;
-	float sinthet;
-	float  arriny, arrminy, arrmaxy;
-	float cgy,cgymin;
-	__shared__ float ccg[16][16];
-	__shared__ float ccgymin[16][16];
-	__shared__ float ccgymax[16][16];
+	DECNUM dxplus_i = 1.0f/dx;
+	DECNUM dxcent_i = 1.0f/(2.0f*dx);
+	DECNUM yyadvec;
+	DECNUM sinthet;
+	DECNUM  arriny, arrminy, arrmaxy;
+	DECNUM cgy,cgymin;
+	__shared__ DECNUM ccg[16][16];
+	__shared__ DECNUM ccgymin[16][16];
+	__shared__ DECNUM ccgymax[16][16];
 	
-	__shared__ float vvi[16][16];
-	__shared__ float vviymin[16][16];
-	__shared__ float vviymax[16][16];
+	__shared__ DECNUM vvi[16][16];
+	__shared__ DECNUM vviymin[16][16];
+	__shared__ DECNUM vviymax[16][16];
 
 	unsigned int xminus=mminus(ix,nx);
 	unsigned int xplus=pplus(ix,nx);
@@ -684,7 +686,7 @@ __global__ void yadvecupwind(int nx,int ny,int ntheta,float dtheta,float dx,floa
 
 
 
-__global__ void yadvecupwind2(int nx,int ny,int ntheta,float dtheta,float dx,float dt,float * wci,float *ee,float *cg,float *sxnth,float *vv,float * yadvec)
+__global__ void yadvecupwind2(int nx,int ny,int ntheta,DECNUM dtheta,DECNUM dx,DECNUM dt,DECNUM * wci,DECNUM *ee,DECNUM *cg,DECNUM *sxnth,DECNUM *vv,DECNUM * yadvec)
 {
 
 	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
@@ -693,19 +695,19 @@ __global__ void yadvecupwind2(int nx,int ny,int ntheta,float dtheta,float dx,flo
 	int tx =threadIdx.x;
 	int ty= threadIdx.y;
 	
-	float dxplus_i = 1.0f/dx;
-	float dxcent_i = 1.0f/(2.0f*dx);
-	float yyadvec;
-	float sinthet;
-	float  arriny, arrminy, arrmaxy;
-	float cgy,cgymin;
-	__shared__ float ccg[16][16];
-	__shared__ float ccgymin[16][16];
-	__shared__ float ccgymax[16][16];
+	DECNUM dxplus_i = 1.0f/dx;
+	DECNUM dxcent_i = 1.0f/(2.0f*dx);
+	DECNUM yyadvec;
+	DECNUM sinthet;
+	DECNUM  arriny, arrminy, arrmaxy;
+	DECNUM cgy,cgymin;
+	__shared__ DECNUM ccg[16][16];
+	__shared__ DECNUM ccgymin[16][16];
+	__shared__ DECNUM ccgymax[16][16];
 	
-	__shared__ float vvi[16][16];
-	__shared__ float vviymin[16][16];
-	__shared__ float vviymax[16][16];
+	__shared__ DECNUM vvi[16][16];
+	__shared__ DECNUM vviymin[16][16];
+	__shared__ DECNUM vviymax[16][16];
 
 	unsigned int xminus=mminus(ix,nx);
 	unsigned int xplus=pplus(ix,nx);
@@ -736,7 +738,7 @@ __global__ void yadvecupwind2(int nx,int ny,int ntheta,float dtheta,float dx,flo
 				
 		if (cgy>0.0f)
 		{
-			arriny=1.5*ee[i+itheta*nx*ny]-0.5*ee[ix+yminus*nx+itheta*nx*ny];
+			arriny=1.5f*ee[i+itheta*nx*ny]-0.5f*ee[ix+yminus*nx+itheta*nx*ny];
 			if (arriny<0.0f)
 			{
 				arriny=ee[i+itheta*nx*ny];
@@ -777,7 +779,7 @@ __global__ void yadvecupwind2(int nx,int ny,int ntheta,float dtheta,float dx,flo
 
 }
 
-__global__ void eectheta(int nx,int ny,int ntheta,float *ee,float *ctheta,float *eect)
+__global__ void eectheta(int nx,int ny,int ntheta,DECNUM *ee,DECNUM *ctheta,DECNUM *eect)
 {
 	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
 	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
@@ -793,16 +795,16 @@ __global__ void eectheta(int nx,int ny,int ntheta,float *ee,float *ctheta,float 
 	
 }
 
-__global__ void thetaadvecuw(int nx,int ny,int ntheta,float dtheta,float *eect,float * thetaadvec)
+__global__ void thetaadvecuw(int nx,int ny,int ntheta,DECNUM dtheta,DECNUM *eect,DECNUM * thetaadvec)
 {
 	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
 	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
 	unsigned int i=ix+iy*nx;
 	int tx =threadIdx.x;
 	int ty= threadIdx.y;
-	float arrint,arrmint,arrmaxt;
+	DECNUM arrint,arrmint,arrmaxt;
 	
-	float tthetaadvec;
+	DECNUM tthetaadvec;
 	
 	for (int itheta=0; itheta<ntheta; itheta++)
 	{
@@ -821,7 +823,7 @@ __global__ void thetaadvecuw(int nx,int ny,int ntheta,float dtheta,float *eect,f
 	}
 }
 		
-__global__ void thetaadvecupwind(int nx,int ny,int ntheta,float dtheta,float dx,float dt,float wci,float *ee,float *ctheta,float * thetaadvec){
+__global__ void thetaadvecupwind(int nx,int ny,int ntheta,DECNUM dtheta,DECNUM dx,DECNUM dt,DECNUM wci,DECNUM *ee,DECNUM *ctheta,DECNUM * thetaadvec){
 	
 	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
 	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
@@ -829,11 +831,11 @@ __global__ void thetaadvecupwind(int nx,int ny,int ntheta,float dtheta,float dx,
 	int tx =threadIdx.x;
 	int ty= threadIdx.y;
 	
-	float dxplus_i = 1.0f/dx;
-	float dxcent_i = 1.0f/(2.0f*dx);
-	float tthetaadvec;
-	float costhet,sinthet;
-	float arrint,arrmint,arrmaxt;
+	DECNUM dxplus_i = 1.0f/dx;
+	DECNUM dxcent_i = 1.0f/(2.0f*dx);
+	DECNUM tthetaadvec;
+	DECNUM costhet,sinthet;
+	DECNUM arrint,arrmint,arrmaxt;
 	
 	
 	unsigned int xminus=mminus(ix,nx);
@@ -901,7 +903,7 @@ __global__ void thetaadvecupwind(int nx,int ny,int ntheta,float dtheta,float dx,
 	
 		
 }
-__global__ void thetaadvecuw1ho(int nx,int ny,int ntheta,float dtheta,float dx,float dt,float wci,float *ee,float *ctheta,float * thetaadvec){
+__global__ void thetaadvecuw1ho(int nx,int ny,int ntheta,DECNUM dtheta,DECNUM dx,DECNUM dt,DECNUM wci,DECNUM *ee,DECNUM *ctheta,DECNUM * thetaadvec){
 	
 	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
 	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
@@ -909,152 +911,166 @@ __global__ void thetaadvecuw1ho(int nx,int ny,int ntheta,float dtheta,float dx,f
 	int tx =threadIdx.x;
 	int ty= threadIdx.y;
 	
-	float dxplus_i = 1.0f/dx;
-	float dxcent_i = 1.0f/(2.0f*dx);
-	float tthetaadvec,cthetab;
-	float costhet,sinthet;
-	float arrint,arrmint,arrmaxt;
+	DECNUM dxplus_i = 1.0f/dx;
+	DECNUM dxcent_i = 1.0f/(2.0f*dx);
+	DECNUM tthetaadvec,cthetab;
+	DECNUM costhet,sinthet;
+	DECNUM arrint,arrmint,arrmaxt;
 	
 	
 	unsigned int xminus=mminus(ix,nx);
 	unsigned int xplus=pplus(ix,nx);
 	unsigned int yminus=mminus(iy,ny);
 	unsigned int yplus=pplus(iy,ny);
-	
-	for (int itheta=0; itheta<ntheta; itheta++)
+	if (ntheta>1)
 	{
-		unsigned int Tminus=mminus(itheta,ntheta);
-		unsigned int Tplus=pplus(itheta,ntheta);
-		
-		tthetaadvec=0.0;
 
-
-		cthetab=0.5f*(ctheta[i+itheta*nx*ny]+ctheta[i+Tplus*nx*ny]);
-		if (cthetab>0.0f)
+		for (int itheta = 0; itheta < ntheta; itheta++)
 		{
-			arrint=ee[i+itheta*nx*ny]*cthetab;
-		}
-		else
-		{
-			arrint=ee[i+Tplus*nx*ny]*cthetab;
-		}
+			unsigned int Tminus = mminus(itheta, ntheta);
+			unsigned int Tplus = pplus(itheta, ntheta);
+
+			tthetaadvec = 0.0;
 
 
-
-		cthetab=0.5f*(ctheta[i+Tminus*nx*ny]+ctheta[i+itheta*nx*ny]);
-		if (cthetab>0.0f)
-		{
-			arrmint=ee[i+Tminus*nx*ny]*cthetab;
-		}
-		else
-		{
-			arrmint=ee[i+itheta*nx*ny]*cthetab;
-		}
-
-
-
-		tthetaadvec=(arrint-arrmint)/dtheta;
-		if (itheta==ntheta-1)
-		{
-			tthetaadvec=(0.0f-arrmint)/dtheta;
-		}
-		if (itheta==0)
-		{
-			tthetaadvec=(arrint-0.0f)/dtheta;
-		}
-
-		
-		thetaadvec[i+itheta*nx*ny]=tthetaadvec;
-	}
-	
-	
-}
-
-__global__ void thetaadvecupwind2(int nx,int ny,int ntheta,float dtheta,float dx,float dt,float wci,float *ee,float *ctheta,float * thetaadvec)
-{
-	
-		unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
-	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
-	unsigned int i=ix+iy*nx;
-	int tx =threadIdx.x;
-	int ty= threadIdx.y;
-	
-	float dxplus_i = 1.0f/dx;
-	float dxcent_i = 1.0f/(2.0f*dx);
-	float tthetaadvec;
-	float costhet,sinthet;
-	float arrint,arrmint,arrmaxt;
-	
-	
-	unsigned int xminus=mminus(ix,nx);
-	unsigned int xplus=pplus(ix,nx);
-	unsigned int yminus=mminus(iy,ny);
-	unsigned int yplus=pplus(iy,ny);
-	
-
-	//tthetaadvec=((arrint-arrmint)*max(sign(arrint),0.0f)+(arrint-arrmaxt)*min(sign(arrint),0.0f))/dtheta;
-	
-	
-	
-	__syncthreads();
+			cthetab = 0.5f*(ctheta[i + itheta*nx*ny] + ctheta[i + Tplus*nx*ny]);
+			arrint = max(cthetab, 0.00f)*ee[i + itheta*nx*ny] + min(cthetab, 0.0f)*ee[i + Tplus*nx*ny];
 
 
 
 
-	
 
-	for (int itheta=0; itheta<ntheta; itheta++)
-	{
-		unsigned int Tminus=mminus(itheta,ntheta);
-		unsigned int Tplus=pplus(itheta,ntheta);
-		tthetaadvec=0;
-		
-		arrint=ee[i+itheta*nx*ny]*ctheta[i+itheta*nx*ny];
+			cthetab = 0.5f*(ctheta[i + Tminus*nx*ny] + ctheta[i + itheta*nx*ny]);
+			arrmint = max(cthetab, 0.0f)*ee[i + Tminus*nx*ny] + min(cthetab, 0.0f)*ee[i + itheta*nx*ny];
 			
-		if (arrint>0)
-		{
-			if (itheta==0)
-			{
-				arrmint=0.0f;
-			}
-			else
-			{
-				arrmint=ee[i+(Tminus)*nx*ny]*ctheta[i+(Tminus)*nx*ny];
-			}
-			tthetaadvec=(arrint-arrmint)/dtheta;
-		}
-		else
-		{
-			if (arrint<0)
-			{
-				if (itheta==ntheta-1)
-				{
-				arrmaxt=0.0f;
-				}
-				else
-				{
 
-				arrmaxt=ee[i+(Tplus)*nx*ny]*ctheta[i+(Tplus)*nx*ny];
-				}
-				tthetaadvec=(arrmaxt-arrint)/dtheta;
-			}
-			else
+
+			tthetaadvec = (arrint - arrmint) / dtheta;
+
+
+			if (itheta == ntheta - 1)
 			{
-				arrmint=ee[i+(Tminus)*nx*ny]*ctheta[i+(Tminus)*nx*ny];
-				arrmaxt=ee[i+(Tplus)*nx*ny]*ctheta[i+(Tplus)*nx*ny];
-				tthetaadvec=(arrmaxt-arrmint)/(2*dtheta);
+				tthetaadvec = (0.0f - arrmint) / dtheta;
 			}
+			if (itheta == 0)
+			{
+				tthetaadvec = (arrint - 0.0f) / dtheta;
+			}
+
+
+			thetaadvec[i + itheta*nx*ny] = tthetaadvec;
 		}
-        
-		thetaadvec[i+itheta*nx*ny]=tthetaadvec;
+	}
+	else
+	{
+		thetaadvec[i + 0*nx*ny] = 0.0f;
 	}
 	
-		
+	
 }
 
+__global__ void thetaadvecuw2ho(int nx, int ny, int ntheta, DECNUM dtheta, DECNUM dx, DECNUM dt, DECNUM wci, DECNUM *ee, DECNUM *ctheta, DECNUM * thetaadvec){
+
+	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
+	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
+	unsigned int i = ix + iy*nx;
+	int tx = threadIdx.x;
+	int ty = threadIdx.y;
+
+	DECNUM dxplus_i = 1.0f / dx;
+	DECNUM dxcent_i = 1.0f / (2.0f*dx);
+	DECNUM tthetaadvec, cthetab;
+	DECNUM costhet, sinthet;
+	DECNUM arrint, arrmint, eupw;
+
+
+	unsigned int xminus = mminus(ix, nx);
+	unsigned int xplus = pplus(ix, nx);
+	unsigned int yminus = mminus(iy, ny);
+	unsigned int yplus = pplus(iy, ny);
+	if (ntheta>1)
+	{
+
+		for (int itheta = 0; itheta < ntheta; itheta++)
+		{
+			unsigned int Tminus = mminus(itheta, ntheta);
+			unsigned int Tplus = pplus(itheta, ntheta);
+			unsigned int Tminus2 = mminus2(itheta, ntheta);
+			unsigned int Tplus2 = pplus2(itheta, ntheta);
+
+
+			tthetaadvec = 0.0;
+
+
+			cthetab = 0.5f*(ctheta[i + itheta*nx*ny] + ctheta[i + Tplus*nx*ny]);
+			if (cthetab > 0.0f)
+			{
+				eupw = 1.5f*ee[i + itheta*nx*ny] - 0.5f*ee[i + Tminus*nx*ny];
+				if (eupw<0.0f)
+				{
+					eupw = ee[i + itheta*nx*ny];
+				}
+			}
+			else
+			{
+				eupw = 1.5f*ee[i + Tplus*nx*ny] - 0.5f*ee[i + Tplus2*nx*ny];
+				if (eupw<0.0f)
+				{
+					eupw = ee[i + Tplus*nx*ny];
+				}
+			}
+			arrint = cthetab*eupw;
+
+
+
+
+
+
+			cthetab = 0.5f*(ctheta[i + Tminus*nx*ny] + ctheta[i + itheta*nx*ny]);
+			if (cthetab > 0.0f)
+			{
+				eupw = 1.5f*ee[i + Tminus*nx*ny] - 0.5f*ee[i + Tminus2*nx*ny];
+				if (eupw<0.0f)
+				{
+					eupw = ee[i + Tminus*nx*ny];
+				}
+			}
+			else
+			{
+				eupw = 1.5f*ee[i + itheta*nx*ny] - 0.5f*ee[i + Tplus*nx*ny];
+				if (eupw<0.0f)
+				{
+					eupw = ee[i + itheta*nx*ny];
+				}
+			}
+			arrmint = cthetab*eupw;
+			
+			tthetaadvec = (arrint - arrmint) / dtheta;
+
+
+			if (itheta == ntheta - 1)
+			{
+				tthetaadvec = (0.0f - arrmint) / dtheta;
+			}
+			if (itheta == 0)
+			{
+				tthetaadvec = (arrint - 0.0f) / dtheta;
+			}
+
+
+			thetaadvec[i + itheta*nx*ny] = tthetaadvec;
+		}
+	}
+	else
+	{
+		thetaadvec[i + 0 * nx*ny] = 0.0f;
+	}
+
+
+}
 
 		
-__global__ void eulerupwind(int nx,int ny,int ntheta,float dtheta,float dx,float dt,float wci,float *ee,float *xadvec,float *yadvec,float * thetaadvec){
+__global__ void eulerupwind(int nx,int ny,int ntheta,DECNUM dtheta,DECNUM dx,DECNUM dt,DECNUM wci,DECNUM *ee,DECNUM *xadvec,DECNUM *yadvec,DECNUM * thetaadvec){
 
 
 
@@ -1072,7 +1088,7 @@ __global__ void eulerupwind(int nx,int ny,int ntheta,float dtheta,float dx,float
 
 }
 
-__global__ void energy(int nx,int ny,int ntheta,float * ee,float * sigm)
+__global__ void energy(int nx,int ny,int ntheta,DECNUM * ee,DECNUM * sigm)
 {
 	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
 	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
@@ -1080,8 +1096,8 @@ __global__ void energy(int nx,int ny,int ntheta,float * ee,float * sigm)
 	unsigned int tx =threadIdx.x;
 	unsigned int ty= threadIdx.y;
 
-	__shared__ float eetmp[16][16];
-	__shared__ float ssigm[16][16];
+	__shared__ DECNUM eetmp[16][16];
+	__shared__ DECNUM ssigm[16][16];
 	ssigm[tx][ty]=sigm[i];
 
 	for (int itheta=0; itheta<ntheta; itheta++)
@@ -1093,16 +1109,16 @@ __global__ void energy(int nx,int ny,int ntheta,float * ee,float * sigm)
 		}
 }
 
-__global__ void energint(int nx,int ny,int ntheta,float dtheta,float rho,float g,float gammax,float * E,float * H,float * hh,float * ee)
+__global__ void energint(int nx,int ny,int ntheta,DECNUM dtheta,DECNUM rho,DECNUM g,DECNUM gammax,DECNUM * E,DECNUM * H,DECNUM * hh,DECNUM * ee)
 {
 	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
 	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
 	unsigned int i=ix+iy*nx;
 	unsigned int tx =threadIdx.x;
 	unsigned int ty= threadIdx.y;
-	__shared__ float Etmp[16][16];
-	__shared__ float Htmp[16][16];
-	__shared__ float hhtmp[16][16];
+	__shared__ DECNUM Etmp[16][16];
+	__shared__ DECNUM Htmp[16][16];
+	__shared__ DECNUM hhtmp[16][16];
 	
 	Etmp[tx][ty]=0.0f;
 	hhtmp[tx][ty]=hh[i];
@@ -1112,7 +1128,7 @@ __global__ void energint(int nx,int ny,int ntheta,float dtheta,float rho,float g
 	}
 	Etmp[tx][ty]=Etmp[tx][ty]*dtheta;
 	Htmp[tx][ty]=sqrtf(Etmp[tx][ty]/(rho*g/8.0f));//Hrms
-	float idiv=max(1.0f,powf(Htmp[tx][ty]/(gammax*hhtmp[tx][ty]),2.0f));
+	DECNUM idiv=max(1.0f,powf(Htmp[tx][ty]/(gammax*hhtmp[tx][ty]),2.0f));
 	
 	for (int itheta=0; itheta<ntheta; itheta++)
 	{
@@ -1125,18 +1141,18 @@ __global__ void energint(int nx,int ny,int ntheta,float dtheta,float rho,float g
 	
 }
 
-__global__ void calctm(int nx, int ny,int ntheta, float * tm,float * theta,float * ee)
+__global__ void calctm(int nx, int ny,int ntheta, DECNUM * tm,DECNUM * theta,DECNUM * ee)
 {
 	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
 	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
 	unsigned int i=ix+iy*nx;
 	int tx =threadIdx.x;
 	int ty= threadIdx.y;
-	//float sume=0;
-	//float sumthet=0;
+	//DECNUM sume=0;
+	//DECNUM sumthet=0;
 
-	__shared__ float sume[16][16];
-	__shared__ float sumthet[16][16];
+	__shared__ DECNUM sume[16][16];
+	__shared__ DECNUM sumthet[16][16];
 
 	sume[tx][ty]=0.0f;
 	sumthet[tx][ty]=0.0f;
@@ -1153,13 +1169,13 @@ __global__ void calctm(int nx, int ny,int ntheta, float * tm,float * theta,float
 	tm[i] = (sumthet[tx][ty]/ntheta)/(max(sume[tx][ty],0.00001)/ntheta);
 }
 
-__global__ void roelvink(int nx, int ny,float rho,float g,float gamma,float alpha,float n,float Trep,float * fwm,float * cfm,float *hh,float *H,float *E,float *D, float *k)
+__global__ void roelvink(int nx, int ny,DECNUM rho,DECNUM g,DECNUM gamma,DECNUM alpha,DECNUM n,DECNUM Trep,DECNUM * fwm,DECNUM * cfm,DECNUM *hh,DECNUM *H,DECNUM *E,DECNUM *D, DECNUM *k)
 {
 	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
 	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
 	unsigned int i=ix+iy*nx;
-	float fac,hroelvink,Qb;
-	float htmp,etmp;
+	DECNUM fac,hroelvink,Qb;
+	DECNUM htmp,etmp;
 	//int bk=3; //1 or 3
 	
     fac=8.0f/rho/g;
@@ -1176,13 +1192,13 @@ __global__ void roelvink(int nx, int ny,float rho,float g,float gamma,float alph
 
  	D[i]=Qb*2.0f*alpha/Trep*etmp*htmp/hroelvink;
 	
-	float fw;
-	float sqrt2=1.4142136;
-	float urms=pi*htmp/(Trep*sqrt2*sinh(k[i]*hroelvink));
-	float uorb=pi*htmp/(Trep*sinhf(min(k[i]*hroelvink,10.0f)));
-			/* float Ab=urms*Trep/(2*pi);
-			 float kb=30*cfm[i];
-			 float Abkb=Ab/kb;
+	DECNUM fw;
+	DECNUM sqrt2=1.4142136;
+	DECNUM urms=pi*htmp/(Trep*sqrt2*sinh(k[i]*hroelvink));
+	DECNUM uorb=pi*htmp/(Trep*sinhf(min(k[i]*hroelvink,10.0f)));
+			/* DECNUM Ab=urms*Trep/(2*pi);
+			 DECNUM kb=30*cfm[i];
+			 DECNUM Abkb=Ab/kb;
 
 			 if (Abkb<=0.2)
 			 {
@@ -1204,14 +1220,14 @@ __global__ void roelvink(int nx, int ny,float rho,float g,float gamma,float alph
 
 }
 
-__global__ void baldock(int nx, int ny,float rho,float g,float gamma,float alpha,float n,float Trep,float *fwm,float * cfm,float *hh,float *H,float *E,float *D, float *k)
+__global__ void baldock(int nx, int ny,DECNUM rho,DECNUM g,DECNUM gamma,DECNUM alpha,DECNUM n,DECNUM Trep,DECNUM *fwm,DECNUM * cfm,DECNUM *hh,DECNUM *H,DECNUM *E,DECNUM *D, DECNUM *k)
 {
 	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
 	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
 	unsigned int i=ix+iy*nx;
-	float fac,hbald,Qb;
-	float Htmp,etmp;
-	float kh,Hb,R,ki;	
+	DECNUM fac,hbald,Qb;
+	DECNUM Htmp,etmp;
+	DECNUM kh,Hb,R,ki;	
 //int bk=3; //1 or 3
 	
     //fac=8.0f/rho/g;
@@ -1232,14 +1248,14 @@ __global__ void baldock(int nx, int ny,float rho,float g,float gamma,float alpha
 
 //ADD dissipation due to bottom friction
 	
-			// float fw;
-			 //float sqrt2=1.4142136f;
-			 //float urms=pi*Htmp/(Trep*sqrt2*sinh(min(max(k[i],0.01f)*hbald,10.0f)));
-			 float uorb=pi*Htmp/(Trep*sinhf(min(max(k[i],0.01f)*hbald,10.0f)));
-			 //float urms=uorb/sqrt2;
-			/* float Ab=urms*Trep/(2.0f*pi);
-			 float kb=30.0f*zo[i];
-			 float Abkb=Ab/kb;
+			// DECNUM fw;
+			 //DECNUM sqrt2=1.4142136f;
+			 //DECNUM urms=pi*Htmp/(Trep*sqrt2*sinh(min(max(k[i],0.01f)*hbald,10.0f)));
+			 DECNUM uorb=pi*Htmp/(Trep*sinhf(min(max(k[i],0.01f)*hbald,10.0f)));
+			 //DECNUM urms=uorb/sqrt2;
+			/* DECNUM Ab=urms*Trep/(2.0f*pi);
+			 DECNUM kb=30.0f*zo[i];
+			 DECNUM Abkb=Ab/kb;
 
 			 if (Abkb<=0.2)
 			 {
@@ -1265,7 +1281,7 @@ __global__ void baldock(int nx, int ny,float rho,float g,float gamma,float alpha
 
 
 
-__global__ void rollerlatbnd(int nx,int ny,int ntheta,float eps,float *hh,float *rr)
+__global__ void rollerlatbnd(int nx,int ny,int ntheta,DECNUM eps,DECNUM *hh,DECNUM *rr)
 {
 	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
 	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
@@ -1278,15 +1294,15 @@ __global__ void rollerlatbnd(int nx,int ny,int ntheta,float eps,float *hh,float 
 	unsigned int yminus=mminus(iy,ny);
 	unsigned int yplus=pplus(iy,ny);
 	
-	__shared__ float hhi[16][16];
-	__shared__ float rri[16][16];
-	__shared__ float rrt[16][16];
-	__shared__ float rrb[16][16];
-	__shared__ float rrr[16][16];
+	__shared__ DECNUM hhi[16][16];
+	__shared__ DECNUM rri[16][16];
+	__shared__ DECNUM rrt[16][16];
+	__shared__ DECNUM rrb[16][16];
+	__shared__ DECNUM rrr[16][16];
 
 
 	hhi[tx][ty]=hh[i];
-	float wet=0.0f;
+	DECNUM wet=0.0f;
 
 	if (hhi[tx][ty]>eps)
 	{
@@ -1320,7 +1336,7 @@ __global__ void rollerlatbnd(int nx,int ny,int ntheta,float eps,float *hh,float 
 
 }
 
-__global__ void twodimbndnoix(int nx,int ny,float eps,float * hh,float * F)
+__global__ void twodimbndnoix(int nx,int ny,DECNUM eps,DECNUM * hh,DECNUM * F)
 {
 	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
 	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
@@ -1333,18 +1349,18 @@ __global__ void twodimbndnoix(int nx,int ny,float eps,float * hh,float * F)
 	unsigned int yminus=mminus(iy,ny);
 	unsigned int yplus=pplus(iy,ny);
 	
-	__shared__ float hhi[16][16];
-	__shared__ float Fi[16][16];
-	__shared__ float Ft[16][16];
-	__shared__ float Fb[16][16];
-	__shared__ float Fr[16][16];
+	__shared__ DECNUM hhi[16][16];
+	__shared__ DECNUM Fi[16][16];
+	__shared__ DECNUM Ft[16][16];
+	__shared__ DECNUM Fb[16][16];
+	__shared__ DECNUM Fr[16][16];
 
 	
 	
 
 
 	hhi[tx][ty]=hh[i];
-	float wet=0.0f;
+	DECNUM wet=0.0f;
 
 	if (hhi[tx][ty]>eps)
 	{
@@ -1372,7 +1388,7 @@ __global__ void twodimbndnoix(int nx,int ny,float eps,float * hh,float * F)
 		//}
 
 }
-__global__ void twodimbnd(int nx,int ny,float eps,float * hh,float * F)
+__global__ void twodimbnd(int nx,int ny,DECNUM eps,DECNUM * hh,DECNUM * F)
 {
 	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
 	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
@@ -1385,18 +1401,18 @@ __global__ void twodimbnd(int nx,int ny,float eps,float * hh,float * F)
 	unsigned int yminus=mminus(iy,ny);
 	unsigned int yplus=pplus(iy,ny);
 	
-	__shared__ float hhi[16][16];
-	__shared__ float Fi[16][16];
-	__shared__ float Ft[16][16];
-	__shared__ float Fb[16][16];
-	__shared__ float Fr[16][16];
+	__shared__ DECNUM hhi[16][16];
+	__shared__ DECNUM Fi[16][16];
+	__shared__ DECNUM Ft[16][16];
+	__shared__ DECNUM Fb[16][16];
+	__shared__ DECNUM Fr[16][16];
 
 	
 	
 
 
 	hhi[tx][ty]=hh[i];
-	float wet=0.0f;
+	DECNUM wet=0.0f;
 
 	if (hhi[tx][ty]>eps)
 	{
@@ -1425,24 +1441,24 @@ __global__ void twodimbnd(int nx,int ny,float eps,float * hh,float * F)
 
 }
 
-__global__ void dissipation(int nx,int ny,int ntheta,float dtheta,float eps,float dt,float g,float beta,float * wci,float *hh,float *ee,float *D,float *E,float *rr,float *c,float *cxsth,float *sxnth,float * uu,float * vv,float *DR,float *R)
+__global__ void dissipation(int nx,int ny,int ntheta,DECNUM dtheta,DECNUM eps,DECNUM dt,DECNUM g,DECNUM beta,DECNUM * wci,DECNUM *hh,DECNUM *ee,DECNUM *D,DECNUM *E,DECNUM *rr,DECNUM *c,DECNUM *cxsth,DECNUM *sxnth,DECNUM * uu,DECNUM * vv,DECNUM *DR,DECNUM *R)
 {
 	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
 	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
 	unsigned int i=ix+iy*nx;
 	int tx =threadIdx.x;
 	int ty= threadIdx.y;
-	float dd;
-	float RR=0.0f;
-	float drr=0.0f;
-	float cx,cy;
-	//float wci=0.0f;
-	float rrd;
-	float eet,rrt;
+	DECNUM dd;
+	DECNUM RR=0.0f;
+	DECNUM drr=0.0f;
+	DECNUM cx,cy;
+	//DECNUM wci=0.0f;
+	DECNUM rrd;
+	DECNUM eet,rrt;
 
-	__shared__ float cc[16][16];
-	__shared__ float uui[16][16];
-	__shared__ float vvi[16][16];
+	__shared__ DECNUM cc[16][16];
+	__shared__ DECNUM uui[16][16];
+	__shared__ DECNUM vvi[16][16];
 
 	cc[tx][ty]=c[i];
 	uui[tx][ty]=uu[i]*wci[i];
@@ -1483,15 +1499,15 @@ __global__ void dissipation(int nx,int ny,int ntheta,float dtheta,float eps,floa
 	DR[i]=drr*dtheta;
 }
 
-__global__ void meandir(int nx,int ny,int ntheta,float rho,float g,float dtheta,float * ee,float * thet, float * thetamean, float * E,float * H)
+__global__ void meandir(int nx,int ny,int ntheta,DECNUM rho,DECNUM g,DECNUM dtheta,DECNUM * ee,DECNUM * thet, DECNUM * thetamean, DECNUM * E,DECNUM * H)
 {
 	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
 	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
 	unsigned int i=ix+iy*nx;
 	
-	float sumethet=0;
+	DECNUM sumethet=0;
 	
-	float sume=0;
+	DECNUM sume=0;
 	for (int itheta=0; itheta<ntheta; itheta++)
 	{
 		sume=sume+ee[i+itheta*nx*ny];
@@ -1505,7 +1521,7 @@ __global__ void meandir(int nx,int ny,int ntheta,float rho,float g,float dtheta,
 	H[i]=sqrtf(sume*dtheta/(rho*g/8));//sqrt(E[i]/(1/8*rho*g));
 }
 
-__global__ void radstress(int nx,int ny, int ntheta,float dx,float dtheta,float * ee,float *rr,float * cxsth,float * sxnth,float * cg,float * c,float * Sxx,float * Sxy,float * Syy)
+__global__ void radstress(int nx,int ny, int ntheta,DECNUM dx,DECNUM dtheta,DECNUM * ee,DECNUM *rr,DECNUM * cxsth,DECNUM * sxnth,DECNUM * cg,DECNUM * c,DECNUM * Sxx,DECNUM * Sxy,DECNUM * Syy)
 {
 	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
 	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
@@ -1515,18 +1531,18 @@ __global__ void radstress(int nx,int ny, int ntheta,float dx,float dtheta,float 
 	
 
 
-	 __shared__ float n[16][16];
+	 __shared__ DECNUM n[16][16];
 	 
 
 	n[tx][ty]=cg[i]/c[i];
 	__syncthreads;
-	float sume=0.0f;
-	float tmpxx=0.0f;
-	float tmpxy=0.0f;
-	float tmpyy=0.0f;
-	float rolxx=0.0f;
-	float rolxy=0.0f;
-	float rolyy=0.0f;
+	DECNUM sume=0.0f;
+	DECNUM tmpxx=0.0f;
+	DECNUM tmpxy=0.0f;
+	DECNUM tmpyy=0.0f;
+	DECNUM rolxx=0.0f;
+	DECNUM rolxy=0.0f;
+	DECNUM rolyy=0.0f;
 
 	for (int itheta=0; itheta<ntheta; itheta++)
 	{
@@ -1546,7 +1562,7 @@ __global__ void radstress(int nx,int ny, int ntheta,float dx,float dtheta,float 
 	Sxy[i]=n[tx][ty]*tmpxy*dtheta+rolxy*dtheta;
 }
 
-__global__ void wavforce(int nx,int ny, int ntheta,float dx,float dtheta,float * Sxx,float * Sxy,float * Syy,float * Fx,float * Fy,float * hh)
+__global__ void wavforce(int nx,int ny, int ntheta,DECNUM dx,DECNUM dtheta,DECNUM * Sxx,DECNUM * Sxy,DECNUM * Syy,DECNUM * Fx,DECNUM * Fy,DECNUM * hh)
 {
 	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
 	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
@@ -1559,24 +1575,24 @@ __global__ void wavforce(int nx,int ny, int ntheta,float dx,float dtheta,float *
 	unsigned int yminus=mminus(iy,ny);
 	unsigned int yplus=pplus(iy,ny);
 	
-	//float hmin=0.000002f;
+	//DECNUM hmin=0.000002f;
 	
-	__shared__ float  Sxxi[16][16];
-	__shared__ float  Sxxr[16][16];
-	__shared__ float  Sxyi[16][16];
-	__shared__ float  Sxyt[16][16];
-	__shared__ float  Sxytr[16][16];
-	__shared__ float  Sxyb[16][16];
-	__shared__ float  Sxybr[16][16];
+	__shared__ DECNUM  Sxxi[16][16];
+	__shared__ DECNUM  Sxxr[16][16];
+	__shared__ DECNUM  Sxyi[16][16];
+	__shared__ DECNUM  Sxyt[16][16];
+	__shared__ DECNUM  Sxytr[16][16];
+	__shared__ DECNUM  Sxyb[16][16];
+	__shared__ DECNUM  Sxybr[16][16];
 	
-	__shared__ float  Syyi[16][16];
-	__shared__ float  Syyt[16][16];
-	__shared__ float  Sxyr[16][16];
-	__shared__ float  Sxyl[16][16];
-	__shared__ float  Sxytl[16][16];
+	__shared__ DECNUM  Syyi[16][16];
+	__shared__ DECNUM  Syyt[16][16];
+	__shared__ DECNUM  Sxyr[16][16];
+	__shared__ DECNUM  Sxyl[16][16];
+	__shared__ DECNUM  Sxytl[16][16];
 
-	__shared__ float FFx[16][16];
-	__shared__ float FFy[16][16] ;
+	__shared__ DECNUM FFx[16][16];
+	__shared__ DECNUM FFy[16][16] ;
 	
 	
 
@@ -1617,20 +1633,20 @@ __global__ void wavforce(int nx,int ny, int ntheta,float dx,float dtheta,float *
 
 }
 
-__global__ void breakerdelay(int nx,int ny,int ntheta,float dtheta,float g, float rho,float Trep, float eps,float * urms,float *ust,float *H,float *E,float *c,float *k, float *hh,float *rr)
+__global__ void breakerdelay(int nx,int ny,int ntheta,DECNUM dtheta,DECNUM g, DECNUM rho,DECNUM Trep, DECNUM eps,DECNUM * urms,DECNUM *ust,DECNUM *H,DECNUM *E,DECNUM *c,DECNUM *k, DECNUM *hh,DECNUM *rr)
 {
 	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
 	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
 	unsigned int i=ix+iy*nx;
 	
-	float hmin=0.2;
-	float delta=0.0f;
-	float Hi=H[i];
-	float ki=k[i];
-	float hhi=max(hh[i],hmin);
-	float ci=max(c[i],sqrt(hmin*g));
-	float R;
-	float ustw,uwf,vwf,ustr,usd,uorb;
+	DECNUM hmin=0.2;
+	DECNUM delta=0.0f;
+	DECNUM Hi=H[i];
+	DECNUM ki=k[i];
+	DECNUM hhi=max(hh[i],hmin);
+	DECNUM ci=max(c[i],sqrt(hmin*g));
+	DECNUM R;
+	DECNUM ustw,uwf,vwf,ustr,usd,uorb;
 	
 	R=rr[i];
 
@@ -1655,7 +1671,7 @@ __global__ void breakerdelay(int nx,int ny,int ntheta,float dtheta,float g, floa
 
 }
 
-__global__ void calcwci(int nx, int ny, float wci, float hwci, float * hh, float *wcig)
+__global__ void calcwci(int nx, int ny, DECNUM wci, DECNUM hwci, DECNUM * hh, DECNUM *wcig)
 {
 	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
 	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;

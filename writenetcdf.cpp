@@ -20,8 +20,10 @@
 #include <algorithm>
 #include <netcdf.h>
 #define pi 3.14159265
+using DECNUM = float;
 
-extern "C" void creatncfile(char outfile[], int nx,int ny,/*int npart,*/float dx,float totaltime,int imodel,/*float * xxp,float * yyp,*/float *zb,float *zs,float * uu, float * vv, float * H,float * Tp,float * Dp,float * D,float * Urms,float * ueu,float * vev,float * C,float *Fx, float *Fy,float * hh,float *Hmean,float *uumean,float *vvmean,float *hhmean,float *zsmean,float *Cmean)
+
+extern "C" void creatncfile(char outfile[], int nx,int ny,/*int npart,*/DECNUM dx,DECNUM totaltime,int imodel,/*DECNUM * xxp,DECNUM * yyp,*/DECNUM *zb,DECNUM *zs,DECNUM * uu, DECNUM * vv, DECNUM * H,DECNUM * Tp,DECNUM * Dp,DECNUM * D,DECNUM * Urms,DECNUM * ueu,DECNUM * vev,DECNUM * C,DECNUM *Fx, DECNUM *Fy,DECNUM * hh,DECNUM *Hmean,DECNUM *uumean,DECNUM *vvmean,DECNUM *hhmean,DECNUM *zsmean,DECNUM *Cmean)
 {               
 	int status;
    	int ncid,xx_dim,yy_dim,time_dim,p_dim;
@@ -43,13 +45,13 @@ extern "C" void creatncfile(char outfile[], int nx,int ny,/*int npart,*/float dx
 	static size_t tst[]={0};
 	static size_t xstart[] = {0}; // start at first value 
     	static size_t xcount[] = {nx};
-	float *xval;
+	DECNUM *xval;
 	static size_t ystart[] = {0}; // start at first value 
     	static size_t ycount[] = {ny};
-	float *yval;
+	DECNUM *yval;
 
-	xval=(float *)malloc(nx*sizeof(float));
-	yval=(float *)malloc(ny*sizeof(float));
+	xval=(DECNUM *)malloc(nx*sizeof(DECNUM));
+	yval=(DECNUM *)malloc(ny*sizeof(DECNUM));
 
 	for (int i=0; i<nx; i++)
 	{
@@ -169,7 +171,7 @@ extern "C" void creatncfile(char outfile[], int nx,int ny,/*int npart,*/float dx
 	//close and save new file
 	status = nc_close(ncid);  
 }
-extern "C" void writestep2nc(char outfile[], int nx,int ny,/*int npart,*/float totaltime,int imodel/*,float *xxp,float *yyp*/,float *zb,float *zs,float * uu, float * vv, float * H,float * Tp,float * Dp,float * D,float * Urms,float *ueu,float * vev,float * C,float *dzb, float *Fx, float *Fy,float *hh,float *Hmean,float *uumean,float *vvmean,float *hhmean,float *zsmean,float *Cmean)
+extern "C" void writestep2nc(char outfile[], int nx,int ny,/*int npart,*/DECNUM totaltime,int imodel/*,DECNUM *xxp,DECNUM *yyp*/,DECNUM *zb,DECNUM *zs,DECNUM * uu, DECNUM * vv, DECNUM * H,DECNUM * Tp,DECNUM * Dp,DECNUM * D,DECNUM * Urms,DECNUM *ueu,DECNUM * vev,DECNUM * C,DECNUM *dzb, DECNUM *Fx, DECNUM *Fy,DECNUM *hh,DECNUM *Hmean,DECNUM *uumean,DECNUM *vvmean,DECNUM *hhmean,DECNUM *zsmean,DECNUM *Cmean)
 {
 	int status;
    	int ncid,time_dim,recid;
@@ -268,7 +270,7 @@ extern "C" void writestep2nc(char outfile[], int nx,int ny,/*int npart,*/float t
 }
 
 
-extern "C" void create3dnc(int nx,int ny,int nt,float dx,float totaltime,float *theta,float * var)
+extern "C" void create3dnc(int nx,int ny,int nt,DECNUM dx,DECNUM totaltime,DECNUM *theta,DECNUM * var)
 {
 	int status;
    	int ncid,xx_dim,yy_dim,time_dim,p_dim,tvar_id;
@@ -318,16 +320,16 @@ extern "C" void create3dnc(int nx,int ny,int nt,float dx,float totaltime,float *
 	static size_t tst[]={0};
 	static size_t xstart[] = {0}; // start at first value 
     static size_t xcount[] = {nx};
-	float *xval;
+	DECNUM *xval;
 	static size_t ystart[] = {0}; // start at first value 
     static size_t ycount[] = {ny};
-	float *yval;
+	DECNUM *yval;
 	static size_t tstart[] = {0}; // start at first value 
     static size_t tcount[] = {nt};
 	
 
-	xval=(float *)malloc(nx*sizeof(float));
-	yval=(float *)malloc(ny*sizeof(float));
+	xval=(DECNUM *)malloc(nx*sizeof(DECNUM));
+	yval=(DECNUM *)malloc(ny*sizeof(DECNUM));
 
 	for (int i=0; i<nx; i++)
 	{
@@ -349,7 +351,7 @@ extern "C" void create3dnc(int nx,int ny,int nt,float dx,float totaltime,float *
 	status = nc_close(ncid);
 
 }
-extern "C" void write3dvarnc(int nx,int ny,int nt,float totaltime,float * var)
+extern "C" void write3dvarnc(int nx,int ny,int nt,DECNUM totaltime,DECNUM * var)
 {
 	int status;
    	int ncid,time_dim,recid;
@@ -386,21 +388,21 @@ extern "C" void write3dvarnc(int nx,int ny,int nt,float totaltime,float * var)
 
 }
 
-extern "C" void read3Dnc(int nx, int ny,int ntheta,char ncfile[],float * &ee)
+extern "C" void read3Dnc(int nx, int ny,int ntheta,char ncfile[],DECNUM * &ee)
 {
 	int status;
 	int ncid,ee_id;
 	static size_t count[] = {nx, ny,ntheta};
 	
 	status = nc_open(ncfile, NC_NOWRITE, &ncid);
-	status = nc_inq_varid(ncid, "ee", &ee_id);
+	status = nc_inq_varid(ncid, "z", &ee_id);
 	status = nc_get_var_float(ncid,ee_id,ee);
 	status = nc_close(ncid);
 	
 	
 }
 
-extern "C" void read2Dnc(int nx, int ny,char ncfile[],float * &hh)
+extern "C" void read2Dnc(int nx, int ny,char ncfile[],DECNUM * &hh)
 {
 	int status;
 	int ncid,hh_id;

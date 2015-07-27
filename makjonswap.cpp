@@ -20,17 +20,18 @@
 #include <algorithm>
 
 #define pi 3.14159265
+using DECNUM = float;
 
-void makjonswap(float hm0gew,float fp,float mainang,float rt,float scoeff,float gam,float *theta,int ntheta,float& TTrep,float * &Stt)
+void makjonswap(DECNUM hm0gew,DECNUM fp,DECNUM mainang,DECNUM rt,DECNUM scoeff,DECNUM gam,DECNUM *theta,int ntheta,DECNUM& TTrep,DECNUM * &Stt)
 {
     
 
-//float hm0gew=2.0f;//Significant wave height (m)
-//float fp=1.0f/12.0f; //Wave peak frequency (Hz)
-//float mainang=0; //wave mean direction (angle of incidence º)
-//float rt=1000; //Boundary duration
-//float scoeff=100;// spread coef n.u.
-//float gam=3.3f;//: peak enhancement factor, optional parameter (DEFAULT 3.3)
+//DECNUM hm0gew=2.0f;//Significant wave height (m)
+//DECNUM fp=1.0f/12.0f; //Wave peak frequency (Hz)
+//DECNUM mainang=0; //wave mean direction (angle of incidence º)
+//DECNUM rt=1000; //Boundary duration
+//DECNUM scoeff=100;// spread coef n.u.
+//DECNUM gam=3.3f;//: peak enhancement factor, optional parameter (DEFAULT 3.3)
 
 //printf("hs=%f\nfp=%f\nang=%f\nscoeff=%f\ngam=%f\n",hm0gew,fp,mainang,scoeff,gam);	
 	
@@ -38,24 +39,24 @@ void makjonswap(float hm0gew,float fp,float mainang,float rt,float scoeff,float 
 //printf("fp=%f\n",fp);
 //// 
 
-float fnyq = 3.0f*fp;
-float dfj= fp/20.0f;
+DECNUM fnyq = 3.0f*fp;
+DECNUM dfj= fp/20.0f;
 
 // 
 int nfreq=ceil((fnyq-dfj)/dfj);
-float * f;
-float * x;
-float * y;
+DECNUM * f;
+DECNUM * x;
+DECNUM * y;
 
-f=(float *)malloc(nfreq*sizeof(float));
-//f= new float[nfreq];
-//x= new float[nfreq];
-//y= new float[nfreq];
-x=(float *)malloc(nfreq*sizeof(float));
-y=(float *)malloc(nfreq*sizeof(float));
+f=(DECNUM *)malloc(nfreq*sizeof(DECNUM));
+//f= new DECNUM[nfreq];
+//x= new DECNUM[nfreq];
+//y= new DECNUM[nfreq];
+x=(DECNUM *)malloc(nfreq*sizeof(DECNUM));
+y=(DECNUM *)malloc(nfreq*sizeof(DECNUM));
 //printf("Hello world!");
-float xa,ymax,ysum;
-float sigma,fac1,fac2,fac3;
+DECNUM xa,ymax,ysum;
+DECNUM sigma,fac1,fac2,fac3;
 
 ysum=0.0f;
 ymax=0.0f;
@@ -107,15 +108,15 @@ for (int i=0; i<nfreq;i++)
 
 ////
         
-//float t1=-(pi)/2;
+//DECNUM t1=-(pi)/2;
 //int ntheta=101;
-//float *theta;
+//DECNUM *theta;
 
-float * Dd;
-Dd= (float *)malloc(ntheta*sizeof(float));
-//Dd= new float[ntheta];
-//theta= (float *)malloc(ntheta*sizeof(float));//new float[ntheta];
-float ddsum=0.0f;
+DECNUM * Dd;
+Dd= (DECNUM *)malloc(ntheta*sizeof(DECNUM));
+//Dd= new DECNUM[ntheta];
+//theta= (DECNUM *)malloc(ntheta*sizeof(DECNUM));//new DECNUM[ntheta];
+DECNUM ddsum=0.0f;
 //theta=(0:100)*((pi)/100)+t1;
 
 for(int i=0; i<ntheta; i++)
@@ -126,7 +127,7 @@ for(int i=0; i<ntheta; i++)
     //printf("theta[%d]=%f\n",i,theta[i]);
 }
 
-float dang=theta[1]-theta[0];
+DECNUM dang=theta[1]-theta[0];
 
 //mainang=(1.5d0*p1-alfa)-mainang*atan(1.d0)/45.0d0;
 
@@ -137,17 +138,17 @@ for(int i=0; i<ntheta; i++)
 }
 
 
-//float nang=ntheta;
+//DECNUM nang=ntheta;
 
-float * S_array;
-float * Sf;
-float * St;
-S_array= new float[nfreq*ntheta];
-Sf= new float[nfreq];
-//St= new float[ntheta];
+DECNUM * S_array;
+DECNUM * Sf;
+DECNUM * St;
+S_array= new DECNUM[nfreq*ntheta];
+Sf= new DECNUM[nfreq];
+//St= new DECNUM[ntheta];
 
-float stsum;
-float sfmax=0;
+DECNUM stsum;
+DECNUM sfmax=0;
 
 
 for (int i=0; i<ntheta; i++)                             //! Fill S_array
@@ -182,12 +183,12 @@ for (int i=0; i<ntheta; i++)                             //! Fill S_array
 //call tpDcalc(Sf,f,Trep)
 
 //allocate(temp(size(Sf)))
-float sumnom=0.0f;
-float sumden=0.0f;
+DECNUM sumnom=0.0f;
+DECNUM sumden=0.0f;
 
 for (int i=0; i<nfreq; i++)
 {
-    float temp=0.0f;
+    DECNUM temp=0.0f;
     if (Sf[i]>0.8f*sfmax)
     {
         temp=1.0f;
@@ -195,7 +196,7 @@ for (int i=0; i<nfreq; i++)
     sumnom=sumnom+temp*Sf[i]*f[i];
     sumden=sumden+temp*Sf[i];
 }
-//float Trep;
+//DECNUM Trep;
 	
 	//printf("sumnom=%f\n",sumnom);
 	//printf("sumden=%f\n",sumden);

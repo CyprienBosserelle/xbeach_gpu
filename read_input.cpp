@@ -22,17 +22,17 @@
 #include <string>
 
 #define pi 3.14159265
+using DECNUM = float;
 
 
-
-extern "C" void readXbbndhead(char * wavebnd,float &thetamin,float &thetamax,float &dtheta,float &dtwavbnd,int &nwavbnd,int &nwavfile)
+extern "C" void readXbbndhead(char * wavebnd,DECNUM &thetamin,DECNUM &thetamax,DECNUM &dtheta,DECNUM &dtwavbnd,int &nwavbnd,int &nwavfile)
 {
 	FILE * fwav;
 	fwav=fopen(wavebnd,"r");
 	fscanf(fwav,"%f\t%f\t%f\t%f\t%d\t%d",&thetamin,&thetamax,&dtheta,&dtwavbnd,&nwavbnd,&nwavfile);
 	fclose(fwav);
 }
-extern "C" void readbndhead(char * wavebnd,float &thetamin,float &thetamax,float &dtheta,float &dtwavbnd,int &nwavbnd)
+extern "C" void readbndhead(char * wavebnd,DECNUM &thetamin,DECNUM &thetamax,DECNUM &dtheta,DECNUM &dtwavbnd,int &nwavbnd)
 {
 	FILE * fwav;
 	fwav=fopen(wavebnd,"r");
@@ -42,7 +42,7 @@ extern "C" void readbndhead(char * wavebnd,float &thetamin,float &thetamax,float
 	fclose(fwav);
 }
 
-extern "C" void readXbbndstep(int nx, int ny,int ntheta,char * wavebnd,int step,float &Trep,double *&qfile,double *&Stfile )
+extern "C" void readXbbndstep(int nx, int ny,int ntheta,char * wavebnd,int step,DECNUM &Trep,double *&qfile,double *&Stfile )
 {
 	FILE * fwav;
 	FILE * fXq,* fXE;
@@ -50,7 +50,7 @@ extern "C" void readXbbndstep(int nx, int ny,int ntheta,char * wavebnd,int step,
 	char XbEfile[256];
 	double dummy;
 	size_t result;
-	float thetamin,thetamax,dtheta,dtwavbnd;
+	DECNUM thetamin,thetamax,dtheta,dtwavbnd;
 	int nwavbnd,nwavfile;
 
 	printf("Reading next bnd file... ");
@@ -78,7 +78,7 @@ extern "C" void readXbbndstep(int nx, int ny,int ntheta,char * wavebnd,int step,
 			for (int nn=0; nn<4*ny*nwavbnd; nn++)
 			{
 				result=fread (&dummy,sizeof(double),1,fXq);
-				qfile[nn]=dummy;
+				qfile[nn] = (DECNUM)dummy;
 			}
 			
 			fclose(fXq);
@@ -90,7 +90,8 @@ extern "C" void readXbbndstep(int nx, int ny,int ntheta,char * wavebnd,int step,
 		{
 			fread (&dummy,sizeof(double),1,fXE);
 			//printf("St=%f\n ",dummy);
-			Stfile[nn]=(float)dummy;
+			//Stfile[nn] = dummy;
+			Stfile[nn]=(DECNUM)dummy;
 		}
 		fclose(fXE);
 
@@ -98,14 +99,14 @@ extern "C" void readXbbndstep(int nx, int ny,int ntheta,char * wavebnd,int step,
 	
 }
 
-extern "C" void readStatbnd(int nx, int ny,int ntheta,float rho,float g,char * wavebnd,double *&Tpfile,double *&Stfile )
+extern "C" void readStatbnd(int nx, int ny,int ntheta,DECNUM rho,DECNUM g,char * wavebnd,double *&Tpfile,double *&Stfile )
 {
 	FILE * fwav;
 	
-	float dumfloat;
+	DECNUM dumDECNUM;
 	size_t result;
-	float thetamin,thetamax,dtheta,dtwavbnd;
-	float Trepdum;
+	DECNUM thetamin,thetamax,dtheta,dtwavbnd;
+	DECNUM Trepdum;
 	int nwavbnd;
 
 	printf("Reading bnd file... ");
@@ -119,11 +120,11 @@ extern "C" void readStatbnd(int nx, int ny,int ntheta,float rho,float g,char * w
 			Tpfile[ni]=Trepdum;
 			for (int i=0; i<ntheta; i++)                             //! Fill St
 			{
-				fscanf(fwav,"%f\t",&dumfloat);
-				//printf("St=%f\n ",dumfloat);
+				fscanf(fwav,"%f\t",&dumDECNUM);
+				//printf("St=%f\n ",dumDECNUM);
 				for (int ii=0; ii<ny; ii++)
 				{
-					Stfile[ii+i*ny+ni*ny*ntheta]=dumfloat;
+					Stfile[ii+i*ny+ni*ny*ntheta]=dumDECNUM;
 				}
 			}
 		}

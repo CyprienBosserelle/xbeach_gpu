@@ -17,6 +17,8 @@
 
 // includes, system
 
+using DECNUM = float;
+
 //#include "stdafx.h"
 #include <stdio.h>
 #include <math.h>
@@ -32,34 +34,14 @@
 using namespace std;
 
 
-#include "Wave_kernel.cu"
-#include "Flow_kernel.cu"
-#include "Sediment_kernel.cu"
-//#include "read_input.cpp"
-
-#define pi 3.14159265
 
 
-// additional functions
-void makjonswap(float hm0gew,float fp,float mainang,float rt,float scoeff,float gam,float * theta,int ntheta,float& TTrep,float * &Stt);
-extern "C" void creatncfile(char outfile[], int nx,int ny,/*int npart,*/float dx,float totaltime,int imodel,/*float * xxp,float * yyp,*/float *zb,float *zs,float * uu, float * vv, float * H,float * Tp,float * Dp,float * D,float * Urms,float * ueu,float * vev,float * C,float *Fx,float *Fy,float *hh,float *Hmean,float *uumean,float *vvmean,float *hhmean,float *zsmean,float *Cmean);
-extern "C" void writestep2nc(char outfile[], int nx,int ny,/*int npart,*/float totaltime,int imodel/*,float *xxp,float *yyp*/,float *zb,float *zs,float * uu, float * vv, float * H, float * Tp, float *Dp,float *D,float *Urms,float *ueu,float *vev,float *C,float *dzb,float *Fx,float *Fy,float *hh,float *Hmean,float *uumean,float *vvmean,float *hhmean,float *zsmean,float *Cmean);
 
-extern "C" void create3dnc(int nx,int ny,int nt,float dx,float totaltime,float *theta,float * var);
-extern "C" void write3dvarnc(int nx,int ny,int nt,float totaltime,float * var);
-
-extern "C" void read3Dnc(int nx, int ny,int ntheta,char ncfile[],float * &ee);
-extern "C" void read2Dnc(int nx, int ny,char ncfile[],float * &hh);
-
-extern "C" void readXbbndhead(char * wavebndfile,float &thetamin,float &thetamax,float &dtheta,float &dtwavbnd,int &nwavbnd,int &nwavfile);
-extern "C" void readXbbndstep(int nx, int ny,int ntheta,char * wavebndfile,int step,float &Trep,double *&qfile,double *&Stfile );
-extern "C" void readStatbnd(int nx, int ny,int ntheta,float rho,float g,char * wavebndfile,double *&Tpfile,double *&Stfile );
-extern "C" void readbndhead(char * wavebndfile,float &thetamin,float &thetamax,float &dtheta,float &dtwavbnd,int &nwavbnd);
 
 //global variables
 
-float Trep,Trepold,Trepnew;
-float * St,* Stnew,* Stold;
+DECNUM Trep,Trepold,Trepnew;
+DECNUM * St,* Stnew,* Stold;
 double * Stfile;
 double * qfile;
 double * Tpfile;
@@ -68,133 +50,133 @@ int wavebndtype;
 int nstep=0;
 int breakmod=1;
 
-float * hh;//=ones(20,40).*10; //Depth+SL
-float * zb,* qbndold,* qbndnew;
-float * qbndold_g,*qbndnew_g;
-float * umeanbnd_g;
-float * vmeanbnd_g;
-float * umeanbnd;
-float * hh_g,*uu_g,*vv_g,*zs_g,* zb_g,*hhold_g;
-float * ueu_g, * vev_g;
-float * vmageu_g,* vmagev_g;
-float * uu;
-float  *vv;
-float *zs;
-float *dummy;
+DECNUM * hh;//=ones(20,40).*10; //Depth+SL
+DECNUM * zb,* qbndold,* qbndnew;
+DECNUM * qbndold_g,*qbndnew_g;
+DECNUM * umeanbnd_g;
+DECNUM * vmeanbnd_g;
+DECNUM * umeanbnd;
+DECNUM * hh_g,*uu_g,*vv_g,*zs_g,* zb_g,*hhold_g;
+DECNUM * ueu_g, * vev_g;
+DECNUM * vmageu_g,* vmagev_g;
+DECNUM * uu;
+DECNUM  *vv;
+DECNUM *zs;
+DECNUM *dummy;
 
-float *xadvec_g,*yadvec_g,*thetaadvec_g;
+DECNUM *xadvec_g,*yadvec_g,*thetaadvec_g;
 
-float *hum_g,* hu_g;
-float *hvm_g,* hv_g;
+DECNUM *hum_g,* hu_g;
+DECNUM *hvm_g,* hv_g;
 int *wetu_g,*wetv_g;
-float *ududx_g,* vdudy_g;
-float *udvdx_g, *vdvdy_g;
-float *vu_g,*uv_g;
-float  nuh,nuhfac;
-float *nuh_g;
-float * viscu_g,* viscv_g;
+DECNUM *ududx_g,* vdudy_g;
+DECNUM *udvdx_g, *vdvdy_g;
+DECNUM *vu_g,*uv_g;
+DECNUM  nuh,nuhfac;
+DECNUM *nuh_g;
+DECNUM * viscu_g,* viscv_g;
 
-float uumin=0.0f;
+DECNUM uumin=0.0f;
 
 
 int nx,ny;
-float dx,dt,eps;
-float grdalpha;
-float totaltime=0.0f;
+DECNUM dx,dt,eps;
+DECNUM grdalpha;
+DECNUM totaltime=0.0f;
 int nstpw,nwstp;//nb of hd step between wave step and next step for calculating waves and
-float wdt;// wave model time step
-float wavbndtime;
-float slbndtime;
-float windtime;
-float Cd; //Wind drag
-float fp,hm0gew,mainang,rt,scoeff,gam;
+DECNUM wdt;// wave model time step
+DECNUM wavbndtime;
+DECNUM slbndtime;
+DECNUM windtime;
+DECNUM Cd; //Wind drag
+DECNUM fp,hm0gew,mainang,rt,scoeff,gam;
 int nwavbnd,nwavfile;
-float dtwavbnd;
+DECNUM dtwavbnd;
 int roller;
-float wci;
-float *wci_g;
-float gammax,hwci,gammaa,n,alpha,beta,t1;
-float fw,fw2;
-float *fwm_g;//Wave dissipation factor map
+DECNUM wci;
+DECNUM *wci_g;
+DECNUM gammax,hwci,gammaa,n,alpha,beta,t1;
+DECNUM fw,fw2;
+DECNUM *fwm_g;//Wave dissipation factor map
 
-float phi    = (1.0f + sqrt(5.0f))/2;
-float aphi   = 1/(phi+1);
-float bphi   = phi/(phi+1);
-float twopi  = 8*atan(1.0f);
+DECNUM phi    = (1.0f + sqrt(5.0f))/2;
+DECNUM aphi   = 1/(phi+1);
+DECNUM bphi   = phi/(phi+1);
+DECNUM twopi  = 8*atan(1.0f);
 
-float g=9.81f;
-float rho=1025.0f;
-float zo;
-float cf,cf2;//friction
-float *cfm, *cfm_g; //friction map
+DECNUM g=9.81f;
+DECNUM rho=1025.0f;
+DECNUM zo;
+DECNUM cf,cf2;//friction
+DECNUM *cfm, *cfm_g; //friction map
 
-float lat; //lattitude 
-float fc; //coriolis
+DECNUM lat; //lattitude 
+DECNUM fc; //coriolis
 
 int ntheta;
-float thetamin,thetamax;
-float *theta;//=(0:100)*((pi)/100)+t1;see below
-float *theta_g;
+DECNUM thetamin,thetamax;
+DECNUM *theta;//=(0:100)*((pi)/100)+t1;see below
+DECNUM *theta_g;
 
-float * cgx, * cgy, *cx, *cy, * ctheta,* cxsth,* sxnth;//
-float * cgx_g, * cgy_g, *cx_g, *cy_g, * ctheta_g,* cxsth_g,* sxnth_g,*eect_g;//
+DECNUM * cgx, * cgy, *cx, *cy, * ctheta,* cxsth,* sxnth;//
+DECNUM * cgx_g, * cgy_g, *cx_g, *cy_g, * ctheta_g,* cxsth_g,* sxnth_g,*eect_g;//
 
 int var2plot=2;// 1: wave height 2: eta 3: u 4: v
 int colorindx;
 
-float dang;
-float dtheta;
+DECNUM dang;
+DECNUM dtheta;
 
-float * ee;//=zeros(nx+1,ny+1,ntheta);
-float * dd;
-float * wete;
+DECNUM * ee;//=zeros(nx+1,ny+1,ntheta);
+DECNUM * dd;
+DECNUM * wete;
 
-float * ee_g, *St_g;
+DECNUM * ee_g, *St_g;
 
-float * tm_g;
+DECNUM * tm_g;
 
-float * rr;//;rr=zeros(nx+1,ny+1,ntheta);
+DECNUM * rr;//;rr=zeros(nx+1,ny+1,ntheta);
 
-float * drr;//=zeros(nx+1,ny+1,ntheta);
-float * usd;//=zeros(nx+1,ny+1);
-float * D;//=zeros(nx+1,ny+1);
-float * D_g;
-float * E, * H;
-float * E_g, * H_g;
-float * drr_g, * rr_g;
-float * DR_g, * R_g;
+DECNUM * drr;//=zeros(nx+1,ny+1,ntheta);
+DECNUM * usd;//=zeros(nx+1,ny+1);
+DECNUM * D;//=zeros(nx+1,ny+1);
+DECNUM * D_g;
+DECNUM * E, * H;
+DECNUM * E_g, * H_g;
+DECNUM * drr_g, * rr_g;
+DECNUM * DR_g, * R_g;
 
-float * DR, * R;
+DECNUM * DR, * R;
 
-float * Sxx_g,* Syy_g,* Sxy_g,* Fx_g,* Fy_g;
-float /** Sxx,* Syy,* Sxy,*/* Fx,* Fy;
-float * thetamean;
-float * thetamean_g;
+DECNUM * Sxx_g,* Syy_g,* Sxy_g,* Fx_g,* Fy_g;
+DECNUM /** Sxx,* Syy,* Sxy,*/* Fx,* Fy;
+DECNUM * thetamean;
+DECNUM * thetamean_g;
 
-float * urms_g;
-float * ust_g;
-float omega;// = 2*pi/Trep;
+DECNUM * urms_g;
+DECNUM * ust_g;
+DECNUM omega;// = 2*pi/Trep;
 
-float D50, D90,rhosed;
+DECNUM D50, D90,rhosed;
 
-float * kturb_g,* rolthick_g,*dzsdt_g;
-float * Ceq_g,* ceqsg_g,* ceqbg_g, * Tsg_g, * facero_g;
-float * C,* Cc_g,* stdep, * stdep_g;
-float * Sus_g, * Svs_g, * Sub_g,* Svb_g;
-float morfac,por;
-float * ero_g, *depo_g;
-float *dzb,*dzb_g,* ddzb_g;
-float * Sout_g;
+DECNUM * kturb_g,* rolthick_g,*dzsdt_g;
+DECNUM * Ceq_g,* ceqsg_g,* ceqbg_g, * Tsg_g, * facero_g;
+DECNUM * C,* Cc_g,* stdep, * stdep_g;
+DECNUM * Sus_g, * Svs_g, * Sub_g,* Svb_g;
+DECNUM morfac,por;
+DECNUM * ero_g, *depo_g;
+DECNUM *dzb,*dzb_g,* ddzb_g;
+DECNUM * Sout_g;
 int * indSub_g,* indSvb_g;
-float sus=1.0f;
-float bed=1.0f;
-float facsk, facas;
+DECNUM sus=1.0f;
+DECNUM bed=1.0f;
+DECNUM facsk, facas;
 
-float * zsbnd;
-float rtsl;
-float zsbndnew, zsbndold;
+DECNUM * zsbnd;
+DECNUM rtsl;
+DECNUM zsbndnew, zsbndold;
 
-float windth,windthold,windv,windvold,windvnew,windthnew,rtwind;
+DECNUM windth,windthold,windv,windvold,windvnew,windthnew,rtwind;
 FILE * fsl;
 FILE * fwav;
 FILE * fwind;
@@ -214,30 +196,30 @@ int endstep;
 
 
 
-float wws;
-float drydzmax;
-float wetdzmax;
-float maxslpchg;
+DECNUM wws;
+DECNUM drydzmax;
+DECNUM wetdzmax;
+DECNUM maxslpchg;
 
 
 
-float Hplotmax;
+DECNUM Hplotmax;
 
-float * sigm, * thet, * costhet, * sinthet;
-float * sigm_g, * thet_g, * costhet_g, * sinthet_g;
-float * ueu,*vev,*urms;
-float * ua_g;
+DECNUM * sigm, * thet, * costhet, * sinthet;
+DECNUM * sigm_g, * thet_g, * costhet_g, * sinthet_g;
+DECNUM * ueu,*vev,*urms;
+DECNUM * ua_g;
 
-float *k,*c,*kh,*cg,*sinh2kh;
-float *k_g, * c_g, * kh_g, * cg_g, * sinh2kh_g;
+DECNUM *k,*c,*kh,*cg,*sinh2kh;
+DECNUM *k_g, * c_g, * kh_g, * cg_g, * sinh2kh_g;
 
-float * dhdx, * dhdy, * dudx, * dudy, * dvdx, * dvdy;
-float * dhdx_g, * dhdy_g, * dudx_g, * dudy_g, * dvdx_g, * dvdy_g;
-float *dzsdx_g,* dzsdy_g;
-float *zeros;
+DECNUM * dhdx, * dhdy, * dudx, * dudy, * dvdx, * dvdy;
+DECNUM * dhdx_g, * dhdy_g, * dudx_g, * dudy_g, * dvdx_g, * dvdy_g;
+DECNUM *dzsdx_g,* dzsdy_g;
+DECNUM *zeros;
 
-float * Hmean_g,* uumean_g,*vvmean_g,*hhmean_g,*zsmean_g,*Cmean_g;
-float *Hmean,*uumean,*vvmean,*hhmean,*zsmean,*Cmean;
+DECNUM * Hmean_g,* uumean_g,*vvmean_g,*hhmean_g,*zsmean_g,*Cmean_g;
+DECNUM *Hmean,*uumean,*vvmean,*hhmean,*zsmean,*Cmean;
 
 int GPUDEVICE;
 
@@ -252,15 +234,27 @@ int wxstep=1;
 
 char wavebndfile[256];
 
-extern "C"
-void wavebnd(void);
-void flowbnd(void);
-void wavestep(void);
-void flowstep(void);
-void sedimentstep(void);
+
+#include "Wave_kernel.cu"
+#include "Flow_kernel.cu"
+#include "Sediment_kernel.cu"
+
+//#include "read_input.cpp"
+
+#include "XBeachGPU.h"
+#include "Wavestep.cu"
 
 
-void CUDA_CHECK(cudaError CUDerr)
+template <class T> const T& min (const T& a, const T& b) {
+  return !(b<a)?a:b;     // or: return !comp(b,a)?a:b; for version (2)
+}
+
+
+
+
+
+
+/*void CUDA_CHECK(cudaError CUDerr)
 {    
 
 
@@ -273,10 +267,11 @@ void CUDA_CHECK(cudaError CUDerr)
         exit(EXIT_FAILURE);
 
     }
-}
+}*/
+
 
 // Main loop that actually runs the model
-void mainloop(void)
+void mainloopGPU(void)
 {
 
 while (nstep<=endstep)
@@ -375,37 +370,37 @@ while (nstep<=endstep)
     CUDA_CHECK( cudaThreadSynchronize() );
 
 	// Download mean vars
-	CUDA_CHECK( cudaMemcpy(Hmean, Hmean_g, nx*ny*sizeof(float ), cudaMemcpyDeviceToHost) );
-	CUDA_CHECK( cudaMemcpy(uumean, uumean_g, nx*ny*sizeof(float ), cudaMemcpyDeviceToHost) );
-	CUDA_CHECK( cudaMemcpy(vvmean, vvmean_g, nx*ny*sizeof(float ), cudaMemcpyDeviceToHost) );
-	CUDA_CHECK( cudaMemcpy(hhmean, hhmean_g, nx*ny*sizeof(float ), cudaMemcpyDeviceToHost) );
-	CUDA_CHECK( cudaMemcpy(zsmean, zsmean_g, nx*ny*sizeof(float ), cudaMemcpyDeviceToHost) );
-	CUDA_CHECK( cudaMemcpy(Cmean, Cmean_g, nx*ny*sizeof(float ), cudaMemcpyDeviceToHost) );
+	CUDA_CHECK( cudaMemcpy(Hmean, Hmean_g, nx*ny*sizeof(DECNUM ), cudaMemcpyDeviceToHost) );
+	CUDA_CHECK( cudaMemcpy(uumean, uumean_g, nx*ny*sizeof(DECNUM ), cudaMemcpyDeviceToHost) );
+	CUDA_CHECK( cudaMemcpy(vvmean, vvmean_g, nx*ny*sizeof(DECNUM ), cudaMemcpyDeviceToHost) );
+	CUDA_CHECK( cudaMemcpy(hhmean, hhmean_g, nx*ny*sizeof(DECNUM ), cudaMemcpyDeviceToHost) );
+	CUDA_CHECK( cudaMemcpy(zsmean, zsmean_g, nx*ny*sizeof(DECNUM ), cudaMemcpyDeviceToHost) );
+	CUDA_CHECK( cudaMemcpy(Cmean, Cmean_g, nx*ny*sizeof(DECNUM ), cudaMemcpyDeviceToHost) );
 	
 
-	CUDA_CHECK( cudaMemcpy(H, H_g, nx*ny*sizeof(float ), cudaMemcpyDeviceToHost) );
-	CUDA_CHECK( cudaMemcpy(uu, uu_g, nx*ny*sizeof(float ), cudaMemcpyDeviceToHost) );
-	CUDA_CHECK( cudaMemcpy(vv, vv_g, nx*ny*sizeof(float ), cudaMemcpyDeviceToHost) );
-	CUDA_CHECK( cudaMemcpy(zs, zs_g, nx*ny*sizeof(float ), cudaMemcpyDeviceToHost) );
-	CUDA_CHECK( cudaMemcpy(Fx, Fx_g, nx*ny*sizeof(float ), cudaMemcpyDeviceToHost) );
-	CUDA_CHECK( cudaMemcpy(Fy, Fy_g, nx*ny*sizeof(float ), cudaMemcpyDeviceToHost) );
-	CUDA_CHECK( cudaMemcpy(thetamean, thetamean_g, nx*ny*sizeof(float ), cudaMemcpyDeviceToHost) );
-	CUDA_CHECK( cudaMemcpy(D, D_g, nx*ny*sizeof(float ), cudaMemcpyDeviceToHost) );
-	CUDA_CHECK( cudaMemcpy(urms, urms_g, nx*ny*sizeof(float ), cudaMemcpyDeviceToHost) );
-	CUDA_CHECK( cudaMemcpy(ueu, ueu_g, nx*ny*sizeof(float ), cudaMemcpyDeviceToHost) );
-	CUDA_CHECK( cudaMemcpy(vev, vev_g, nx*ny*sizeof(float ), cudaMemcpyDeviceToHost) );
-	//CUDA_CHECK( cudaMemcpy(C, ceqsg_g, nx*ny*sizeof(float ), cudaMemcpyDeviceToHost) );
-	CUDA_CHECK( cudaMemcpy(C, hum_g, nx*ny*sizeof(float ), cudaMemcpyDeviceToHost) );
-	//CUDA_CHECK( cudaMemcpy(C,k_g, nx*ny*sizeof(float ), cudaMemcpyDeviceToHost) );
-	//CUDA_CHECK( cudaMemcpy(ctheta,ee_g, nx*ny*ntheta*sizeof(float ), cudaMemcpyDeviceToHost) );
-	CUDA_CHECK( cudaMemcpy(hh, hh_g, nx*ny*sizeof(float ), cudaMemcpyDeviceToHost) );
+	CUDA_CHECK( cudaMemcpy(H, H_g, nx*ny*sizeof(DECNUM ), cudaMemcpyDeviceToHost) );
+	CUDA_CHECK( cudaMemcpy(uu, uu_g, nx*ny*sizeof(DECNUM ), cudaMemcpyDeviceToHost) );
+	CUDA_CHECK( cudaMemcpy(vv, vv_g, nx*ny*sizeof(DECNUM ), cudaMemcpyDeviceToHost) );
+	CUDA_CHECK( cudaMemcpy(zs, zs_g, nx*ny*sizeof(DECNUM ), cudaMemcpyDeviceToHost) );
+	CUDA_CHECK( cudaMemcpy(Fx, Fx_g, nx*ny*sizeof(DECNUM ), cudaMemcpyDeviceToHost) );
+	CUDA_CHECK( cudaMemcpy(Fy, Fy_g, nx*ny*sizeof(DECNUM ), cudaMemcpyDeviceToHost) );
+	CUDA_CHECK( cudaMemcpy(thetamean, thetamean_g, nx*ny*sizeof(DECNUM ), cudaMemcpyDeviceToHost) );
+	CUDA_CHECK( cudaMemcpy(D, D_g, nx*ny*sizeof(DECNUM ), cudaMemcpyDeviceToHost) );
+	CUDA_CHECK( cudaMemcpy(urms, urms_g, nx*ny*sizeof(DECNUM ), cudaMemcpyDeviceToHost) );
+	CUDA_CHECK( cudaMemcpy(ueu, ueu_g, nx*ny*sizeof(DECNUM ), cudaMemcpyDeviceToHost) );
+	CUDA_CHECK( cudaMemcpy(vev, vev_g, nx*ny*sizeof(DECNUM ), cudaMemcpyDeviceToHost) );
+	//CUDA_CHECK( cudaMemcpy(C, ceqsg_g, nx*ny*sizeof(DECNUM ), cudaMemcpyDeviceToHost) );
+	CUDA_CHECK( cudaMemcpy(C, hum_g, nx*ny*sizeof(DECNUM ), cudaMemcpyDeviceToHost) );
+	//CUDA_CHECK( cudaMemcpy(C,k_g, nx*ny*sizeof(DECNUM ), cudaMemcpyDeviceToHost) );
+	//CUDA_CHECK( cudaMemcpy(ctheta,ee_g, nx*ny*ntheta*sizeof(DECNUM ), cudaMemcpyDeviceToHost) );
+	CUDA_CHECK( cudaMemcpy(hh, hh_g, nx*ny*sizeof(DECNUM ), cudaMemcpyDeviceToHost) );
 	if(imodel==4)// If moprhology is on
 	{
-		CUDA_CHECK( cudaMemcpy(zb, zb_g, nx*ny*sizeof(float ), cudaMemcpyDeviceToHost) );
-		CUDA_CHECK( cudaMemcpy(dzb, dzb_g, nx*ny*sizeof(float ), cudaMemcpyDeviceToHost) );
+		CUDA_CHECK( cudaMemcpy(zb, zb_g, nx*ny*sizeof(DECNUM ), cudaMemcpyDeviceToHost) );
+		CUDA_CHECK( cudaMemcpy(dzb, dzb_g, nx*ny*sizeof(DECNUM ), cudaMemcpyDeviceToHost) );
 	}
-	//CUDA_CHECK( cudaMemcpy(xxp, xxp_g, npart*sizeof(float ), cudaMemcpyDeviceToHost) );
-	//CUDA_CHECK( cudaMemcpy(yyp, yyp_g, npart*sizeof(float ), cudaMemcpyDeviceToHost) );
+	//CUDA_CHECK( cudaMemcpy(xxp, xxp_g, npart*sizeof(DECNUM ), cudaMemcpyDeviceToHost) );
+	//CUDA_CHECK( cudaMemcpy(yyp, yyp_g, npart*sizeof(DECNUM ), cudaMemcpyDeviceToHost) );
 	printf("Writing output, totaltime:%f s\n",totaltime);
 	writestep2nc(tsoutfile,nx,ny,/*npart,*/totaltime,imodel,/*xxp,yyp,*/zb,zs,uu, vv, H,H,thetamean,D,urms,ueu,vev,C,dzb,Fx,Fy,hh,Hmean,uumean,vvmean,hhmean,zsmean,Cmean);
 
@@ -443,328 +438,81 @@ while (nstep<=endstep)
 }
 
 
-void waveinit(void)
+void mainloopCPU(void)
 {
-	// Initialize wave model
-	
-	//Wave input bnd
-	printf("Opening wave bnd\n");
-
-	if(wavebndtype==1)
+	printf("Computing CPU mode\n");
+	while (nstep<=endstep)
 	{
-		
-		readbndhead(wavebndfile,thetamin,thetamax,dtheta,dtwavbnd,nwavbnd);
-		
-
-	}
-	else
-	{
-		readXbbndhead(wavebndfile,thetamin,thetamax,dtheta,dtwavbnd,nwavbnd,nwavfile);
-		
-	}
 	
+		nstep++; 
+		wdt=dt; // Sometinmes in stationary wave run one can have a larger wdt (wave time step)
+		totaltime=nstep*dt;	//total run time acheived until now in s
 
 
 
-	//printf("Hs=%f\tTp=%f\ta=%f\tscoef=%f\tgam=%f\trt=%f\n",hm0gew,fp,mainang,scoeff,gam,rt);
-	
-	fp=1/fp;
-	
-	
-
-
-
-
-
-	//hm0gew=1.0f;//Significant wave height (m)
-	//fp=1.0f/12.0f; //Wave peak frequency (Hz)
-	//mainang=0; //wave mean direction (angle of incidence º)
-	//rt=1000; //Boundary duration
-	//scoeff=100;// spread coef n.u.
-	//gam=3.3f;//: peak enhancement factor, optional parameter (DEFAULT 3.3)
-	
-	thetamin=thetamin*pi/180;
-	thetamax=thetamax*pi/180;
-	dtheta=dtheta*pi/180;
-	
-	ntheta=round((thetamax-thetamin)/dtheta);
-	printf("ntheta=%d\tdtheta=%f\n",ntheta,dtheta);
-	printf("nwavbnd=%d\n",nwavbnd);
-
-	theta=(float *)malloc(ntheta*sizeof(float));
-	
-	Stfile=(double *)malloc(ntheta*ny*nwavbnd*sizeof(double));
-	qfile=(double *)malloc(4*ny*nwavbnd*sizeof(double));
-	Tpfile=(double *)malloc(nwavbnd*sizeof(double));
-	//dummy=(double *)malloc(1000*sizeof(double));
-
-	qbndnew=(float *)malloc(4*ny*sizeof(float));
-	qbndold=(float *)malloc(4*ny*sizeof(float));
-	St= (float *)malloc(ntheta*ny*sizeof(float));
-	Stold= (float *)malloc(ntheta*ny*sizeof(float));
-	Stnew= (float *)malloc(ntheta*ny*sizeof(float));
-	cxsth=(float *)malloc(ntheta*sizeof(float));
-	sxnth=(float *)malloc(ntheta*sizeof(float));
-	
-	for(int i=0; i<ntheta; i++)
-	{
-		theta[i]=i*(dtheta)+thetamin+0.5f*dtheta;
-		cxsth[i]=cosf(theta[i]);
-		sxnth[i]=sinf(theta[i]);
-
-		//printf("theta=%f\tcxsth=%f\tsxnth=%f\n",theta[i],cxsth[i],sxnth[i]);
-	}
-
-	dang=theta[1]-theta[0];
-	//dtheta=dang;
-	
-
-	ee=(float *)malloc(nx*ny*ntheta*sizeof(float));
-	dd=(float *)malloc(nx*ny*ntheta*sizeof(float));
-	wete=(float *)malloc(nx*ny*ntheta*sizeof(float));
-
-	rr=(float *)malloc(nx*ny*ntheta*sizeof(float));
-	
-	//drr=(float *)malloc(nx*ny*ntheta*sizeof(float));
-
-
-	printf("Reading bnd data\n");
-	if(wavebndtype==1)
-	{
-		readStatbnd(nx,ny,ntheta,rho,g,wavebndfile,Tpfile,Stfile );
-		Trepold=Tpfile[0];
-		Trepnew=Tpfile[1];
-		rt=dtwavbnd;
-
-	}
-	
-	if(wavebndtype==2)
-	{
-		readXbbndstep(nx,ny,ntheta,wavebndfile,1,Trepold,qfile,Stfile );
-	
-
-	for (int ni=0; ni<ny; ni++)
+		if(imodel==1 || imodel>2)
 		{
-		for (int itheta=0; itheta<ntheta; itheta++)
+			wavebnd(); // Calculate the boundary condition for this step
+		}
+
+		if(imodel>=2)
 		{
-			Stold[ni+itheta*ny]=Stfile[ni+itheta*ny+nwbndstep*ny*ntheta];
-			Stnew[ni+itheta*ny]=Stfile[ni+itheta*ny+(nwbndstep+1)*ny*ntheta];
+			flowbnd();// Calculate the flow boundary for this step
+		}
+		if(imodel==1 || imodel>2)
+		{
+			wavestepCPU(); // Calculate the wave action ballance for this step
+		}
+		if(imodel>=2)
+		{
+			//flowstepCPU();// solve the shallow water and continuity for this step
+		}
+		if(imodel>=4 && nstep>=sedstart)
+		{
+			//Sediment step
+			//sedimentstepCPU();//solve the sediment dispersion, and morphology
+		}
+
+		//add last value for avg calc
+		addavg_varCPU(nx,ny,Hmean_g,H_g);
+		addavg_varCPU(nx,ny,uumean_g,uu_g);
+		addavg_varCPU(nx,ny,vvmean_g,vv_g);
+		addavg_varCPU(nx,ny,hhmean_g,hh_g);
+		addavg_varCPU(nx,ny,zsmean_g,zs_g);
+		addavg_varCPU(nx,ny,Cmean_g,Cc_g);
+
+		if (nstep==istepout && nstepout>0)
+		{
+			istepout=istepout+nstepout;
+
+			//Avg mean variables
+
+			divavg_varCPU(nx,ny,nstepout,Hmean_g);
+			divavg_varCPU(nx,ny,nstepout,uumean_g);
+			divavg_varCPU(nx,ny,nstepout,vvmean_g);
+			divavg_varCPU(nx,ny,nstepout,hhmean_g);
+			divavg_varCPU(nx,ny,nstepout,zsmean_g);
+			divavg_varCPU(nx,ny,nstepout,Cmean_g);
+
+			printf("Writing output, totaltime:%f s\n",totaltime);
+			//printf("test Hs: %f\n",H_g[0+16*nx]);
+			writestep2nc(tsoutfile,nx,ny,totaltime,imodel,zb_g,zs_g,uu_g, vv_g, H_g,xadvec_g,thetamean_g,D_g,urms_g,ueu_g,vev_g,Cc_g,dzb_g,Fx_g,Fy_g,hh_g,Hmean_g,uumean_g,vvmean_g,hhmean_g,zsmean_g,Cmean_g);
 			
+			//Clear avg vars
+			resetavg_varCPU(nx,ny,Hmean_g);
+			resetavg_varCPU(nx,ny,uumean_g);
+			resetavg_varCPU(nx,ny,vvmean_g);
+			resetavg_varCPU(nx,ny,hhmean_g);
+			resetavg_varCPU(nx,ny,zsmean_g);
+			resetavg_varCPU(nx,ny,Cmean_g);
+		}
 			
-		}
-		for (int xi=0; xi<4; xi++)
-		{
-			qbndold[ni+xi*ny]=qfile[ni+xi*ny+nwbndstep*ny*4];
-			qbndnew[ni+xi*ny]=qfile[ni+xi*ny+(nwbndstep+1)*ny*4];
-		}
-		}
-		//CUDA_CHECK( cudaMemcpy(qbndold_g,qbndold, 3*ny*sizeof(float ), cudaMemcpyHostToDevice) );
-		//CUDA_CHECK( cudaMemcpy(qbndnew_g,qbndnew, 3*ny*sizeof(float ), cudaMemcpyHostToDevice) );
-		//printf("qfile[0]=%f\n",qfile[0]);
-	}
-	else
-	{
-		
-
-		for (int ni=0; ni<ny; ni++)
-		{
-			for (int itheta=0; itheta<ntheta; itheta++)
-			{
-				Stold[ni+itheta*ny]=Stfile[itheta];
-				Stnew[ni+itheta*ny]=Stfile[itheta+ntheta];
-			}
-	
-		}
-		
 	}
 
-
-
-	
-
-	//fscanf(fwav,"%f\t%f\t%f\t%f\t%f\t%f",&hm0gew,&fp,&mainang,&scoeff,&gam,&rt);
-	//mainang=(1.5*pi-grdalpha)-mainang*pi/180;
-	//fp=1/fp;
-	//printf("init rt=%f\n",rt);
-	
-
-	//makjonswap(hm0gew,fp,mainang,rt,scoeff,gam,theta,ntheta,Trepnew, Stnew);
-	
-	
-	
-	
-	Trep=Trepold;
-	for (int i=0; i<ntheta; i++)                             //! Fill St
-	{
-		//St[i]=Stold[i];
-		//printf("St[%d]=%f\n",i,St[i]);
-		for (int ii=0; ii<ny; ii++)
-		{
-			St[ii+i*ny]=Stold[ii+i*ny];
-		}
-	}
-	
-	
-
-
-
-
-
-
-
-	//printf("hh=%f\n",hh[0]);
-
-
-
-
-
-for (int ii=0; ii<nx; ii++)
-{
-
-	for (int jj=0; jj<ny; jj++)
-	{
-
-		for (int nt=0; nt<ntheta; nt++)
-		{
-			if(ii==0)
-			{
-				ee[0+jj*nx+nt*nx*ny]=St[jj+nt*ny];// not on gpu since it is a bank conflicting problem
-			}
-			else{
-				ee[ii+jj*nx+nt*nx*ny]=0.0f;
-			}
-			rr[ii+jj*nx+nt*nx*ny]=0.0f;
-			
-		}
-	}
-}
-	
-
-//run dispersion relation	
-	
-	
-	
 }
 
 
 
-void wavebnd(void)
-{
-    if (totaltime >= dtwavbnd*(nwavbnd*wxstep-1))//The -1 here is so that we read the next file before the last step of the previous file runs out
-	{
-		if (wavebndtype==2)
-		{
-			readXbbndstep(nx,ny,ntheta,wavebndfile,wxstep,Trep,qfile,Stfile);
-			
-		}
-		nwbndstep=0;
-		
-		
-		
-		for (int ni=0; ni<ny; ni++)
-			{
-			
-				for (int itheta=0; itheta<ntheta; itheta++)
-				{
-					Stold[ni+itheta*ny]=Stfile[ni+itheta*ny+nwbndstep*ny*ntheta];
-					Stnew[ni+itheta*ny]=Stfile[ni+itheta*ny+(nwbndstep+1)*ny*ntheta];
-				}
-				if (wavebndtype==2)
-				{
-				for (int xi=0; xi<4; xi++)
-				{
-					qbndold[ni+xi*ny]=qfile[ni+xi*ny+nwbndstep*ny*4];
-					qbndnew[ni+xi*ny]=qfile[ni+xi*ny+(nwbndstep+1)*ny*4];
-				}
-				}
-			}
-				
-		
-		wxstep=wxstep+1;
-
-	}
-	
-
-
-	
-
-	
-	//if ((nstep==1 || nstep==nwstp) && (imodel==1 || imodel>=3))
-	//{
-		//update wave bnd
-		
-		if (totaltime>=wavbndtime /*&& wavebndtype==2*/)
-		{
-			for (int i=0; i<ntheta; i++)                             //! Fill Stold
-			{
-				for (int ni=0; ni<ny; ni++)
-				{
-					Stold[ni+i*ny]=Stfile[ni+i*ny+nwbndstep*ntheta*ny];
-					
-				}
-			}
-			//fscanf(fwav,"%f\t%f\t%f\t%f\t%f\t%f",&hm0gew,&fp,&mainang,&scoeff,&gam,&rt);
-			//mainang=(1.5*pi-grdalpha)-mainang*pi/180;
-			//printf("rt=%f\n",rt);
-	
-			//fp=1/fp;
-
-			//fscanf(fwav,"%f\t%f",&rt,&Trepnew);
-			nwbndstep=nwbndstep+1;
-			for (int i=0; i<ntheta; i++)                             //! Fill St
-			{
-				for (int ni=0; ni<ny; ni++)
-				{
-					
-					
-						Stnew[ni+i*ny]=Stfile[ni+i*ny+nwbndstep*ntheta*ny];
-					
-					if(wavebndtype==1)
-					{
-						
-						Trep=Tpfile[nwbndstep];
-					}
-				}
-			}
-			if (wavebndtype==2)
-			{
-				for (int ni=0; ni<ny; ni++)
-					{
-					for (int xi=0; xi<4; xi++)
-					{
-						qbndold[ni+xi*ny]=qbndnew[ni+ny*xi];
-						qbndnew[ni+xi*ny]=qfile[ni+xi*ny+nwbndstep*ny*4];
-					}	
-					}
-			    CUDA_CHECK( cudaMemcpy(qbndold_g,qbndold, 4*ny*sizeof(float ), cudaMemcpyHostToDevice) );
-				CUDA_CHECK( cudaMemcpy(qbndnew_g,qbndnew, 4*ny*sizeof(float ), cudaMemcpyHostToDevice) );
-				//printf("qbndold[300]=%f\n",qbndold[300]);
-				//printf("qbndnew[300]=%f\n",qbndnew[300]);
-			}
-			//printf("Stfile[0]=%f\n",Stfile[0]);
-			
-
-			//makjonswap(hm0gew,fp,mainang,rt,scoeff,gam,theta,ntheta,Trepnew, Stnew);
-		//wavbndtime=wavbndtime+dtwavbnd;
-		wavbndtime=nwbndstep*dtwavbnd+(wxstep-1)*nwavbnd*dtwavbnd; //should be better than above as it will not accumulate the rounbd off error
-		}
-		
-		for (int i=0; i<ntheta; i++)                             //! Fill St
-		{
-			for (int ni=0; ni<ny; ni++)
-			{
-				St[ni+i*ny]=Stold[ni+i*ny]+(totaltime-wavbndtime+dtwavbnd)*(Stnew[ni+i*ny]-Stold[ni+i*ny])/dtwavbnd;
-			}
-			//printf("St[%d]=%f\n",i,St[i*ny]);
-		}
-		//printf("Wave timestep:%f\n",wdt);
-		//Wave model step
-		//wavestep();
-		nwstp=nstep+nstpw;
-		wdt=dt;
-	//}
-
-}
 
 void flowbnd(void)
 {
@@ -774,7 +522,7 @@ void flowbnd(void)
 	{
 		zsbndold=zsbndnew;
 		rtsl=slbndtime;
-		fscanf(fsl,"%f\t%f",&slbndtime,&zsbndnew);		
+		fscanf(fsl,"%lf\t%lf",&slbndtime,&zsbndnew);		
 		//slbndtime=+rtsl;
 		//zsbnd=zsbndold+(t-slbndtime+rtsl)*(zsbndnew-zsbndold)/rtsl;
 	}
@@ -793,13 +541,21 @@ void flowbnd(void)
 
 	if (wavebndtype==2)
 	{
-		dim3 blockDim(16, 16, 1);
-		dim3 gridDim(nx / blockDim.x, ny / blockDim.y, 1);
-		// FLow abs_2d should be here not at the flow step		
-		// Set weakly reflective offshore boundary
-		ubnd<<<gridDim, blockDim, 0>>>(nx,ny,dx,dt,g,rho,totaltime,wavbndtime,dtwavbnd,slbndtime,rtsl,zsbndold,zsbndnew,Trep,qbndold_g,qbndnew_g,zs_g,uu_g,vv_g,vu_g,umeanbnd_g,vmeanbnd_g,zb_g,cg_g,hum_g,cfm_g,Fx_g,hh_g);
-		//CUT_CHECK_ERROR("ubnd execution failed\n");
-		CUDA_CHECK( cudaThreadSynchronize() );
+		if(GPUDEVICE>=0)
+		{
+			dim3 blockDim(16, 16, 1);
+			dim3 gridDim(nx / blockDim.x, ny / blockDim.y, 1);
+			// FLow abs_2d should be here not at the flow step		
+			// Set weakly reflective offshore boundary
+			ubnd<<<gridDim, blockDim, 0>>>(nx,ny,dx,dt,g,rho,totaltime,wavbndtime,dtwavbnd,slbndtime,rtsl,zsbndold,zsbndnew,Trep,qbndold_g,qbndnew_g,zs_g,uu_g,vv_g,vu_g,umeanbnd_g,vmeanbnd_g,zb_g,cg_g,hum_g,cfm_g,Fx_g,hh_g);
+			//CUT_CHECK_ERROR("ubnd execution failed\n");
+			CUDA_CHECK( cudaThreadSynchronize() );
+		}
+		else
+		{
+			ubndCPU(nx,ny,dx,dt,g,rho,totaltime,wavbndtime,dtwavbnd,slbndtime,rtsl,zsbndold,zsbndnew,Trep,qbndold_g,qbndnew_g,zs_g,uu_g,vv_g,vu_g,umeanbnd_g,vmeanbnd_g,zb_g,cg_g,hum_g,cfm_g,Fx_g,hh_g);
+			
+		}
 	}
 
 
@@ -810,7 +566,7 @@ void flowbnd(void)
 		windthold=windthnew;
 		windvold=windvnew;
 		rtwind=windtime;
-		fscanf(fwind,"%f\t%f\t%f",&windtime,&windvnew,&windthnew);
+		fscanf(fwind,"%lf\t%lf\t%lf",&windtime,&windvnew,&windthnew);
 		//windtime=windtime+rtwind;
 		//printf("windthold=%f\n",windthold);
 		//printf("windthnew=%f\n",windthnew);
@@ -829,403 +585,6 @@ void flowbnd(void)
 }
 
 
-void wavestep(void)
-{
-
-//Subroutine runs the wave model
-
-	dim3 blockDim(16, 16, 1);
-	dim3 gridDim(nx / blockDim.x, ny / blockDim.y, 1);
-
-	dim3 blockDim4(4, 4, 1);
-	dim3 gridDim4(nx / blockDim4.x, ny / blockDim4.y, 1);
-	
-	
-	CUDA_CHECK( cudaMemcpy(St_g, St, ny*ntheta*sizeof(float ), cudaMemcpyHostToDevice) );
-	//offshorebndWav(nx,ny,ntheta,totaltime,Trep,St_g,sigm_g,ee_g)
-	offshorebndWav<<<gridDim, blockDim, 0>>>(nx,ny,ntheta,totaltime,Trep,St_g,sigm_g,ee_g);
-	//CUT_CHECK_ERROR("Offshore Wave bnd execution failed\n");
-	CUDA_CHECK( cudaThreadSynchronize() );
-	
-	//Sanity check
-	sanity<<<gridDim, blockDim, 0>>>(nx, ny,eps,hh_g,sigm_g,ntheta,ee_g);
-	
-	//CUT_CHECK_ERROR("sanity execution failed\n");
-    CUDA_CHECK( cudaThreadSynchronize() );
-
-
-	//CUDA_CHECK( cudaMalloc((void **)&cg_g, nx*ny*sizeof(float )) );
-	//CUDA_CHECK( cudaMalloc((void **)&cx_g, nx*ny*ntheta*sizeof(float )) );
-//	CUDA_CHECK( cudaMalloc((void **)&c_g, nx*ny*sizeof(float )) );
-	//CUDA_CHECK( cudaMalloc((void **)&cy_g, nx*ny*ntheta*sizeof(float )) );
-	//CUDA_CHECK( cudaMalloc((void **)&k_g, nx*ny*sizeof(float )) );
-	CUDA_CHECK( cudaMalloc((void **)&kh_g, nx*ny*sizeof(float )) );
-	CUDA_CHECK( cudaMalloc((void **)&sinh2kh_g, nx*ny*sizeof(float )) );
-
-	
-	
-//dispersion
-	dispersion<<<gridDim, blockDim, 0>>>(nx,ny,twopi,g,aphi,bphi,sigm_g,hh_g,k_g,c_g,kh_g,sinh2kh_g,cg_g);
-	//CUT_CHECK_ERROR("dispersion execution failed\n");
-    CUDA_CHECK( cudaThreadSynchronize() );
-    
-    
-    //CUDA_CHECK( cudaMemcpy(C,kh_g,  ny*nx*sizeof(float ), cudaMemcpyDeviceToHost) );
-
-	CUDA_CHECK( cudaMalloc((void **)&dhdx_g, nx*ny*sizeof(float )) );
-	CUDA_CHECK( cudaMalloc((void **)&dhdy_g, nx*ny*sizeof(float )) );
-	CUDA_CHECK( cudaMalloc((void **)&dudx_g, nx*ny*sizeof(float )) );
-	CUDA_CHECK( cudaMalloc((void **)&dudy_g, nx*ny*sizeof(float )) );
-	CUDA_CHECK( cudaMalloc((void **)&dvdx_g, nx*ny*sizeof(float )) );
-	CUDA_CHECK( cudaMalloc((void **)&dvdy_g, nx*ny*sizeof(float )) );
-	
-	
-// Wave current interaction	(i.e remove wci in shallow water)
-	calcwci<<<gridDim, blockDim, 0>>>(nx,ny,wci,hwci,hh_g,wci_g);
-	//CUT_CHECK_ERROR("calcwci execution failed\n");
-    CUDA_CHECK( cudaThreadSynchronize() );
-
-
-// // Slopes of water depth and velocities
-    slopes<<<gridDim, blockDim, 0>>>(nx,ny,dx,hh_g,uu_g,vv_g,dhdx_g,dhdy_g,dudx_g,dudy_g,dvdx_g,dvdy_g);//
-	//CUT_CHECK_ERROR("slopes execution failed\n");
-    CUDA_CHECK( cudaThreadSynchronize() );
-	
-	//CUDA_CHECK( cudaMalloc((void **)&cgx_g, nx*ny*ntheta*sizeof(float )) );
-	//CUDA_CHECK( cudaMalloc((void **)&cgy_g, nx*ny*ntheta*sizeof(float )) );
-	//CUDA_CHECK( cudaMalloc((void **)&ctheta_g, nx*ny*ntheta*sizeof(float )) );
-	//CUDA_CHECK( cudaMemcpy(C,kh_g,  ny*nx*sizeof(float ), cudaMemcpyDeviceToHost) );
-//Propagation speed in theta space
-	propagtheta<<<gridDim, blockDim, 0>>>(nx,ny,ntheta,wci_g,ctheta_g,/*c_g,cx_g,cy_g,*/cxsth_g,sxnth_g,/*uu_g,vv_g,*/dhdx_g,dhdy_g,dudx_g,dudy_g,dvdx_g,dvdy_g,sigm_g,kh_g);//
-	//CUT_CHECK_ERROR("propagtheta execution failed\n");
-    CUDA_CHECK( cudaThreadSynchronize() );
-    
-    
-    
-	//////////
-	//CUDA_CHECK( cudaMemcpy(ctheta,ctheta_g,  ny*nx*ntheta*sizeof(float ), cudaMemcpyDeviceToHost) );
-	//////////
-	
-	CUDA_CHECK( cudaFree(dhdx_g));
-	CUDA_CHECK( cudaFree(dhdy_g) );
-	CUDA_CHECK( cudaFree(dudx_g) );
-	CUDA_CHECK( cudaFree(dudy_g) );
-	CUDA_CHECK( cudaFree(dvdx_g) );
-	CUDA_CHECK( cudaFree(dvdy_g) );
-
-
-	//
-
-
-	//read3Dnc(nx,ny,ntheta,"eeX.nc",ee);
-	//CUDA_CHECK( cudaMemcpy(ee_g, ee, nx*ny*ntheta*sizeof(float ), cudaMemcpyHostToDevice) );
-	
-	
-
-
-//
-// transform to wave action
-//
-	action<<<gridDim, blockDim, 0>>>(ntheta,nx,ny,ee_g,sigm_g);
-	//CUT_CHECK_ERROR("action execution failed\n");
-    CUDA_CHECK( cudaThreadSynchronize() );
-	
-	
-
-
-//
-// Upwind Euler timestep propagation
-//
-	CUDA_CHECK( cudaMalloc((void **)&xadvec_g, nx*ny*ntheta*sizeof(float )) );
-	CUDA_CHECK( cudaMalloc((void **)&yadvec_g, nx*ny*ntheta*sizeof(float )) );
-	CUDA_CHECK( cudaMalloc((void **)&thetaadvec_g, nx*ny*ntheta*sizeof(float )) );
-
-	xadvecupwind<<<gridDim, blockDim, 0>>>(nx,ny,ntheta,dtheta,dx,dt,wci_g,ee_g,cg_g,cxsth_g,uu_g,xadvec_g);
-	//CUT_CHECK_ERROR("eulerupwind xadvec execution failed\n");
-    CUDA_CHECK( cudaThreadSynchronize() );
-    
-   
-
-	yadvecupwind<<<gridDim, blockDim, 0>>>(nx,ny,ntheta,dtheta,dx,dt,wci_g,ee_g,cg_g,sxnth_g,vv_g,yadvec_g);
-	//CUT_CHECK_ERROR("eulerupwind yadvec execution failed\n");
-    CUDA_CHECK( cudaThreadSynchronize() );
-
-		
-	//CUDA_CHECK( cudaMalloc((void **)&eect_g, nx*ny*ntheta*sizeof(float )) );
-	
-	//eectheta<<<gridDim, blockDim, 0>>>(nx,ny,ntheta,ee_g,ctheta_g,eect_g);
-	////CUT_CHECK_ERROR("eulerupwind eectheta execution failed\n");
-    //CUDA_CHECK( cudaThreadSynchronize() );
-    
-    //thetaadvecuw<<<gridDim, blockDim, 0>>>(nx,ny,ntheta,dtheta,eect_g,thetaadvec_g);
-    ////CUT_CHECK_ERROR("eulerupwind thetaadvecuw execution failed\n");
-    //CUDA_CHECK( cudaThreadSynchronize() );
-    
-	thetaadvecuw1ho<<<gridDim, blockDim, 0>>>(nx,ny,ntheta,dtheta,dx,wdt,wci,ee_g,ctheta_g,thetaadvec_g);
-	//CUT_CHECK_ERROR("eulerupwind thetaadvec execution failed\n");
-    CUDA_CHECK( cudaThreadSynchronize() );
-     //CUDA_CHECK( cudaMemcpy(ctheta,yadvec_g,  ny*nx*ntheta*sizeof(float ), cudaMemcpyDeviceToHost) );
-    
-    //CUDA_CHECK( cudaMemcpy(ctheta,thetaadvec_g,  ny*nx*ntheta*sizeof(float ), cudaMemcpyDeviceToHost) );
-    
-    
-    //read3Dnc(nx,ny,ntheta,"xadvecX.nc",ee);
-	//CUDA_CHECK( cudaMemcpy(xadvec_g, ee, nx*ny*sizeof(float ), cudaMemcpyHostToDevice) );
-	
-	//read3Dnc(nx,ny,ntheta,"yadvecX.nc",ee);
-	//CUDA_CHECK( cudaMemcpy(yadvec_g, ee, nx*ny*sizeof(float ), cudaMemcpyHostToDevice) );
-	
-	//read3Dnc(nx,ny,ntheta,"thetaadvecX.nc",ee);
-	//CUDA_CHECK( cudaMemcpy(thetaadvec_g, ee, nx*ny*sizeof(float ), cudaMemcpyHostToDevice) );
-    
-    
-
-	eulerupwind<<<gridDim, blockDim, 0>>>(nx,ny,ntheta,dtheta,dx,dt,wci,ee_g,xadvec_g,yadvec_g,thetaadvec_g);
-	//CUT_CHECK_ERROR("eulerupwind  execution failed\n");
-        CUDA_CHECK( cudaThreadSynchronize() );
-	
-	
-	
-
-
-
-	//CUDA_CHECK( cudaFree(cgx_g));
-	//CUDA_CHECK( cudaFree(cgy_g));
-	//Fix lateraL BND
-	rollerlatbnd<<<gridDim, blockDim, 0>>>(nx,ny,ntheta,eps,hh_g,ee_g);
-	//CUT_CHECK_ERROR("energy latbnd execution failed\n");
-    CUDA_CHECK( cudaThreadSynchronize() );
-
-
-
-//
-// transform back to wave energy
-//
-	energy<<<gridDim, blockDim, 0>>>(nx,ny,ntheta,ee_g,sigm_g);
-	//CUT_CHECK_ERROR("energy execution failed\n");
-    CUDA_CHECK( cudaThreadSynchronize() );
-	
-    //CUDA_CHECK( cudaMemcpy(ctheta,ee_g,  ny*nx*ntheta*sizeof(float ), cudaMemcpyDeviceToHost) );
-
-	//CUDA_CHECK( cudaMalloc((void **)&H_g, nx*ny*sizeof(float )) );
-	CUDA_CHECK( cudaMalloc((void **)&E_g, nx*ny*sizeof(float )) );
-	//CUDA_CHECK( cudaMalloc((void **)&D_g, nx*ny*sizeof(float )) );
-	
-	//CUDA_CHECK( cudaMemcpy(ctheta,ee_g,  ny*nx*ntheta*sizeof(float ), cudaMemcpyDeviceToHost) );
-
-//
-// Energy integrated over wave directions,Hrms
-//
-	energint<<<gridDim, blockDim, 0>>>(nx,ny,ntheta,dtheta,rho,g,gammax,E_g,H_g,hh_g,ee_g);
-	//CUT_CHECK_ERROR("energint execution failed\n");
-    CUDA_CHECK( cudaThreadSynchronize() );
-	
-	
-	
-
-//
-// calculate change in intrinsic frequency // removed because it is super slow and doesn't do much
-//
-// tm is thetamean and it is calculated in the mean dir scheme
-//	CUDA_CHECK( cudaMalloc((void **)&tm_g, nx*ny*sizeof(float )) );
-//	calctm<<<gridDim, blockDim, 0>>>(nx,ny,ntheta,tm_g,theta_g,ee_g);
-//	//CUT_CHECK_ERROR("energint execution failed\n");
-//    CUDA_CHECK( cudaThreadSynchronize() );
-/*
-//Change of intrinsec frequency
-*/
-
-
-
-
-
-// 
-//  Total dissipation from breaking  and bottom friction
-//
-
-	if (breakmod==1)
-	{
-		roelvink<<<gridDim, blockDim, 0>>>(nx,ny,rho,g,gammaa,alpha,n,Trep,fwm_g,cfm_g,hh_g,H_g,E_g,D_g,k_g);
-		//CUT_CHECK_ERROR("roelvink execution failed\n");
-		CUDA_CHECK( cudaThreadSynchronize() );
-	}
-	else
-	{
-		baldock<<<gridDim, blockDim, 0>>> (nx,ny,rho,g,gammaa,alpha,n,Trep,fwm_g,cfm_g,hh_g,H_g,E_g,D_g,k_g);//Baldock more appropriate for pseudo stationary cases
-		//CUT_CHECK_ERROR("baldoc execution failed\n");
-		CUDA_CHECK( cudaThreadSynchronize() );
-	}
-//
-//  Calculate roller energy balance
-//
-//CUDA_CHECK( cudaMemcpy(hhmean,E_g, nx*ny*sizeof(float ), cudaMemcpyDeviceToHost) );
-
-if (roller==1)
-{
-	xadvecupwind<<<gridDim, blockDim, 0>>>(nx,ny,ntheta,dtheta,dx,dt,wci_g,rr_g,c_g,cxsth_g,uu_g,xadvec_g);
-	//CUT_CHECK_ERROR("eulerupwind xadvec execution failed\n");
-        CUDA_CHECK( cudaThreadSynchronize() );
-
-	yadvecupwind<<<gridDim, blockDim, 0>>>(nx,ny,ntheta,dtheta,dx,dt,wci_g,rr_g,c_g,sxnth_g,vv_g,yadvec_g);
-	//CUT_CHECK_ERROR("eulerupwind yadvec execution failed\n");
-        CUDA_CHECK( cudaThreadSynchronize() );
-
-	//eectheta<<<gridDim, blockDim, 0>>>(nx,ny,ntheta,rr_g,ctheta_g,eect_g);
-	////CUT_CHECK_ERROR("eulerupwind eectheta execution failed\n");
-    //CUDA_CHECK( cudaThreadSynchronize() );
-    
-    //thetaadvecuw<<<gridDim, blockDim, 0>>>(nx,ny,ntheta,dtheta,eect_g,thetaadvec_g);
-    ////CUT_CHECK_ERROR("eulerupwind thetaadvecuw execution failed\n");
-    //CUDA_CHECK( cudaThreadSynchronize() );	
-
-	thetaadvecuw1ho<<<gridDim, blockDim, 0>>>(nx,ny,ntheta,dtheta,dx,wdt,wci,rr_g,ctheta_g,thetaadvec_g);
-	//CUT_CHECK_ERROR("eulerupwind thetaadvec execution failed\n");
-    CUDA_CHECK( cudaThreadSynchronize() );
-
-	eulerupwind<<<gridDim, blockDim, 0>>>(nx,ny,ntheta,dtheta,dx,dt,wci,rr_g,xadvec_g,yadvec_g,thetaadvec_g);
-	//CUT_CHECK_ERROR("eulerupwind  execution failed\n");
-    CUDA_CHECK( cudaThreadSynchronize() );
-
-//
-//  Adjust lateral bnds
-//
-
-	rollerlatbnd<<<gridDim, blockDim, 0>>>(nx,ny,ntheta,eps,hh_g,rr_g);
-	//CUT_CHECK_ERROR("rollerlatbnd execution failed\n");
-    CUDA_CHECK( cudaThreadSynchronize() );
-}
-	//CUDA_CHECK( cudaFree(eect_g));
-	CUDA_CHECK( cudaFree(xadvec_g));
-	CUDA_CHECK( cudaFree(yadvec_g));
-	CUDA_CHECK( cudaFree(thetaadvec_g));
-
-//read2Dnc(nx,ny,"D.nc",uu);
-//CUDA_CHECK( cudaMemcpy(D_g, uu, nx*ny*sizeof(float ), cudaMemcpyHostToDevice) );
-
-
-// 
-//  Distribution of dissipation over directions and frequencies
-//                               
-	dissipation<<<gridDim, blockDim, 0>>>(nx,ny,ntheta,dtheta,eps,dt,g,beta,wci_g,hh_g,ee_g,D_g,E_g,rr_g,c_g,cxsth_g,sxnth_g,uu_g,vv_g,DR_g,R_g);
-	//CUT_CHECK_ERROR("dissipation execution failed\n");
-    CUDA_CHECK( cudaThreadSynchronize() );
-
-
-
-//
-//Fix lateraL BND
-//
-	rollerlatbnd<<<gridDim, blockDim, 0>>>(nx,ny,ntheta,eps,hh_g,ee_g);
-	//CUT_CHECK_ERROR("energy latbnd execution failed\n");
-    CUDA_CHECK( cudaThreadSynchronize() );
-	
-
-	
-// 
-//  Compute mean wave direction
-// 
-
-	meandir<<<gridDim, blockDim, 0>>>(nx,ny,ntheta,rho,g,dtheta,ee_g, theta_g,thetamean_g,E_g,H_g);
-	//CUT_CHECK_ERROR("meandir execution failed\n");
-    CUDA_CHECK( cudaThreadSynchronize() );
-
-
-
-//
-//	Constant warm start // WARNING ONLY TO BE USED FOR DEBUGGING
-//
-//	read3Dnc(nx,ny,ntheta,"eeX.nc",ee);
-//	CUDA_CHECK( cudaMemcpy(ee_g, ee, nx*ny*ntheta*sizeof(float ), cudaMemcpyHostToDevice) );
-
-	
-	
-	
-
-//
-// Radiation stresses and forcing terms
-//
-	
-	CUDA_CHECK( cudaMalloc((void **)&Sxx_g, nx*ny*sizeof(float )) );
-	CUDA_CHECK( cudaMalloc((void **)&Sxy_g, nx*ny*sizeof(float )) );
-	CUDA_CHECK( cudaMalloc((void **)&Syy_g, nx*ny*sizeof(float )) );
-
-	radstress<<<gridDim, blockDim, 0>>>(nx,ny,ntheta,dx,dtheta,ee_g,rr_g,cxsth_g,sxnth_g,cg_g,c_g,Sxx_g,Sxy_g,Syy_g);
-
-	//CUT_CHECK_ERROR("radstress execution failed\n");
-    CUDA_CHECK( cudaThreadSynchronize() );
-
-//	
-// Wave forces
-//
-	wavforce<<<gridDim, blockDim, 0>>>(nx,ny,ntheta,dx,dtheta,Sxx_g,Sxy_g,Syy_g,Fx_g,Fy_g,hh_g);
-	//CUT_CHECK_ERROR("wavforce execution failed\n");
-    CUDA_CHECK( cudaThreadSynchronize() );
-	
-	twodimbndnoix<<<gridDim, blockDim, 0>>>(nx,ny,eps,hh_g,Fx_g);
-	//CUT_CHECK_ERROR("wave force X bnd execution failed\n");
-    CUDA_CHECK( cudaThreadSynchronize() );
-	
-	twodimbnd<<<gridDim, blockDim, 0>>>(nx,ny,eps,hh_g,Fy_g);
-	//CUT_CHECK_ERROR("wave force Y bnd execution failed\n");
-    CUDA_CHECK( cudaThreadSynchronize() );
-	
-	//CUDA_CHECK( cudaMemcpy(ctheta,ctheta_g,  ny*nx*ntheta*sizeof(float ), cudaMemcpyDeviceToHost) );
-	
-
-//
-// CAlculate stokes velocity and breaker delay //Breaker delay removed because it is slow and kinda useless
-//
-	breakerdelay<<<gridDim, blockDim, 0>>>(nx,ny,ntheta,dtheta,g,rho,Trep,eps,urms_g,ust_g,H_g,E_g,c_g,k_g,hh_g,R_g);
-	//CUT_CHECK_ERROR("breakerdelay execution failed\n");
-    CUDA_CHECK( cudaThreadSynchronize() );
-	
-	//twodimbnd<<<gridDim, blockDim, 0>>>(nx,ny,eps,hh_g,urms_g);
-	//CUT_CHECK_ERROR("wave force Y bnd execution failed\n");
-    //CUDA_CHECK( cudaThreadSynchronize() );
-	
-	twodimbnd<<<gridDim, blockDim, 0>>>(nx,ny,eps,hh_g,ust_g);
-	//CUT_CHECK_ERROR("wave force Y bnd execution failed\n");
-    CUDA_CHECK( cudaThreadSynchronize() );
-
-
-	CUDA_CHECK( cudaFree(Sxy_g) );
-	CUDA_CHECK( cudaFree(Sxx_g) );
-	CUDA_CHECK( cudaFree(Syy_g) );
-	//CUDA_CHECK( cudaFree(cg_g));
-	//CUDA_CHECK( cudaFree(c_g));
-	CUDA_CHECK( cudaFree(tm_g));
-
-
-
-
-//
-// Adjust Offshore Bnd
-//
-
-//CUDA_CHECK( cudaMemcpy(St_g, St, ny*ntheta*sizeof(float ), cudaMemcpyHostToDevice) );
-//offshorebndWav(nx,ny,ntheta,totaltime,Trep,St_g,sigm_g,ee_g)
-//offshorebndWav<<<gridDim, blockDim, 0>>>(nx,ny,ntheta,totaltime,Trep,St_g,sigm_g,ee_g);
-////CUT_CHECK_ERROR("Offshore Wave bnd execution failed\n");
-//CUDA_CHECK( cudaThreadSynchronize() );
-
-
-
-CUDA_CHECK( cudaFree(E_g));
-//CUDA_CHECK( cudaFree(H_g));
-//CUDA_CHECK( cudaFree(D_g));
-
-//CUDA_CHECK( cudaFree(k_g));
-CUDA_CHECK( cudaFree(kh_g));
-CUDA_CHECK( cudaFree(sinh2kh_g));
-
-
-
-
-	
-
-
-
-}
 void flowstep(void)
 {
 // Flow model timestep
@@ -1240,60 +599,60 @@ void flowstep(void)
 	// BELOW IS FOR DEBUGGING ONLY
 	/////////////////////////////////////////
 	//read2Dnc(nx,ny,"Hfile.nc",uu);
-	//CUDA_CHECK( cudaMemcpy(H_g, uu, nx*ny*sizeof(float ), cudaMemcpyHostToDevice) );
+	//CUDA_CHECK( cudaMemcpy(H_g, uu, nx*ny*sizeof(DECNUM ), cudaMemcpyHostToDevice) );
 	
 	//read2Dnc(nx,ny,"Fxfile.nc",uu);
-	//CUDA_CHECK( cudaMemcpy(Fx_g, uu, nx*ny*sizeof(float ), cudaMemcpyHostToDevice) );
+	//CUDA_CHECK( cudaMemcpy(Fx_g, uu, nx*ny*sizeof(DECNUM ), cudaMemcpyHostToDevice) );
 	
 	//read2Dnc(nx,ny,"Fyfile.nc",uu);
-	//CUDA_CHECK( cudaMemcpy(Fy_g, uu, nx*ny*sizeof(float ), cudaMemcpyHostToDevice) );
+	//CUDA_CHECK( cudaMemcpy(Fy_g, uu, nx*ny*sizeof(DECNUM ), cudaMemcpyHostToDevice) );
 	
 	//read2Dnc(nx,ny,"urmsfile.nc",uu);
-	//CUDA_CHECK( cudaMemcpy(urms_g, uu, nx*ny*sizeof(float ), cudaMemcpyHostToDevice) );
+	//CUDA_CHECK( cudaMemcpy(urms_g, uu, nx*ny*sizeof(DECNUM ), cudaMemcpyHostToDevice) );
 	
 	//read2Dnc(nx,ny,"ustfile.nc",uu);
-	//CUDA_CHECK( cudaMemcpy(ust_g, uu, nx*ny*sizeof(float ), cudaMemcpyHostToDevice) );
+	//CUDA_CHECK( cudaMemcpy(ust_g, uu, nx*ny*sizeof(DECNUM ), cudaMemcpyHostToDevice) );
 	
 	//read2Dnc(nx,ny,"thetameanfile.nc",uu);
-	//CUDA_CHECK( cudaMemcpy(thetamean_g, uu, nx*ny*sizeof(float ), cudaMemcpyHostToDevice) );
+	//CUDA_CHECK( cudaMemcpy(thetamean_g, uu, nx*ny*sizeof(DECNUM ), cudaMemcpyHostToDevice) );
 	
 	//read2Dnc(nx,ny,"uufile.nc",uu);
-	//CUDA_CHECK( cudaMemcpy(uu_g, uu, nx*ny*sizeof(float ), cudaMemcpyHostToDevice) );
+	//CUDA_CHECK( cudaMemcpy(uu_g, uu, nx*ny*sizeof(DECNUM ), cudaMemcpyHostToDevice) );
 	
 	//read2Dnc(nx,ny,"vvfile.nc",uu);
-	//CUDA_CHECK( cudaMemcpy(vv_g, uu, nx*ny*sizeof(float ), cudaMemcpyHostToDevice) );
+	//CUDA_CHECK( cudaMemcpy(vv_g, uu, nx*ny*sizeof(DECNUM ), cudaMemcpyHostToDevice) );
 	
 	//read2Dnc(nx,ny,"zsfile.nc",uu);
-	//CUDA_CHECK( cudaMemcpy(zs_g, uu, nx*ny*sizeof(float ), cudaMemcpyHostToDevice) );
+	//CUDA_CHECK( cudaMemcpy(zs_g, uu, nx*ny*sizeof(DECNUM ), cudaMemcpyHostToDevice) );
 	
 	//read2Dnc(nx,ny,"hhfile.nc",uu);
-	//CUDA_CHECK( cudaMemcpy(hh_g, uu, nx*ny*sizeof(float ), cudaMemcpyHostToDevice) );
+	//CUDA_CHECK( cudaMemcpy(hh_g, uu, nx*ny*sizeof(DECNUM ), cudaMemcpyHostToDevice) );
 	
 	//read2Dnc(nx,ny,"ueufile.nc",uu);
-	//CUDA_CHECK( cudaMemcpy(ueu_g, uu, nx*ny*sizeof(float ), cudaMemcpyHostToDevice) );
+	//CUDA_CHECK( cudaMemcpy(ueu_g, uu, nx*ny*sizeof(DECNUM ), cudaMemcpyHostToDevice) );
 	
 	//read2Dnc(nx,ny,"vevfile.nc",uu);
-	//CUDA_CHECK( cudaMemcpy(vev_g, uu, nx*ny*sizeof(float ), cudaMemcpyHostToDevice) );
+	//CUDA_CHECK( cudaMemcpy(vev_g, uu, nx*ny*sizeof(DECNUM ), cudaMemcpyHostToDevice) );
 	
 	
 	
 	//read2Dnc(nx,ny,"hufile.nc",uu);
-	//CUDA_CHECK( cudaMemcpy(hu_g, uu, nx*ny*sizeof(float ), cudaMemcpyHostToDevice) );
+	//CUDA_CHECK( cudaMemcpy(hu_g, uu, nx*ny*sizeof(DECNUM ), cudaMemcpyHostToDevice) );
 	
 	//read2Dnc(nx,ny,"humfile.nc",uu);
-	//CUDA_CHECK( cudaMemcpy(hum_g, uu, nx*ny*sizeof(float ), cudaMemcpyHostToDevice) );
+	//CUDA_CHECK( cudaMemcpy(hum_g, uu, nx*ny*sizeof(DECNUM ), cudaMemcpyHostToDevice) );
 	
 	//read2Dnc(nx,ny,"hvfile.nc",uu);
-	//CUDA_CHECK( cudaMemcpy(hv_g, uu, nx*ny*sizeof(float ), cudaMemcpyHostToDevice) );
+	//CUDA_CHECK( cudaMemcpy(hv_g, uu, nx*ny*sizeof(DECNUM ), cudaMemcpyHostToDevice) );
 	
 	//read2Dnc(nx,ny,"hvmfile.nc",uu);
-	//CUDA_CHECK( cudaMemcpy(hvm_g, uu, nx*ny*sizeof(float ), cudaMemcpyHostToDevice) );
+	//CUDA_CHECK( cudaMemcpy(hvm_g, uu, nx*ny*sizeof(DECNUM ), cudaMemcpyHostToDevice) );
 	
 	//read2Dnc(nx,ny,"vmageufile.nc",uu);
-	//CUDA_CHECK( cudaMemcpy(vmageu_g, uu, nx*ny*sizeof(float ), cudaMemcpyHostToDevice) );
+	//CUDA_CHECK( cudaMemcpy(vmageu_g, uu, nx*ny*sizeof(DECNUM ), cudaMemcpyHostToDevice) );
 	
 	//read2Dnc(nx,ny,"vmagevfile.nc",uu);
-	//CUDA_CHECK( cudaMemcpy(vmagev_g, uu, nx*ny*sizeof(float ), cudaMemcpyHostToDevice) );
+	//CUDA_CHECK( cudaMemcpy(vmagev_g, uu, nx*ny*sizeof(DECNUM ), cudaMemcpyHostToDevice) );
 
 
 	// Set weakly reflective offshore boundary ! MOVED TO FLOW BND SUBROUTINE!!
@@ -1336,13 +695,13 @@ void flowstep(void)
 	// Advection in the x direction using 2n order finite difference
 	//
 	
-	ududx_adv<<<gridDim, blockDim, 0>>>(nx,ny,dx,hu_g,hum_g,uu_g,ududx_g);
+	ududx_adv2<<<gridDim, blockDim, 0>>>(nx,ny,dx,hu_g,hum_g,uu_g,ududx_g);
 	//CUT_CHECK_ERROR("uadvec execution failed\n");
     CUDA_CHECK( cudaThreadSynchronize() );
     
 
 	//vdudy
-	vdudy_adv<<<gridDim, blockDim, 0>>>(nx,ny,dx,hv_g,hum_g,uu_g,vv_g,vdudy_g);
+	vdudy_adv2<<<gridDim, blockDim, 0>>>(nx,ny,dx,hv_g,hum_g,uu_g,vv_g,vdudy_g);
 	//CUT_CHECK_ERROR("uadvec execution failed\n");
     CUDA_CHECK( cudaThreadSynchronize() );
     
@@ -1352,7 +711,7 @@ void flowstep(void)
 	//
 	// Smagorinsky formulation or Normal eddy viscosity
 	//
-	CUDA_CHECK( cudaMalloc((void **)&nuh_g, nx*ny*sizeof(float )) );
+	CUDA_CHECK( cudaMalloc((void **)&nuh_g, nx*ny*sizeof(DECNUM )) );
 	smago<<<gridDim, blockDim, 0>>>(nx,ny,dx, uu_g,vv_g,nuh, nuh_g,usesmago);
 	//CUT_CHECK_ERROR("uadvec execution failed\n");
     	CUDA_CHECK( cudaThreadSynchronize() );
@@ -1360,7 +719,7 @@ void flowstep(void)
 	//
 	// increase eddy viscosity by wave induced breaking as in Reniers 2004 & Set viscu = 0.0 near water line
 	//
-	CUDA_CHECK( cudaMalloc((void **)&viscu_g, nx*ny*sizeof(float )) );
+	CUDA_CHECK( cudaMalloc((void **)&viscu_g, nx*ny*sizeof(DECNUM )) );
 	viscou<<<gridDim, blockDim, 0>>>(nx,ny,dx,rho,eps,nuhfac,nuh_g,hh_g,hum_g,hvm_g,DR_g,uu_g,wetu_g,viscu_g);
 	//CUT_CHECK_ERROR("visco execution failed\n");
     CUDA_CHECK( cudaThreadSynchronize() );
@@ -1387,19 +746,19 @@ void flowstep(void)
 	// Advection in the y direction using 2n order finite difference
 	//
 	//vdvdy
-	vdvdy_adv<<<gridDim, blockDim, 0>>>(nx,ny,dx,hv_g,hvm_g,vv_g,vdvdy_g);
+	vdvdy_adv2<<<gridDim, blockDim, 0>>>(nx,ny,dx,hv_g,hvm_g,vv_g,vdvdy_g);
 	//CUT_CHECK_ERROR("vadvec for v execution failed\n");
     CUDA_CHECK( cudaThreadSynchronize() );
 	//udvdx
 	
-	udvdx_adv<<<gridDim, blockDim, 0>>>(nx,ny,dx,hu_g,hvm_g,uu_g,vv_g,udvdx_g);
+	udvdx_adv2<<<gridDim, blockDim, 0>>>(nx,ny,dx,hu_g,hvm_g,uu_g,vv_g,udvdx_g);
 	//CUT_CHECK_ERROR("vadvec for v execution failed\n");
     CUDA_CHECK( cudaThreadSynchronize() );
 
 	//
 	// increase eddy viscosity by wave induced breaking as in Reniers 2004 & Set viscv = 0.0 near water line
 	//
-	CUDA_CHECK( cudaMalloc((void **)&viscv_g, nx*ny*sizeof(float )) );
+	CUDA_CHECK( cudaMalloc((void **)&viscv_g, nx*ny*sizeof(DECNUM )) );
 	viscov<<<gridDim, blockDim, 0>>>(nx,ny,dx,rho,eps,nuhfac,nuh_g,hh_g,hum_g,hvm_g,DR_g,vv_g,wetv_g,viscv_g);
 	//CUT_CHECK_ERROR("visco v execution failed\n");
     CUDA_CHECK( cudaThreadSynchronize() );
@@ -1508,39 +867,39 @@ void sedimentstep(void)
 	/////////////////////////////////////////////////////
 	
 	//read2Dnc(nx,ny,"uufile.nc",uu);
-	//CUDA_CHECK( cudaMemcpy(uu_g, uu, nx*ny*sizeof(float ), cudaMemcpyHostToDevice) );
+	//CUDA_CHECK( cudaMemcpy(uu_g, uu, nx*ny*sizeof(DECNUM ), cudaMemcpyHostToDevice) );
 	
 	//read2Dnc(nx,ny,"vvfile.nc",uu);
-	//CUDA_CHECK( cudaMemcpy(vv_g, uu, nx*ny*sizeof(float ), cudaMemcpyHostToDevice) );
+	//CUDA_CHECK( cudaMemcpy(vv_g, uu, nx*ny*sizeof(DECNUM ), cudaMemcpyHostToDevice) );
 	
 	//read2Dnc(nx,ny,"hufile.nc",uu);
-	//CUDA_CHECK( cudaMemcpy(hu_g, uu, nx*ny*sizeof(float ), cudaMemcpyHostToDevice) );
+	//CUDA_CHECK( cudaMemcpy(hu_g, uu, nx*ny*sizeof(DECNUM ), cudaMemcpyHostToDevice) );
 	
 	//read2Dnc(nx,ny,"hvfile.nc",uu);
-	//CUDA_CHECK( cudaMemcpy(hv_g, uu, nx*ny*sizeof(float ), cudaMemcpyHostToDevice) );
+	//CUDA_CHECK( cudaMemcpy(hv_g, uu, nx*ny*sizeof(DECNUM ), cudaMemcpyHostToDevice) );
 	
 	
 	//read2Dnc(nx,ny,"ueufile.nc",uu);
-	//CUDA_CHECK( cudaMemcpy(ueu_g, uu, nx*ny*sizeof(float ), cudaMemcpyHostToDevice) );
+	//CUDA_CHECK( cudaMemcpy(ueu_g, uu, nx*ny*sizeof(DECNUM ), cudaMemcpyHostToDevice) );
 	
 	
 	//read2Dnc(nx,ny,"vevfile.nc",uu);
-	//CUDA_CHECK( cudaMemcpy(vev_g, uu, nx*ny*sizeof(float ), cudaMemcpyHostToDevice) );
+	//CUDA_CHECK( cudaMemcpy(vev_g, uu, nx*ny*sizeof(DECNUM ), cudaMemcpyHostToDevice) );
 	
 	//read2Dnc(nx,ny,"Hfile.nc",uu);
-	//CUDA_CHECK( cudaMemcpy(H_g, uu, nx*ny*sizeof(float ), cudaMemcpyHostToDevice) );
+	//CUDA_CHECK( cudaMemcpy(H_g, uu, nx*ny*sizeof(DECNUM ), cudaMemcpyHostToDevice) );
 	
 	//read2Dnc(nx,ny,"hhfile.nc",uu);
-	//CUDA_CHECK( cudaMemcpy(hh_g, uu, nx*ny*sizeof(float ), cudaMemcpyHostToDevice) );
+	//CUDA_CHECK( cudaMemcpy(hh_g, uu, nx*ny*sizeof(DECNUM ), cudaMemcpyHostToDevice) );
 	
 	//read2Dnc(nx,ny,"urmsfile.nc",uu);
-	//CUDA_CHECK( cudaMemcpy(urms_g, uu, nx*ny*sizeof(float ), cudaMemcpyHostToDevice) );
+	//CUDA_CHECK( cudaMemcpy(urms_g, uu, nx*ny*sizeof(DECNUM ), cudaMemcpyHostToDevice) );
 	
 	//read2Dnc(nx,ny,"uvfile.nc",uu);
-	//CUDA_CHECK( cudaMemcpy(uv_g, uu, nx*ny*sizeof(float ), cudaMemcpyHostToDevice) );
+	//CUDA_CHECK( cudaMemcpy(uv_g, uu, nx*ny*sizeof(DECNUM ), cudaMemcpyHostToDevice) );
 	
 	//read2Dnc(nx,ny,"vufile.nc",uu);
-	//CUDA_CHECK( cudaMemcpy(vu_g, uu, nx*ny*sizeof(float ), cudaMemcpyHostToDevice) );
+	//CUDA_CHECK( cudaMemcpy(vu_g, uu, nx*ny*sizeof(DECNUM ), cudaMemcpyHostToDevice) );
 	
 	
 //
@@ -1553,10 +912,10 @@ void sedimentstep(void)
 //
 // Calculate Equilibrium concentration Ceq
 //
-	//CUDA_CHECK( cudaMalloc((void **)&ceqsg_g, nx*ny*sizeof(float )) );
-	CUDA_CHECK( cudaMalloc((void **)&ceqbg_g, nx*ny*sizeof(float )) );
-	CUDA_CHECK( cudaMalloc((void **)&Tsg_g, nx*ny*sizeof(float )) );
-	CUDA_CHECK( cudaMalloc((void **)&ua_g, nx*ny*sizeof(float )) );
+	//CUDA_CHECK( cudaMalloc((void **)&ceqsg_g, nx*ny*sizeof(DECNUM )) );
+	CUDA_CHECK( cudaMalloc((void **)&ceqbg_g, nx*ny*sizeof(DECNUM )) );
+	CUDA_CHECK( cudaMalloc((void **)&Tsg_g, nx*ny*sizeof(DECNUM )) );
+	CUDA_CHECK( cudaMalloc((void **)&ua_g, nx*ny*sizeof(DECNUM )) );
 	//BEWARE BELOW SHOULD BE hh_old_g
 	//Sbvr or Sednew
 	Sbvr<<<gridDim, blockDim, 0>>>(nx,ny,rho,g,eps,Trep,D50,D90,rhosed,wws,nuhfac,ueu_g,vev_g,H_g,DR_g,R_g,c_g,hh_g,urms_g,ceqsg_g,ceqbg_g,Tsg_g,cfm_g,kturb_g);
@@ -1567,7 +926,7 @@ void sedimentstep(void)
 	//CUT_CHECK_ERROR("Rvr execution failed\n");
     CUDA_CHECK( cudaThreadSynchronize() );	
     
-   // CUDA_CHECK( cudaMemcpy(uumean, ua_g, nx*ny*sizeof(float ), cudaMemcpyDeviceToHost) );
+   // CUDA_CHECK( cudaMemcpy(uumean, ua_g, nx*ny*sizeof(DECNUM ), cudaMemcpyDeviceToHost) );
 
 	
 	
@@ -1575,7 +934,7 @@ void sedimentstep(void)
 //
 // Limit erosion to available sediment on top of hard layer
 //
-	CUDA_CHECK( cudaMalloc((void **)&facero_g, nx*ny*sizeof(float )) );
+	CUDA_CHECK( cudaMalloc((void **)&facero_g, nx*ny*sizeof(DECNUM )) );
 	Erosus<<<gridDim, blockDim, 0>>>(nx,ny,dt,morfac,por,hh_g,ceqsg_g,ceqbg_g,Tsg_g,facero_g,stdep_g);
 	//CUT_CHECK_ERROR("Erosus execution failed\n");
     CUDA_CHECK( cudaThreadSynchronize() );
@@ -1589,10 +948,10 @@ void sedimentstep(void)
 //
 // suspended load 
 // 
-	CUDA_CHECK( cudaMalloc((void **)&Sus_g, nx*ny*sizeof(float )) );
-	CUDA_CHECK( cudaMalloc((void **)&Svs_g, nx*ny*sizeof(float )) );
-	CUDA_CHECK( cudaMalloc((void **)&Sub_g, nx*ny*sizeof(float )) );
-	CUDA_CHECK( cudaMalloc((void **)&Svb_g, nx*ny*sizeof(float )) );
+	CUDA_CHECK( cudaMalloc((void **)&Sus_g, nx*ny*sizeof(DECNUM )) );
+	CUDA_CHECK( cudaMalloc((void **)&Svs_g, nx*ny*sizeof(DECNUM )) );
+	CUDA_CHECK( cudaMalloc((void **)&Sub_g, nx*ny*sizeof(DECNUM )) );
+	CUDA_CHECK( cudaMalloc((void **)&Svb_g, nx*ny*sizeof(DECNUM )) );
 	Susp<<<gridDim, blockDim, 0>>>(nx,ny,dx,eps,nuh,nuhfac,rho,sus,bed,ueu_g,vev_g,uu_g,uv_g,hu_g,vv_g,vu_g,hv_g,zb_g,hh_g,DR_g, Cc_g,ceqbg_g,Sus_g, Svs_g,Sub_g,Svb_g,thetamean_g,ua_g);
 	//CUT_CHECK_ERROR("Susp execution failed\n");
     CUDA_CHECK( cudaThreadSynchronize() );
@@ -1602,8 +961,8 @@ void sedimentstep(void)
 //Calculate suspended concentration
 //
 
-	CUDA_CHECK( cudaMalloc((void **)&ero_g, nx*ny*sizeof(float )) );
-	CUDA_CHECK( cudaMalloc((void **)&depo_g, nx*ny*sizeof(float )) );
+	CUDA_CHECK( cudaMalloc((void **)&ero_g, nx*ny*sizeof(DECNUM )) );
+	CUDA_CHECK( cudaMalloc((void **)&depo_g, nx*ny*sizeof(DECNUM )) );
 	Conc<<<gridDim, blockDim, 0>>>(nx,ny,dx,dt,eps,hh_g,Cc_g,ceqsg_g,Tsg_g,facero_g,ero_g,depo_g,Sus_g,Svs_g);
 	//CUT_CHECK_ERROR("Conc execution failed\n");
     CUDA_CHECK( cudaThreadSynchronize() );
@@ -1623,7 +982,7 @@ if (morfac>0.0f)// Only if morphology is need i.e. if imodel=4 and morphac >0.0
 // Adjust sediment fluxes for rocklayer
 //
 
-	CUDA_CHECK( cudaMalloc((void **)&Sout_g, nx*ny*sizeof(float )) );
+	CUDA_CHECK( cudaMalloc((void **)&Sout_g, nx*ny*sizeof(DECNUM )) );
 	CUDA_CHECK( cudaMalloc((void **)&indSub_g, nx*ny*sizeof(int )) );
 	CUDA_CHECK( cudaMalloc((void **)&indSvb_g, nx*ny*sizeof(int )) );
 	hardlayer<<<gridDim, blockDim, 0>>>(nx,ny,dx,dt,Sub_g,Svb_g,Sout_g, indSub_g,indSvb_g);
@@ -1659,8 +1018,8 @@ if (morfac>0.0f)// Only if morphology is need i.e. if imodel=4 and morphac >0.0
 //
 // Avalanching
 //
-	CUDA_CHECK( cudaMalloc((void **)&ddzb_g, nx*ny*sizeof(float )) );
-	CUDA_CHECK( cudaMemcpy(ddzb_g,zeros, nx*ny*sizeof(float ), cudaMemcpyHostToDevice) );
+	CUDA_CHECK( cudaMalloc((void **)&ddzb_g, nx*ny*sizeof(DECNUM )) );
+	CUDA_CHECK( cudaMemcpy(ddzb_g,zeros, nx*ny*sizeof(DECNUM ), cudaMemcpyHostToDevice) );
 	avalanching<<<gridDim, blockDim, 0>>>(nx,ny,eps,dx,dt,por,drydzmax,wetdzmax,maxslpchg,hh_g,zb_g,ddzb_g,stdep_g);
 	//CUT_CHECK_ERROR("avalanching execution failed\n");
 	CUDA_CHECK( cudaThreadSynchronize() );
@@ -1861,21 +1220,21 @@ int main(int argc, char **argv)
 	
 	// Allocate CPU memory
 	
-	hh=(float *)malloc(nx*ny*sizeof(float));
-	uu=(float *)malloc(nx*ny*sizeof(float));
-	vv=(float *)malloc(nx*ny*sizeof(float));
-	zs=(float *)malloc(nx*ny*sizeof(float));
-	zb=(float *)malloc(nx*ny*sizeof(float));
-	cfm=(float *)malloc(nx*ny*sizeof(float));
-	dzb=(float *)malloc(nx*ny*sizeof(float));
-	stdep=(float *)malloc(nx*ny*sizeof(float));
-	zeros=(float *)malloc(nx*ny*sizeof(float));
-	umeanbnd=(float *)malloc(ny*sizeof(float));
+	hh=(DECNUM *)malloc(nx*ny*sizeof(DECNUM));
+	uu=(DECNUM *)malloc(nx*ny*sizeof(DECNUM));
+	vv=(DECNUM *)malloc(nx*ny*sizeof(DECNUM));
+	zs=(DECNUM *)malloc(nx*ny*sizeof(DECNUM));
+	zb=(DECNUM *)malloc(nx*ny*sizeof(DECNUM));
+	cfm=(DECNUM *)malloc(nx*ny*sizeof(DECNUM));
+	dzb=(DECNUM *)malloc(nx*ny*sizeof(DECNUM));
+	stdep=(DECNUM *)malloc(nx*ny*sizeof(DECNUM));
+	zeros=(DECNUM *)malloc(nx*ny*sizeof(DECNUM));
+	umeanbnd=(DECNUM *)malloc(ny*sizeof(DECNUM));
 
 	
 
 	// set initital condition and read bathy file
-	printf("Set initial condition\n");
+	printf("Set initial condition...");
 	
 	int jread;
 	//int jreadzs;
@@ -1908,6 +1267,7 @@ int main(int argc, char **argv)
 	}
 
 	fclose(fid);
+	printf("...done\n");
 	//fclose(fiz);
 char nofrictionfile[] = "none";
 
@@ -2025,7 +1385,7 @@ char nofrictionfile[] = "none";
 	//lat=-35.0;
 	//calculate coriolis force
 	lat = lat*pi/180.0f;
-	float wearth = pi*(1.0f/24.0f)/1800.0f;
+	DECNUM wearth = pi*(1.0f/24.0f)/1800.0f;
 	fc = 2.0f*wearth*sin(lat);
 	
 
@@ -2049,15 +1409,15 @@ char nofrictionfile[] = "none";
 	
 	//Allocate More array on CPU
 
-	Fx=(float *)malloc(nx*ny*sizeof(float));
-	Fy=(float *)malloc(nx*ny*sizeof(float));	
-	zsbnd=(float *)malloc(ny*sizeof(float));
+	Fx=(DECNUM *)malloc(nx*ny*sizeof(DECNUM));
+	Fy=(DECNUM *)malloc(nx*ny*sizeof(DECNUM));	
+	zsbnd=(DECNUM *)malloc(ny*sizeof(DECNUM));
 
-	cgx=(float *)malloc(nx*ny*ntheta*sizeof(float));
-	cgy=(float *)malloc(nx*ny*ntheta*sizeof(float));
-	cx=(float *)malloc(nx*ny*ntheta*sizeof(float));
-	cy=(float *)malloc(nx*ny*ntheta*sizeof(float));
-	ctheta=(float *)malloc(nx*ny*ntheta*sizeof(float));
+	cgx=(DECNUM *)malloc(nx*ny*ntheta*sizeof(DECNUM));
+	cgy=(DECNUM *)malloc(nx*ny*ntheta*sizeof(DECNUM));
+	cx=(DECNUM *)malloc(nx*ny*ntheta*sizeof(DECNUM));
+	cy=(DECNUM *)malloc(nx*ny*ntheta*sizeof(DECNUM));
+	ctheta=(DECNUM *)malloc(nx*ny*ntheta*sizeof(DECNUM));
 	
 
 
@@ -2065,25 +1425,25 @@ char nofrictionfile[] = "none";
 	
 
 	
-	//Sxx=(float *)malloc(nx*ny*sizeof(float));
-	//Syy=(float *)malloc(nx*ny*sizeof(float));
-	//Sxy=(float *)malloc(nx*ny*sizeof(float));
-	usd=(float *)malloc(nx*ny*sizeof(float));
-	D=(float *)malloc(nx*ny*sizeof(float));
-	E=(float *)malloc(nx*ny*sizeof(float));
-	H=(float *)malloc(nx*ny*sizeof(float));
-	urms=(float *)malloc(nx*ny*sizeof(float));
-	ueu=(float *)malloc(nx*ny*sizeof(float));
-	vev=(float *)malloc(nx*ny*sizeof(float));
-	thetamean=(float *)malloc(nx*ny*sizeof(float));
+	//Sxx=(DECNUM *)malloc(nx*ny*sizeof(DECNUM));
+	//Syy=(DECNUM *)malloc(nx*ny*sizeof(DECNUM));
+	//Sxy=(DECNUM *)malloc(nx*ny*sizeof(DECNUM));
+	usd=(DECNUM *)malloc(nx*ny*sizeof(DECNUM));
+	D=(DECNUM *)malloc(nx*ny*sizeof(DECNUM));
+	E=(DECNUM *)malloc(nx*ny*sizeof(DECNUM));
+	H=(DECNUM *)malloc(nx*ny*sizeof(DECNUM));
+	urms=(DECNUM *)malloc(nx*ny*sizeof(DECNUM));
+	ueu=(DECNUM *)malloc(nx*ny*sizeof(DECNUM));
+	vev=(DECNUM *)malloc(nx*ny*sizeof(DECNUM));
+	thetamean=(DECNUM *)malloc(nx*ny*sizeof(DECNUM));
 
 
-	Hmean=(float *)malloc(nx*ny*sizeof(float));
-	uumean=(float *)malloc(nx*ny*sizeof(float));
-	vvmean=(float *)malloc(nx*ny*sizeof(float));
-	hhmean=(float *)malloc(nx*ny*sizeof(float));
-	zsmean=(float *)malloc(nx*ny*sizeof(float));
-	Cmean=(float *)malloc(nx*ny*sizeof(float));
+	Hmean=(DECNUM *)malloc(nx*ny*sizeof(DECNUM));
+	uumean=(DECNUM *)malloc(nx*ny*sizeof(DECNUM));
+	vvmean=(DECNUM *)malloc(nx*ny*sizeof(DECNUM));
+	hhmean=(DECNUM *)malloc(nx*ny*sizeof(DECNUM));
+	zsmean=(DECNUM *)malloc(nx*ny*sizeof(DECNUM));
+	Cmean=(DECNUM *)malloc(nx*ny*sizeof(DECNUM));
 	
 	
 	
@@ -2101,145 +1461,261 @@ for (int jj=0; jj<ny; jj++)
 
 	omega = 2*pi/Trep;
 
-	sigm= (float *)malloc(nx*ny*sizeof(float));
-	//sigt= (float *)malloc(nx*ny*ntheta*sizeof(float));
-	thet= (float *)malloc(nx*ny*ntheta*sizeof(float));
-	//costhet=(float *)malloc(nx*ny*ntheta*sizeof(float));
-	//sinthet=(float *)malloc(nx*ny*ntheta*sizeof(float));
+	sigm= (DECNUM *)malloc(nx*ny*sizeof(DECNUM));
+	//sigt= (DECNUM *)malloc(nx*ny*ntheta*sizeof(DECNUM));
+	thet= (DECNUM *)malloc(nx*ny*ntheta*sizeof(DECNUM));
+	//costhet=(DECNUM *)malloc(nx*ny*ntheta*sizeof(DECNUM));
+	//sinthet=(DECNUM *)malloc(nx*ny*ntheta*sizeof(DECNUM));
 
 
 
 	
 
-	k= (float *)malloc(nx*ny*sizeof(float));
-	c= (float *)malloc(nx*ny*sizeof(float));
-	kh= (float *)malloc(nx*ny*sizeof(float));
-	cg= (float *)malloc(nx*ny*sizeof(float));
-	sinh2kh= (float *)malloc(nx*ny*sizeof(float));
+	k= (DECNUM *)malloc(nx*ny*sizeof(DECNUM));
+	c= (DECNUM *)malloc(nx*ny*sizeof(DECNUM));
+	kh= (DECNUM *)malloc(nx*ny*sizeof(DECNUM));
+	cg= (DECNUM *)malloc(nx*ny*sizeof(DECNUM));
+	sinh2kh= (DECNUM *)malloc(nx*ny*sizeof(DECNUM));
 
-	dhdx=(float *)malloc(nx*ny*sizeof(float));
-	dhdy=(float *)malloc(nx*ny*sizeof(float));
-	dudx=(float *)malloc(nx*ny*sizeof(float));
-	dudy=(float *)malloc(nx*ny*sizeof(float));
-	dvdx=(float *)malloc(nx*ny*sizeof(float));
-	dvdy=(float *)malloc(nx*ny*sizeof(float));
+	dhdx=(DECNUM *)malloc(nx*ny*sizeof(DECNUM));
+	dhdy=(DECNUM *)malloc(nx*ny*sizeof(DECNUM));
+	dudx=(DECNUM *)malloc(nx*ny*sizeof(DECNUM));
+	dudy=(DECNUM *)malloc(nx*ny*sizeof(DECNUM));
+	dvdx=(DECNUM *)malloc(nx*ny*sizeof(DECNUM));
+	dvdy=(DECNUM *)malloc(nx*ny*sizeof(DECNUM));
 	
-	C=(float *)malloc(nx*ny*sizeof(float));
-	R=(float *)malloc(nx*ny*sizeof(float));
-	DR=(float *)malloc(nx*ny*sizeof(float));
+	C=(DECNUM *)malloc(nx*ny*sizeof(DECNUM));
+	R=(DECNUM *)malloc(nx*ny*sizeof(DECNUM));
+	DR=(DECNUM *)malloc(nx*ny*sizeof(DECNUM));
 	
+
+
+	//ONLY FOR GPU BELOW CPU
+
+	
+	if(GPUDEVICE>=0)
+	{
 	// Init GPU
 
 	CUDA_CHECK(cudaSetDevice(GPUDEVICE));
 
 
 	if (imodel==1 || imodel>2)
-{
-	waveinit();
-}
+	{
+		waveinitGPU();
+	}
 	
 	//CUT_DEVICE_INIT(argc, argv);
 	printf("Allocating GPU memory\n");
 
 
-//printf("Loading GPU twisters configurations(Random number generator)...\n");
-//   
-//      //const char *raw_path = cutFindFilePath("MersenneTwister.raw", argv[0]);
-//      //const char *dat_path = cutFindFilePath("MersenneTwister.dat", argv[0]);
-//    	printf("loadMTGPU\n");
-//    	loadMTGPU("MersenneTwister.dat");
-//     	 printf("seedMTGPU\n");
-//   	 seedMTGPU(SEED);
 
 
 	//Allocate GPU memory
-	CUDA_CHECK( cudaMalloc((void **)&hh_g, nx*ny*sizeof(float )) );
-	CUDA_CHECK( cudaMalloc((void **)&uu_g, nx*ny*sizeof(float )) );
-	CUDA_CHECK( cudaMalloc((void **)&vv_g, nx*ny*sizeof(float )) );
-	CUDA_CHECK( cudaMalloc((void **)&wci_g, nx*ny*sizeof(float )) );
+	CUDA_CHECK( cudaMalloc((void **)&hh_g, nx*ny*sizeof(DECNUM )) );
+	CUDA_CHECK( cudaMalloc((void **)&uu_g, nx*ny*sizeof(DECNUM )) );
+	CUDA_CHECK( cudaMalloc((void **)&vv_g, nx*ny*sizeof(DECNUM )) );
+	CUDA_CHECK( cudaMalloc((void **)&wci_g, nx*ny*sizeof(DECNUM )) );
 	
-	CUDA_CHECK( cudaMalloc((void **)&ueu_g, nx*ny*sizeof(float )) );
-	CUDA_CHECK( cudaMalloc((void **)&vev_g, nx*ny*sizeof(float )) );
-	CUDA_CHECK( cudaMalloc((void **)&vmageu_g, nx*ny*sizeof(float )) );
-	CUDA_CHECK( cudaMalloc((void **)&vmagev_g, nx*ny*sizeof(float )) );
-	CUDA_CHECK( cudaMalloc((void **)&zs_g, nx*ny*sizeof(float )) );
-	CUDA_CHECK( cudaMalloc((void **)&zb_g, nx*ny*sizeof(float )) );
-	//CUDA_CHECK( cudaMalloc((void **)&Ceq_g, nx*ny*sizeof(float )) );
-	CUDA_CHECK( cudaMalloc((void **)&dzsdx_g, nx*ny*sizeof(float )) );
-	CUDA_CHECK( cudaMalloc((void **)&dzsdy_g, nx*ny*sizeof(float )) );
-	CUDA_CHECK( cudaMalloc((void **)&cfm_g, nx*ny*sizeof(float )) );
-	CUDA_CHECK( cudaMalloc((void **)&fwm_g, nx*ny*sizeof(float )) );
-	CUDA_CHECK( cudaMalloc((void **)&dzsdt_g, nx*ny*sizeof(float )) );
-	CUDA_CHECK( cudaMalloc((void **)&hu_g, nx*ny*sizeof(float )) );
-	CUDA_CHECK( cudaMalloc((void **)&hv_g, nx*ny*sizeof(float )) );
-	CUDA_CHECK( cudaMalloc((void **)&hum_g, nx*ny*sizeof(float )) );
-	CUDA_CHECK( cudaMalloc((void **)&hvm_g, nx*ny*sizeof(float )) );
-	CUDA_CHECK( cudaMalloc((void **)&vu_g, nx*ny*sizeof(float )) );
-	CUDA_CHECK( cudaMalloc((void **)&uv_g, nx*ny*sizeof(float )) );
+	CUDA_CHECK( cudaMalloc((void **)&ueu_g, nx*ny*sizeof(DECNUM )) );
+	CUDA_CHECK( cudaMalloc((void **)&vev_g, nx*ny*sizeof(DECNUM )) );
+	CUDA_CHECK( cudaMalloc((void **)&vmageu_g, nx*ny*sizeof(DECNUM )) );
+	CUDA_CHECK( cudaMalloc((void **)&vmagev_g, nx*ny*sizeof(DECNUM )) );
+	CUDA_CHECK( cudaMalloc((void **)&zs_g, nx*ny*sizeof(DECNUM )) );
+	CUDA_CHECK( cudaMalloc((void **)&zb_g, nx*ny*sizeof(DECNUM )) );
+	//CUDA_CHECK( cudaMalloc((void **)&Ceq_g, nx*ny*sizeof(DECNUM )) );
+	CUDA_CHECK( cudaMalloc((void **)&dzsdx_g, nx*ny*sizeof(DECNUM )) );
+	CUDA_CHECK( cudaMalloc((void **)&dzsdy_g, nx*ny*sizeof(DECNUM )) );
+	CUDA_CHECK( cudaMalloc((void **)&cfm_g, nx*ny*sizeof(DECNUM )) );
+	CUDA_CHECK( cudaMalloc((void **)&fwm_g, nx*ny*sizeof(DECNUM )) );
+	CUDA_CHECK( cudaMalloc((void **)&dzsdt_g, nx*ny*sizeof(DECNUM )) );
+	CUDA_CHECK( cudaMalloc((void **)&hu_g, nx*ny*sizeof(DECNUM )) );
+	CUDA_CHECK( cudaMalloc((void **)&hv_g, nx*ny*sizeof(DECNUM )) );
+	CUDA_CHECK( cudaMalloc((void **)&hum_g, nx*ny*sizeof(DECNUM )) );
+	CUDA_CHECK( cudaMalloc((void **)&hvm_g, nx*ny*sizeof(DECNUM )) );
+	CUDA_CHECK( cudaMalloc((void **)&vu_g, nx*ny*sizeof(DECNUM )) );
+	CUDA_CHECK( cudaMalloc((void **)&uv_g, nx*ny*sizeof(DECNUM )) );
 	CUDA_CHECK( cudaMalloc((void **)&wetu_g, nx*ny*sizeof(int )) );
 	CUDA_CHECK( cudaMalloc((void **)&wetv_g, nx*ny*sizeof(int )) );
-	CUDA_CHECK( cudaMalloc((void **)&ududx_g, nx*ny*sizeof(float )) );
-	CUDA_CHECK( cudaMalloc((void **)&vdudy_g, nx*ny*sizeof(float )) );
-	CUDA_CHECK( cudaMalloc((void **)&vdvdy_g, nx*ny*sizeof(float )) );
-	CUDA_CHECK( cudaMalloc((void **)&udvdx_g, nx*ny*sizeof(float )) );
+	CUDA_CHECK( cudaMalloc((void **)&ududx_g, nx*ny*sizeof(DECNUM )) );
+	CUDA_CHECK( cudaMalloc((void **)&vdudy_g, nx*ny*sizeof(DECNUM )) );
+	CUDA_CHECK( cudaMalloc((void **)&vdvdy_g, nx*ny*sizeof(DECNUM )) );
+	CUDA_CHECK( cudaMalloc((void **)&udvdx_g, nx*ny*sizeof(DECNUM )) );
 	
 	
 
-	CUDA_CHECK( cudaMalloc((void **)&D_g, nx*ny*sizeof(float )) );
-	CUDA_CHECK( cudaMalloc((void **)&urms_g, nx*ny*sizeof(float )) );
-	CUDA_CHECK( cudaMalloc((void **)&ust_g, nx*ny*sizeof(float )) );
-	CUDA_CHECK( cudaMalloc((void **)&Fx_g, nx*ny*sizeof(float )) );
-	CUDA_CHECK( cudaMalloc((void **)&Fy_g, nx*ny*sizeof(float )) );
-	CUDA_CHECK( cudaMalloc((void **)&k_g, nx*ny*sizeof(float )) );
+	CUDA_CHECK( cudaMalloc((void **)&D_g, nx*ny*sizeof(DECNUM )) );
+	CUDA_CHECK( cudaMalloc((void **)&urms_g, nx*ny*sizeof(DECNUM )) );
+	CUDA_CHECK( cudaMalloc((void **)&ust_g, nx*ny*sizeof(DECNUM )) );
+	CUDA_CHECK( cudaMalloc((void **)&Fx_g, nx*ny*sizeof(DECNUM )) );
+	CUDA_CHECK( cudaMalloc((void **)&Fy_g, nx*ny*sizeof(DECNUM )) );
+	CUDA_CHECK( cudaMalloc((void **)&k_g, nx*ny*sizeof(DECNUM )) );
 	
 
-	CUDA_CHECK( cudaMalloc((void **)&ee_g, nx*ny*ntheta*sizeof(float )) );
-	CUDA_CHECK( cudaMalloc((void **)&rr_g, nx*ny*ntheta*sizeof(float )) );
-	CUDA_CHECK( cudaMalloc((void **)&St_g, ny*ntheta*sizeof(float )) );
-	CUDA_CHECK( cudaMalloc((void **)&sigm_g, nx*ny*sizeof(float )) );
-	CUDA_CHECK( cudaMalloc((void **)&DR_g, nx*ny*sizeof(float )) );
-	CUDA_CHECK( cudaMalloc((void **)&R_g, nx*ny*sizeof(float )) );
-	CUDA_CHECK( cudaMalloc((void **)&H_g, nx*ny*sizeof(float )) );
-	CUDA_CHECK( cudaMalloc((void **)&qbndold_g, 4*ny*sizeof(float )) );
-	CUDA_CHECK( cudaMalloc((void **)&qbndnew_g, 4*ny*sizeof(float )) );
-	CUDA_CHECK( cudaMalloc((void **)&umeanbnd_g, ny*sizeof(float )) );
-	CUDA_CHECK( cudaMalloc((void **)&vmeanbnd_g, ny*sizeof(float )) );
-	//CUDA_CHECK( cudaMalloc((void **)&sigt_g, nx*ny*ntheta*sizeof(float )) );
-	CUDA_CHECK( cudaMalloc((void **)&c_g, nx*ny*sizeof(float )) );
-	CUDA_CHECK( cudaMalloc((void **)&cg_g, nx*ny*sizeof(float )) );
-	CUDA_CHECK( cudaMalloc((void **)&theta_g, ntheta*sizeof(float )) );
-	CUDA_CHECK( cudaMalloc((void **)&cxsth_g, ntheta*sizeof(float )) );
-	CUDA_CHECK( cudaMalloc((void **)&sxnth_g, ntheta*sizeof(float )) );
-	CUDA_CHECK( cudaMalloc((void **)&thetamean_g, nx*ny*sizeof(float )) );
-	//CUDA_CHECK( cudaMalloc((void **)&Sxx_g, nx*ny*sizeof(float )) );
-	//CUDA_CHECK( cudaMalloc((void **)&Syy_g, nx*ny*sizeof(float )) );
-	//CUDA_CHECK( cudaMalloc((void **)&Sxy_g, nx*ny*sizeof(float )) );
-	CUDA_CHECK( cudaMalloc((void **)&ctheta_g, nx*ny*ntheta*sizeof(float )) );
+	CUDA_CHECK( cudaMalloc((void **)&ee_g, nx*ny*ntheta*sizeof(DECNUM )) );
+	CUDA_CHECK( cudaMalloc((void **)&rr_g, nx*ny*ntheta*sizeof(DECNUM )) );
+	CUDA_CHECK( cudaMalloc((void **)&St_g, ny*ntheta*sizeof(DECNUM )) );
+	CUDA_CHECK( cudaMalloc((void **)&sigm_g, nx*ny*sizeof(DECNUM )) );
+	CUDA_CHECK( cudaMalloc((void **)&DR_g, nx*ny*sizeof(DECNUM )) );
+	CUDA_CHECK( cudaMalloc((void **)&R_g, nx*ny*sizeof(DECNUM )) );
+	CUDA_CHECK( cudaMalloc((void **)&H_g, nx*ny*sizeof(DECNUM )) );
+	CUDA_CHECK( cudaMalloc((void **)&qbndold_g, 4*ny*sizeof(DECNUM )) );
+	CUDA_CHECK( cudaMalloc((void **)&qbndnew_g, 4*ny*sizeof(DECNUM )) );
+	CUDA_CHECK( cudaMalloc((void **)&umeanbnd_g, ny*sizeof(DECNUM )) );
+	CUDA_CHECK( cudaMalloc((void **)&vmeanbnd_g, ny*sizeof(DECNUM )) );
+	//CUDA_CHECK( cudaMalloc((void **)&sigt_g, nx*ny*ntheta*sizeof(DECNUM )) );
+	CUDA_CHECK( cudaMalloc((void **)&c_g, nx*ny*sizeof(DECNUM )) );
+	CUDA_CHECK( cudaMalloc((void **)&cg_g, nx*ny*sizeof(DECNUM )) );
+	CUDA_CHECK( cudaMalloc((void **)&theta_g, ntheta*sizeof(DECNUM )) );
+	CUDA_CHECK( cudaMalloc((void **)&cxsth_g, ntheta*sizeof(DECNUM )) );
+	CUDA_CHECK( cudaMalloc((void **)&sxnth_g, ntheta*sizeof(DECNUM )) );
+	CUDA_CHECK( cudaMalloc((void **)&thetamean_g, nx*ny*sizeof(DECNUM )) );
+	//CUDA_CHECK( cudaMalloc((void **)&Sxx_g, nx*ny*sizeof(DECNUM )) );
+	//CUDA_CHECK( cudaMalloc((void **)&Syy_g, nx*ny*sizeof(DECNUM )) );
+	//CUDA_CHECK( cudaMalloc((void **)&Sxy_g, nx*ny*sizeof(DECNUM )) );
+	CUDA_CHECK( cudaMalloc((void **)&ctheta_g, nx*ny*ntheta*sizeof(DECNUM )) );
 
 
 
-	CUDA_CHECK( cudaMalloc((void **)&stdep_g, nx*ny*sizeof(float )) );
-	CUDA_CHECK( cudaMalloc((void **)&Cc_g, nx*ny*sizeof(float )) );
-	CUDA_CHECK( cudaMalloc((void **)&dzb_g, nx*ny*sizeof(float )) );
-	CUDA_CHECK( cudaMalloc((void **)&kturb_g, nx*ny*sizeof(float )) );
-	CUDA_CHECK( cudaMalloc((void **)&rolthick_g, nx*ny*sizeof(float )) );
+	CUDA_CHECK( cudaMalloc((void **)&stdep_g, nx*ny*sizeof(DECNUM )) );
+	CUDA_CHECK( cudaMalloc((void **)&Cc_g, nx*ny*sizeof(DECNUM )) );
+	CUDA_CHECK( cudaMalloc((void **)&dzb_g, nx*ny*sizeof(DECNUM )) );
+	CUDA_CHECK( cudaMalloc((void **)&kturb_g, nx*ny*sizeof(DECNUM )) );
+	CUDA_CHECK( cudaMalloc((void **)&rolthick_g, nx*ny*sizeof(DECNUM )) );
 
 
 
 
 
 	// Averaged variables
-	CUDA_CHECK( cudaMalloc((void **)&Hmean_g, nx*ny*sizeof(float )) );
-	CUDA_CHECK( cudaMalloc((void **)&uumean_g, nx*ny*sizeof(float )) );
-	CUDA_CHECK( cudaMalloc((void **)&vvmean_g, nx*ny*sizeof(float )) );
-	CUDA_CHECK( cudaMalloc((void **)&hhmean_g, nx*ny*sizeof(float )) );
-	CUDA_CHECK( cudaMalloc((void **)&zsmean_g, nx*ny*sizeof(float )) );
-	CUDA_CHECK( cudaMalloc((void **)&Cmean_g, nx*ny*sizeof(float )) );
-	CUDA_CHECK( cudaMalloc((void **)&ceqsg_g, nx*ny*sizeof(float )) );
+	CUDA_CHECK( cudaMalloc((void **)&Hmean_g, nx*ny*sizeof(DECNUM )) );
+	CUDA_CHECK( cudaMalloc((void **)&uumean_g, nx*ny*sizeof(DECNUM )) );
+	CUDA_CHECK( cudaMalloc((void **)&vvmean_g, nx*ny*sizeof(DECNUM )) );
+	CUDA_CHECK( cudaMalloc((void **)&hhmean_g, nx*ny*sizeof(DECNUM )) );
+	CUDA_CHECK( cudaMalloc((void **)&zsmean_g, nx*ny*sizeof(DECNUM )) );
+	CUDA_CHECK( cudaMalloc((void **)&Cmean_g, nx*ny*sizeof(DECNUM )) );
+	CUDA_CHECK( cudaMalloc((void **)&ceqsg_g, nx*ny*sizeof(DECNUM )) );
+
+}
+else
+{
+	// Waveinit CPU!!
+
+	if (imodel==1 || imodel>2)
+	{
+		waveinitGPU();
+	}
+
+	//Allocate GPU memory
+
+	//wci_g=(DECNUM *)malloc(nx*ny*sizeof(DECNUM));;
+	
+	hh_g=(DECNUM *)malloc(nx*ny*sizeof(DECNUM));
+	uu_g=(DECNUM *)malloc(nx*ny*sizeof(DECNUM));
+	vv_g=(DECNUM *)malloc(nx*ny*sizeof(DECNUM));
+	wci_g=(DECNUM *)malloc(nx*ny*sizeof(DECNUM));
+	
+	ueu_g=(DECNUM *)malloc(nx*ny*sizeof(DECNUM));
+	vev_g=(DECNUM *)malloc(nx*ny*sizeof(DECNUM));
+	vmageu_g=(DECNUM *)malloc(nx*ny*sizeof(DECNUM));
+	vmagev_g=(DECNUM *)malloc(nx*ny*sizeof(DECNUM));
+	zs_g=(DECNUM *)malloc(nx*ny*sizeof(DECNUM));
+	zb_g=(DECNUM *)malloc(nx*ny*sizeof(DECNUM));
+	
+	
+	//CUDA_CHECK( cudaMalloc((void **)&Ceq_g, nx*ny*sizeof(DECNUM )) );
+	dzsdx_g=(DECNUM *)malloc(nx*ny*sizeof(DECNUM));
+	dzsdy_g=(DECNUM *)malloc(nx*ny*sizeof(DECNUM));
+	cfm_g=(DECNUM *)malloc(nx*ny*sizeof(DECNUM));
+	fwm_g=(DECNUM *)malloc(nx*ny*sizeof(DECNUM));
+	dzsdt_g=(DECNUM *)malloc(nx*ny*sizeof(DECNUM));
+	hu_g=(DECNUM *)malloc(nx*ny*sizeof(DECNUM));
+	hv_g=(DECNUM *)malloc(nx*ny*sizeof(DECNUM));
+	hum_g=(DECNUM *)malloc(nx*ny*sizeof(DECNUM));
+	hvm_g=(DECNUM *)malloc(nx*ny*sizeof(DECNUM));
+	vu_g=(DECNUM *)malloc(nx*ny*sizeof(DECNUM));
+	uv_g=(DECNUM *)malloc(nx*ny*sizeof(DECNUM));
+	wetu_g=(int *)malloc(nx*ny*sizeof(int));
+	wetv_g=(int *)malloc(nx*ny*sizeof(int));
+	ududx_g=(DECNUM *)malloc(nx*ny*sizeof(DECNUM));
+	vdudy_g=(DECNUM *)malloc(nx*ny*sizeof(DECNUM));
+	vdvdy_g=(DECNUM *)malloc(nx*ny*sizeof(DECNUM));
+	udvdx_g=(DECNUM *)malloc(nx*ny*sizeof(DECNUM));
+	
+	
+
+	D_g=(DECNUM *)malloc(nx*ny*sizeof(DECNUM));
+	urms_g=(DECNUM *)malloc(nx*ny*sizeof(DECNUM));
+	ust_g=(DECNUM *)malloc(nx*ny*sizeof(DECNUM));
+	Fx_g=(DECNUM *)malloc(nx*ny*sizeof(DECNUM));
+	Fy_g=(DECNUM *)malloc(nx*ny*sizeof(DECNUM));
+	k_g=(DECNUM *)malloc(nx*ny*sizeof(DECNUM));
+	
+
+	ee_g=(DECNUM *)malloc(nx*ny*ntheta*sizeof(DECNUM));
+	rr_g=(DECNUM *)malloc(nx*ny*ntheta*sizeof(DECNUM));
+	St_g=(DECNUM *)malloc(ny*ntheta*sizeof(DECNUM));
+	sigm_g=(DECNUM *)malloc(nx*ny*sizeof(DECNUM));
+	DR_g=(DECNUM *)malloc(nx*ny*sizeof(DECNUM));
+	R_g=(DECNUM *)malloc(nx*ny*sizeof(DECNUM));
+	H_g=(DECNUM *)malloc(nx*ny*sizeof(DECNUM));
+	qbndold_g=(DECNUM *)malloc(4*ny*sizeof(DECNUM));
+	qbndnew_g=(DECNUM *)malloc(4*ny*sizeof(DECNUM));
+	umeanbnd_g=(DECNUM *)malloc(ny*sizeof(DECNUM));
+	vmeanbnd_g=(DECNUM *)malloc(ny*sizeof(DECNUM));
+	//CUDA_CHECK( cudaMalloc((void **)&sigt_g, nx*ny*ntheta*sizeof(DECNUM )) );
+	c_g=(DECNUM *)malloc(nx*ny*sizeof(DECNUM));
+	cg_g=(DECNUM *)malloc(nx*ny*sizeof(DECNUM));
+	theta_g=(DECNUM *)malloc(ntheta*sizeof(DECNUM));
+	cxsth_g=(DECNUM *)malloc(ntheta*sizeof(DECNUM));
+	sxnth_g=(DECNUM *)malloc(ntheta*sizeof(DECNUM));
+	thetamean_g=(DECNUM *)malloc(nx*ny*sizeof(DECNUM));
+	//CUDA_CHECK( cudaMalloc((void **)&Sxx_g, nx*ny*sizeof(DECNUM )) );
+	//CUDA_CHECK( cudaMalloc((void **)&Syy_g, nx*ny*sizeof(DECNUM )) );
+	//CUDA_CHECK( cudaMalloc((void **)&Sxy_g, nx*ny*sizeof(DECNUM )) );
+	ctheta_g=(DECNUM *)malloc(nx*ny*ntheta*sizeof(DECNUM));
+
+
+
+	stdep_g=(DECNUM *)malloc(nx*ny*sizeof(DECNUM));
+	Cc_g=(DECNUM *)malloc(nx*ny*sizeof(DECNUM));
+	dzb_g=(DECNUM *)malloc(nx*ny*sizeof(DECNUM));
+	kturb_g=(DECNUM *)malloc(nx*ny*sizeof(DECNUM));
+	rolthick_g=(DECNUM *)malloc(nx*ny*sizeof(DECNUM));
 
 
 
 
+
+	// Averaged variables
+	Hmean_g=(DECNUM *)malloc(nx*ny*sizeof(DECNUM));
+	uumean_g=(DECNUM *)malloc(nx*ny*sizeof(DECNUM));
+	vvmean_g=(DECNUM *)malloc(nx*ny*sizeof(DECNUM));
+	hhmean_g=(DECNUM *)malloc(nx*ny*sizeof(DECNUM));
+	zsmean_g=(DECNUM *)malloc(nx*ny*sizeof(DECNUM));
+	Cmean_g=(DECNUM *)malloc(nx*ny*sizeof(DECNUM));
+	ceqsg_g=(DECNUM *)malloc(nx*ny*sizeof(DECNUM));
+	kh_g=(DECNUM *)malloc(nx*ny*sizeof(DECNUM));
+	sinh2kh_g=(DECNUM *)malloc(nx*ny*sizeof(DECNUM));
+	dhdx_g=(DECNUM *)malloc(nx*ny*sizeof(DECNUM));
+	dhdy_g=(DECNUM *)malloc(nx*ny*sizeof(DECNUM));
+	dudx_g=(DECNUM *)malloc(nx*ny*sizeof(DECNUM));
+	dudy_g=(DECNUM *)malloc(nx*ny*sizeof(DECNUM));
+	dvdx_g=(DECNUM *)malloc(nx*ny*sizeof(DECNUM));
+	dvdy_g=(DECNUM *)malloc(nx*ny*sizeof(DECNUM));
+	xadvec_g=(DECNUM *)malloc(nx*ny*ntheta*sizeof(DECNUM));
+	yadvec_g=(DECNUM *)malloc(nx*ny*ntheta*sizeof(DECNUM));
+	thetaadvec_g=(DECNUM *)malloc(nx*ny*ntheta*sizeof(DECNUM));
+	E_g=(DECNUM *)malloc(nx*ny*sizeof(DECNUM));
+	Sxx_g=(DECNUM *)malloc(nx*ny*sizeof(DECNUM));
+	Sxy_g=(DECNUM *)malloc(nx*ny*sizeof(DECNUM));
+	Syy_g=(DECNUM *)malloc(nx*ny*sizeof(DECNUM));
+
+
+}
+
+if(GPUDEVICE>=0)
+{
 
 ////////////////////////////////////////////////////////////////////////////////////////////
 // Copy CPU array to the GPU                                                       /////////
@@ -2247,81 +1723,156 @@ for (int jj=0; jj<ny; jj++)
 
 
 
-	CUDA_CHECK( cudaMemcpy(hh_g, hh, nx*ny*sizeof(float ), cudaMemcpyHostToDevice) );
-	CUDA_CHECK( cudaMemcpy(hu_g, hh, nx*ny*sizeof(float ), cudaMemcpyHostToDevice) );
-	CUDA_CHECK( cudaMemcpy(hv_g, hh, nx*ny*sizeof(float ), cudaMemcpyHostToDevice) );
-	CUDA_CHECK( cudaMemcpy(hum_g, hh, nx*ny*sizeof(float ), cudaMemcpyHostToDevice) );
-	CUDA_CHECK( cudaMemcpy(hvm_g, hh, nx*ny*sizeof(float ), cudaMemcpyHostToDevice) );
-	CUDA_CHECK( cudaMemcpy(zb_g, zb, nx*ny*sizeof(float ), cudaMemcpyHostToDevice) );
-	CUDA_CHECK( cudaMemcpy(zs_g, zs, nx*ny*sizeof(float ), cudaMemcpyHostToDevice) );
-	CUDA_CHECK( cudaMemcpy(uu_g, uu, nx*ny*sizeof(float ), cudaMemcpyHostToDevice) );
-	CUDA_CHECK( cudaMemcpy(vv_g, vv, nx*ny*sizeof(float ), cudaMemcpyHostToDevice) );
-	//CUDA_CHECK( cudaMemcpy(zom_g, zom, nx*ny*sizeof(float ), cudaMemcpyHostToDevice) );
-	CUDA_CHECK( cudaMemcpy(vu_g,uu, nx*ny*sizeof(float ), cudaMemcpyHostToDevice) );
-	CUDA_CHECK( cudaMemcpy(uv_g,uu, nx*ny*sizeof(float ), cudaMemcpyHostToDevice) );
-	CUDA_CHECK( cudaMemcpy(vev_g,uu, nx*ny*sizeof(float ), cudaMemcpyHostToDevice) );
-	CUDA_CHECK( cudaMemcpy(ueu_g,uu, nx*ny*sizeof(float ), cudaMemcpyHostToDevice) );
-	CUDA_CHECK( cudaMemcpy(vmageu_g,uu, nx*ny*sizeof(float ), cudaMemcpyHostToDevice) );
-	CUDA_CHECK( cudaMemcpy(vmagev_g,uu, nx*ny*sizeof(float ), cudaMemcpyHostToDevice) );
-	CUDA_CHECK( cudaMemcpy(ududx_g,uu, nx*ny*sizeof(float ), cudaMemcpyHostToDevice) );
-	CUDA_CHECK( cudaMemcpy(vdudy_g,uu, nx*ny*sizeof(float ), cudaMemcpyHostToDevice) );
-	CUDA_CHECK( cudaMemcpy(vdvdy_g,uu, nx*ny*sizeof(float ), cudaMemcpyHostToDevice) );
-	CUDA_CHECK( cudaMemcpy(udvdx_g,uu, nx*ny*sizeof(float ), cudaMemcpyHostToDevice) );
+	CUDA_CHECK( cudaMemcpy(hh_g, hh, nx*ny*sizeof(DECNUM ), cudaMemcpyHostToDevice) );
+	CUDA_CHECK( cudaMemcpy(hu_g, hh, nx*ny*sizeof(DECNUM ), cudaMemcpyHostToDevice) );
+	CUDA_CHECK( cudaMemcpy(hv_g, hh, nx*ny*sizeof(DECNUM ), cudaMemcpyHostToDevice) );
+	CUDA_CHECK( cudaMemcpy(hum_g, hh, nx*ny*sizeof(DECNUM ), cudaMemcpyHostToDevice) );
+	CUDA_CHECK( cudaMemcpy(hvm_g, hh, nx*ny*sizeof(DECNUM ), cudaMemcpyHostToDevice) );
+	CUDA_CHECK( cudaMemcpy(zb_g, zb, nx*ny*sizeof(DECNUM ), cudaMemcpyHostToDevice) );
+	CUDA_CHECK( cudaMemcpy(zs_g, zs, nx*ny*sizeof(DECNUM ), cudaMemcpyHostToDevice) );
+	CUDA_CHECK( cudaMemcpy(uu_g, uu, nx*ny*sizeof(DECNUM ), cudaMemcpyHostToDevice) );
+	CUDA_CHECK( cudaMemcpy(vv_g, vv, nx*ny*sizeof(DECNUM ), cudaMemcpyHostToDevice) );
+	//CUDA_CHECK( cudaMemcpy(zom_g, zom, nx*ny*sizeof(DECNUM ), cudaMemcpyHostToDevice) );
+	CUDA_CHECK( cudaMemcpy(vu_g,uu, nx*ny*sizeof(DECNUM ), cudaMemcpyHostToDevice) );
+	CUDA_CHECK( cudaMemcpy(uv_g,uu, nx*ny*sizeof(DECNUM ), cudaMemcpyHostToDevice) );
+	CUDA_CHECK( cudaMemcpy(vev_g,uu, nx*ny*sizeof(DECNUM ), cudaMemcpyHostToDevice) );
+	CUDA_CHECK( cudaMemcpy(ueu_g,uu, nx*ny*sizeof(DECNUM ), cudaMemcpyHostToDevice) );
+	CUDA_CHECK( cudaMemcpy(vmageu_g,uu, nx*ny*sizeof(DECNUM ), cudaMemcpyHostToDevice) );
+	CUDA_CHECK( cudaMemcpy(vmagev_g,uu, nx*ny*sizeof(DECNUM ), cudaMemcpyHostToDevice) );
+	CUDA_CHECK( cudaMemcpy(ududx_g,uu, nx*ny*sizeof(DECNUM ), cudaMemcpyHostToDevice) );
+	CUDA_CHECK( cudaMemcpy(vdudy_g,uu, nx*ny*sizeof(DECNUM ), cudaMemcpyHostToDevice) );
+	CUDA_CHECK( cudaMemcpy(vdvdy_g,uu, nx*ny*sizeof(DECNUM ), cudaMemcpyHostToDevice) );
+	CUDA_CHECK( cudaMemcpy(udvdx_g,uu, nx*ny*sizeof(DECNUM ), cudaMemcpyHostToDevice) );
 
 
-	CUDA_CHECK( cudaMemcpy(H_g, uu, nx*ny*sizeof(float ), cudaMemcpyHostToDevice) );
-	CUDA_CHECK( cudaMemcpy(Fx_g, uu, nx*ny*sizeof(float ), cudaMemcpyHostToDevice) );
-	CUDA_CHECK( cudaMemcpy(Fy_g, uu, nx*ny*sizeof(float ), cudaMemcpyHostToDevice) );
-	CUDA_CHECK( cudaMemcpy(urms_g, uu, nx*ny*sizeof(float ), cudaMemcpyHostToDevice) );
-	CUDA_CHECK( cudaMemcpy(ust_g, uu, nx*ny*sizeof(float ), cudaMemcpyHostToDevice) );
-	CUDA_CHECK( cudaMemcpy(D_g,uu, nx*ny*sizeof(float ), cudaMemcpyHostToDevice) );
+	CUDA_CHECK( cudaMemcpy(H_g, uu, nx*ny*sizeof(DECNUM ), cudaMemcpyHostToDevice) );
+	CUDA_CHECK( cudaMemcpy(Fx_g, uu, nx*ny*sizeof(DECNUM ), cudaMemcpyHostToDevice) );
+	CUDA_CHECK( cudaMemcpy(Fy_g, uu, nx*ny*sizeof(DECNUM ), cudaMemcpyHostToDevice) );
+	CUDA_CHECK( cudaMemcpy(urms_g, uu, nx*ny*sizeof(DECNUM ), cudaMemcpyHostToDevice) );
+	CUDA_CHECK( cudaMemcpy(ust_g, uu, nx*ny*sizeof(DECNUM ), cudaMemcpyHostToDevice) );
+	CUDA_CHECK( cudaMemcpy(D_g,uu, nx*ny*sizeof(DECNUM ), cudaMemcpyHostToDevice) );
 
 
 
-	CUDA_CHECK( cudaMemcpy(ee_g, ee, nx*ny*ntheta*sizeof(float ), cudaMemcpyHostToDevice) );
-	CUDA_CHECK( cudaMemcpy(rr_g, rr, nx*ny*ntheta*sizeof(float ), cudaMemcpyHostToDevice) );
-	CUDA_CHECK( cudaMemcpy(cxsth_g, cxsth, ntheta*sizeof(float ), cudaMemcpyHostToDevice) );
-	CUDA_CHECK( cudaMemcpy(sxnth_g, sxnth, ntheta*sizeof(float ), cudaMemcpyHostToDevice) );
-	CUDA_CHECK( cudaMemcpy(theta_g, theta, ntheta*sizeof(float ), cudaMemcpyHostToDevice) );
-	CUDA_CHECK( cudaMemcpy(thetamean_g, uu, nx*ny*sizeof(float ), cudaMemcpyHostToDevice) );
-	CUDA_CHECK( cudaMemcpy(R_g, uu, nx*ny*sizeof(float ), cudaMemcpyHostToDevice) );
-	CUDA_CHECK( cudaMemcpy(DR_g, uu, nx*ny*sizeof(float ), cudaMemcpyHostToDevice) );
-	CUDA_CHECK( cudaMemcpy(c_g, uu, nx*ny*sizeof(float ), cudaMemcpyHostToDevice) );
-	CUDA_CHECK( cudaMemcpy(cg_g, uu, nx*ny*sizeof(float ), cudaMemcpyHostToDevice) );
+	CUDA_CHECK( cudaMemcpy(ee_g, ee, nx*ny*ntheta*sizeof(DECNUM ), cudaMemcpyHostToDevice) );
+	CUDA_CHECK( cudaMemcpy(rr_g, rr, nx*ny*ntheta*sizeof(DECNUM ), cudaMemcpyHostToDevice) );
+	CUDA_CHECK( cudaMemcpy(cxsth_g, cxsth, ntheta*sizeof(DECNUM ), cudaMemcpyHostToDevice) );
+	CUDA_CHECK( cudaMemcpy(sxnth_g, sxnth, ntheta*sizeof(DECNUM ), cudaMemcpyHostToDevice) );
+	CUDA_CHECK( cudaMemcpy(theta_g, theta, ntheta*sizeof(DECNUM ), cudaMemcpyHostToDevice) );
+	CUDA_CHECK( cudaMemcpy(thetamean_g, uu, nx*ny*sizeof(DECNUM ), cudaMemcpyHostToDevice) );
+	CUDA_CHECK( cudaMemcpy(R_g, uu, nx*ny*sizeof(DECNUM ), cudaMemcpyHostToDevice) );
+	CUDA_CHECK( cudaMemcpy(DR_g, uu, nx*ny*sizeof(DECNUM ), cudaMemcpyHostToDevice) );
+	CUDA_CHECK( cudaMemcpy(c_g, uu, nx*ny*sizeof(DECNUM ), cudaMemcpyHostToDevice) );
+	CUDA_CHECK( cudaMemcpy(cg_g, uu, nx*ny*sizeof(DECNUM ), cudaMemcpyHostToDevice) );
 	
 	
 	
-	CUDA_CHECK( cudaMemcpy(stdep_g,stdep, nx*ny*sizeof(float ), cudaMemcpyHostToDevice) );
-	CUDA_CHECK( cudaMemcpy(Cc_g,uu, nx*ny*sizeof(float ), cudaMemcpyHostToDevice) );
-	CUDA_CHECK( cudaMemcpy(kturb_g,uu, nx*ny*sizeof(float ), cudaMemcpyHostToDevice) );
-	CUDA_CHECK( cudaMemcpy(rolthick_g,uu, nx*ny*sizeof(float ), cudaMemcpyHostToDevice) );
-	CUDA_CHECK( cudaMemcpy(dzb_g,dzb, nx*ny*sizeof(float ), cudaMemcpyHostToDevice) );
+	CUDA_CHECK( cudaMemcpy(stdep_g,stdep, nx*ny*sizeof(DECNUM ), cudaMemcpyHostToDevice) );
+	CUDA_CHECK( cudaMemcpy(Cc_g,uu, nx*ny*sizeof(DECNUM ), cudaMemcpyHostToDevice) );
+	CUDA_CHECK( cudaMemcpy(kturb_g,uu, nx*ny*sizeof(DECNUM ), cudaMemcpyHostToDevice) );
+	CUDA_CHECK( cudaMemcpy(rolthick_g,uu, nx*ny*sizeof(DECNUM ), cudaMemcpyHostToDevice) );
+	CUDA_CHECK( cudaMemcpy(dzb_g,dzb, nx*ny*sizeof(DECNUM ), cudaMemcpyHostToDevice) );
 	
-	CUDA_CHECK( cudaMemcpy(umeanbnd_g,umeanbnd, ny*sizeof(float ), cudaMemcpyHostToDevice) );
-	CUDA_CHECK( cudaMemcpy(vmeanbnd_g,umeanbnd, ny*sizeof(float ), cudaMemcpyHostToDevice) );
+	CUDA_CHECK( cudaMemcpy(umeanbnd_g,umeanbnd, ny*sizeof(DECNUM ), cudaMemcpyHostToDevice) );
+	CUDA_CHECK( cudaMemcpy(vmeanbnd_g,umeanbnd, ny*sizeof(DECNUM ), cudaMemcpyHostToDevice) );
 
 	//Averaged variables
-	CUDA_CHECK( cudaMemcpy(Hmean_g,uu, nx*ny*sizeof(float ), cudaMemcpyHostToDevice) );
-	CUDA_CHECK( cudaMemcpy(uumean_g,uu, nx*ny*sizeof(float ), cudaMemcpyHostToDevice) );
-	CUDA_CHECK( cudaMemcpy(vvmean_g,uu, nx*ny*sizeof(float ), cudaMemcpyHostToDevice) );
-	CUDA_CHECK( cudaMemcpy(hhmean_g,uu, nx*ny*sizeof(float ), cudaMemcpyHostToDevice) );
-	CUDA_CHECK( cudaMemcpy(zsmean_g,uu, nx*ny*sizeof(float ), cudaMemcpyHostToDevice) );
-	CUDA_CHECK( cudaMemcpy(Cmean_g,uu, nx*ny*sizeof(float ), cudaMemcpyHostToDevice) );
+	CUDA_CHECK( cudaMemcpy(Hmean_g,uu, nx*ny*sizeof(DECNUM ), cudaMemcpyHostToDevice) );
+	CUDA_CHECK( cudaMemcpy(uumean_g,uu, nx*ny*sizeof(DECNUM ), cudaMemcpyHostToDevice) );
+	CUDA_CHECK( cudaMemcpy(vvmean_g,uu, nx*ny*sizeof(DECNUM ), cudaMemcpyHostToDevice) );
+	CUDA_CHECK( cudaMemcpy(hhmean_g,uu, nx*ny*sizeof(DECNUM ), cudaMemcpyHostToDevice) );
+	CUDA_CHECK( cudaMemcpy(zsmean_g,uu, nx*ny*sizeof(DECNUM ), cudaMemcpyHostToDevice) );
+	CUDA_CHECK( cudaMemcpy(Cmean_g,uu, nx*ny*sizeof(DECNUM ), cudaMemcpyHostToDevice) );
 	
 
-	/*CUDA_CHECK( cudaMemcpy(xxp_g, xxp, npart*sizeof(float ), cudaMemcpyHostToDevice) );
-	CUDA_CHECK( cudaMemcpy(yyp_g, yyp, npart*sizeof(float ), cudaMemcpyHostToDevice) );
+	/*CUDA_CHECK( cudaMemcpy(xxp_g, xxp, npart*sizeof(DECNUM ), cudaMemcpyHostToDevice) );
+	CUDA_CHECK( cudaMemcpy(yyp_g, yyp, npart*sizeof(DECNUM ), cudaMemcpyHostToDevice) );
 
 	*/
+	
+}
+else
+{
+	for (int jj=0; jj<ny; jj++)
+	{
+		umeanbnd_g[jj]=umeanbnd[jj];
+		vmeanbnd_g[jj]=umeanbnd[jj];
+		for (int ii=0; ii<nx; ii++)
+		{
+	
+			hh_g[ii+jj*nx]=hh[ii+jj*nx];
+			hu_g[ii+jj*nx]=hh[ii+jj*nx];
+			hv_g[ii+jj*nx]=hh[ii+jj*nx];
+			hum_g[ii+jj*nx]=hh[ii+jj*nx];
+			hvm_g[ii+jj*nx]=hh[ii+jj*nx];
+			zb_g[ii+jj*nx]=zb[ii+jj*nx];
+			zs_g[ii+jj*nx]=zs[ii+jj*nx];
+			uu_g[ii+jj*nx]=uu[ii+jj*nx];
+			vv_g[ii+jj*nx]=vv[ii+jj*nx];
+			//CUDA_CHECK( cudaMemcpy(zom_g, zom, nx*ny*sizeof(DECNUM ), cudaMemcpyHostToDevice) );
+			vu_g[ii+jj*nx]=uu[ii+jj*nx];
+			uv_g[ii+jj*nx]=uu[ii+jj*nx];
+			vev_g[ii+jj*nx]=uu[ii+jj*nx];
+			ueu_g[ii+jj*nx]=uu[ii+jj*nx];
+			vmageu_g[ii+jj*nx]=uu[ii+jj*nx];
+			vmagev_g[ii+jj*nx]=uu[ii+jj*nx];
+			ududx_g[ii+jj*nx]=uu[ii+jj*nx];
+			vdudy_g[ii+jj*nx]=uu[ii+jj*nx];
+			vdvdy_g[ii+jj*nx]=uu[ii+jj*nx];
+			udvdx_g[ii+jj*nx]=uu[ii+jj*nx];
 
 
+			H_g[ii+jj*nx]=uu[ii+jj*nx];
+			Fx_g[ii+jj*nx]=uu[ii+jj*nx];
+			Fy_g[ii+jj*nx]=uu[ii+jj*nx];
+			urms_g[ii+jj*nx]=uu[ii+jj*nx];
+			ust_g[ii+jj*nx]=uu[ii+jj*nx];
+			D_g[ii+jj*nx]=uu[ii+jj*nx];
+
+
+			for(int nt=0; nt<ntheta; nt++)
+			{
+				ee_g[ii+jj*nx+nt*nx*ny]=ee[ii+jj*nx+nt*nx*ny];
+				rr_g[ii+jj*nx+nt*nx*ny]=rr[ii+jj*nx+nt*nx*ny];
+				cxsth_g[nt]=cxsth[nt];
+				sxnth_g[nt]=sxnth[nt];
+				theta_g[nt]=theta[nt];
+			}
+			thetamean_g[ii+jj*nx]=uu[ii+jj*nx];
+			R_g[ii+jj*nx]=uu[ii+jj*nx];
+			DR_g[ii+jj*nx]=uu[ii+jj*nx];
+			c_g[ii+jj*nx]=uu[ii+jj*nx];
+			cg_g[ii+jj*nx]=uu[ii+jj*nx];
+	
+	
+	
+	stdep_g[ii+jj*nx]=stdep[ii+jj*nx];
+	Cc_g[ii+jj*nx]=uu[ii+jj*nx];
+	kturb_g[ii+jj*nx]=uu[ii+jj*nx];
+	rolthick_g[ii+jj*nx]=uu[ii+jj*nx];
+	dzb_g[ii+jj*nx]=dzb[ii+jj*nx];
+	
+	
+
+	//Averaged variables
+	Hmean_g[ii+jj*nx]=uu[ii+jj*nx];
+	uumean_g[ii+jj*nx]=uu[ii+jj*nx];
+	vvmean_g[ii+jj*nx]=uu[ii+jj*nx];
+	hhmean_g[ii+jj*nx]=uu[ii+jj*nx];
+	zsmean_g[ii+jj*nx]=uu[ii+jj*nx];
+	Cmean_g[ii+jj*nx]=uu[ii+jj*nx];
+	}
+}
+}
 		
 
+if (GPUDEVICE>=0)
+{
 if (imodel==1 || imodel>2)
 {
 	
-	CUDA_CHECK( cudaMemcpy(qbndold_g,qbndold, 4*ny*sizeof(float ), cudaMemcpyHostToDevice) );
-	CUDA_CHECK( cudaMemcpy(qbndnew_g,qbndnew, 4*ny*sizeof(float ), cudaMemcpyHostToDevice) );
+	CUDA_CHECK( cudaMemcpy(qbndold_g,qbndold, 4*ny*sizeof(DECNUM ), cudaMemcpyHostToDevice) );
+	CUDA_CHECK( cudaMemcpy(qbndnew_g,qbndnew, 4*ny*sizeof(DECNUM ), cudaMemcpyHostToDevice) );
 }	
 	/*
 	for (int ix=0; ix<nx; ix++)
@@ -2368,6 +1919,27 @@ if (imodel==1 || imodel>2)
     CUDA_CHECK( cudaThreadSynchronize() );
 
 }	
+}
+else
+{
+
+	
+	//Calculate bottomm friction based on initial hard layer file
+	updatezomCPU(nx,ny,cf,cf2,fw,fw2,stdep_g,cfm_g,fwm_g);
+	
+	
+if (imodel==1 || imodel>2)
+{	
+	set_bndCPU(nx,ny,Trep,ntheta,theta_g,sigm_g);
+
+	
+
+	//also run dispersion relation, cg is needed in the first iteration of the bnd flow
+	dispersion_initCPU(nx,ny,twopi,g,aphi,bphi,sigm_g,hh_g,cg_g);
+	
+
+}
+}
 	// prepare output file
 	printf("prepare output");
 	creatncfile(tsoutfile, nx,ny,dx,0.0f,imodel,zb,zs,uu,vv,H,H,thetamean,uu,uu,uu,uu,uu,uu,uu,hh,uu,uu,uu,uu,uu,uu);
@@ -2382,21 +1954,27 @@ if (imodel==1 || imodel>2)
 	
 	// for hot start purposes
 	//read2Dnc(nx,ny,"uufile.nc",uu);
-	//CUDA_CHECK( cudaMemcpy(uu_g, uu, nx*ny*sizeof(float ), cudaMemcpyHostToDevice) );
+	//CUDA_CHECK( cudaMemcpy(uu_g, uu, nx*ny*sizeof(DECNUM ), cudaMemcpyHostToDevice) );
 	
 	//read2Dnc(nx,ny,"vvfile.nc",uu);
-	//CUDA_CHECK( cudaMemcpy(vv_g, uu, nx*ny*sizeof(float ), cudaMemcpyHostToDevice) );
+	//CUDA_CHECK( cudaMemcpy(vv_g, uu, nx*ny*sizeof(DECNUM ), cudaMemcpyHostToDevice) );
 	
 	//read2Dnc(nx,ny,"zsfile.nc",uu);
-	//CUDA_CHECK( cudaMemcpy(zs_g, uu, nx*ny*sizeof(float ), cudaMemcpyHostToDevice) );
+	//CUDA_CHECK( cudaMemcpy(zs_g, uu, nx*ny*sizeof(DECNUM ), cudaMemcpyHostToDevice) );
 	
 	//read2Dnc(nx,ny,"hhfile.nc",uu);
-	//CUDA_CHECK( cudaMemcpy(hh_g, uu, nx*ny*sizeof(float ), cudaMemcpyHostToDevice) );
+	//CUDA_CHECK( cudaMemcpy(hh_g, uu, nx*ny*sizeof(DECNUM ), cudaMemcpyHostToDevice) );
 	
 	
 	// Run the model
-	mainloop();
-
+	if (GPUDEVICE>=0)
+	{
+		mainloopGPU();
+	}
+	else
+	{
+		mainloopCPU();
+	}
 
 	
 	
