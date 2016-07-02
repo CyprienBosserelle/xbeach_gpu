@@ -282,7 +282,7 @@ while (nstep<=endstep)
 	totaltime=nstep*dt;	//total run time acheived until now in s
 
 	dim3 blockDim(16, 16, 1);// This means that the grid has to be a factor of 16 on both x and y
-	dim3 gridDim(nx / blockDim.x, ny / blockDim.y, 1);
+	dim3 gridDim(ceil(nx / blockDim.x), ceil(ny / blockDim.y), 1);
 
 
 	if(imodel==1 || imodel>2)
