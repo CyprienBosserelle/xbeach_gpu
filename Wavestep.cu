@@ -351,10 +351,10 @@ void wavestep(void)
 //Subroutine runs the wave model
 
 	dim3 blockDim(16, 16, 1);
-	dim3 gridDim(nx / blockDim.x, ny / blockDim.y, 1);
+	dim3 gridDim(ceil((nx*1.0f) / blockDim.x), ceil((ny*1.0f) / blockDim.y), 1);
 
 	dim3 blockDim4(4, 4, 1);
-	dim3 gridDim4(nx / blockDim4.x, ny / blockDim4.y, 1);
+	dim3 gridDim4(ceil((nx*1.0f) / blockDim.x), ceil((ny*1.0f) / blockDim.y), 1);
 	
 	
 	CUDA_CHECK( cudaMemcpy(St_g, St, ny*ntheta*sizeof(DECNUM ), cudaMemcpyHostToDevice) );

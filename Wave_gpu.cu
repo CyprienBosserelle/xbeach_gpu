@@ -282,7 +282,7 @@ while (nstep<=endstep)
 	totaltime=nstep*dt;	//total run time acheived until now in s
 
 	dim3 blockDim(16, 16, 1);// This means that the grid has to be a factor of 16 on both x and y
-	dim3 gridDim(ceil(nx / blockDim.x), ceil(ny / blockDim.y), 1);
+	dim3 gridDim(ceil((nx*1.0f) / blockDim.x), ceil((ny*1.0f) / blockDim.y), 1);
 
 
 	if(imodel==1 || imodel>2)
@@ -544,7 +544,7 @@ void flowbnd(void)
 		if(GPUDEVICE>=0)
 		{
 			dim3 blockDim(16, 16, 1);
-			dim3 gridDim(nx / blockDim.x, ny / blockDim.y, 1);
+			dim3 gridDim(ceil((nx*1.0f) / blockDim.x), ceil((ny*1.0f) / blockDim.y), 1);
 			// FLow abs_2d should be here not at the flow step		
 			// Set weakly reflective offshore boundary
 			ubnd<<<gridDim, blockDim, 0>>>(nx,ny,dx,dt,g,rho,totaltime,wavbndtime,dtwavbnd,slbndtime,rtsl,zsbndold,zsbndnew,Trep,qbndold_g,qbndnew_g,zs_g,uu_g,vv_g,vu_g,umeanbnd_g,vmeanbnd_g,zb_g,cg_g,hum_g,cfm_g,Fx_g,hh_g);
@@ -589,10 +589,10 @@ void flowstep(void)
 {
 // Flow model timestep
 	dim3 blockDim(16, 16, 1);
-	dim3 gridDim(nx / blockDim.x, ny / blockDim.y, 1);
+	dim3 gridDim(ceil((nx*1.0f) / blockDim.x), ceil((ny*1.0f) / blockDim.y), 1);
 
 	dim3 blockDim4(4, 4, 1);
-	dim3 gridDim4(nx / blockDim4.x, ny / blockDim4.y, 1);
+	dim3 gridDim4(ceil((nx*1.0f) / blockDim.x), ceil((ny*1.0f) / blockDim.y), 1);
 	
 	
 	//////////////////////////////////////////
@@ -857,10 +857,10 @@ void sedimentstep(void)
 {
 // suspended sediment timestep
 	dim3 blockDim(16,16, 1);
-	dim3 gridDim(nx / blockDim.x, ny / blockDim.y, 1);
+	dim3 gridDim(ceil((nx*1.0f) / blockDim.x), ceil((ny*1.0f) / blockDim.y), 1);
 
 	dim3 blockDim4(4, 4, 1);
-	dim3 gridDim4(nx / blockDim4.x, ny / blockDim4.y, 1);
+	dim3 gridDim4(ceil((nx*1.0f) / blockDim.x), ceil((ny*1.0f) / blockDim.y), 1);
 	
 	/////////////////////////////////////////////////////
 	// BELOW IS FOR DEBUGGING ONLY
@@ -1896,9 +1896,9 @@ if (imodel==1 || imodel>2)
 
 
 	dim3 blockDim(16, 16, 1);
-	dim3 gridDim(nx / blockDim.x, ny / blockDim.y, 1);
+	dim3 gridDim(ceil((nx*1.0f) / blockDim.x), ceil((ny*1.0f) / blockDim.y), 1);
 	
-	
+	printf("gridDim=%i,%i,%i\n", gridDim.x, gridDim.y, gridDim.z);
 	
 	
 	//Calculate bottomm friction based on initial hard layer file
