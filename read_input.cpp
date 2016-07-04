@@ -25,111 +25,111 @@
 using DECNUM = float;
 
 
-extern "C" void readXbbndhead(char * wavebnd,DECNUM &thetamin,DECNUM &thetamax,DECNUM &dtheta,DECNUM &dtwavbnd,int &nwavbnd,int &nwavfile)
+extern "C" void readXbbndhead(char * wavebnd, DECNUM &thetamin, DECNUM &thetamax, DECNUM &dtheta, DECNUM &dtwavbnd, int &nwavbnd, int &nwavfile)
 {
 	FILE * fwav;
-	fwav=fopen(wavebnd,"r");
-	fscanf(fwav,"%f\t%f\t%f\t%f\t%d\t%d",&thetamin,&thetamax,&dtheta,&dtwavbnd,&nwavbnd,&nwavfile);
+	fwav = fopen(wavebnd, "r");
+	fscanf(fwav, "%f\t%f\t%f\t%f\t%d\t%d", &thetamin, &thetamax, &dtheta, &dtwavbnd, &nwavbnd, &nwavfile);
 	fclose(fwav);
 }
-extern "C" void readbndhead(char * wavebnd,DECNUM &thetamin,DECNUM &thetamax,DECNUM &dtheta,DECNUM &dtwavbnd,int &nwavbnd)
+extern "C" void readbndhead(char * wavebnd, DECNUM &thetamin, DECNUM &thetamax, DECNUM &dtheta, DECNUM &dtwavbnd, int &nwavbnd)
 {
 	FILE * fwav;
-	fwav=fopen(wavebnd,"r");
-	fscanf(fwav,"%f\t%f\t%f\t%f\t%d",&thetamin,&thetamax,&dtheta,&dtwavbnd,&nwavbnd);
-	printf("rtwavbnd=%f\tnwavbnd=%d\n",dtwavbnd,nwavbnd);
-	
+	fwav = fopen(wavebnd, "r");
+	fscanf(fwav, "%f\t%f\t%f\t%f\t%d", &thetamin, &thetamax, &dtheta, &dtwavbnd, &nwavbnd);
+	printf("rtwavbnd=%f\tnwavbnd=%d\n", dtwavbnd, nwavbnd);
+
 	fclose(fwav);
 }
 
-extern "C" void readXbbndstep(int nx, int ny,int ntheta,char * wavebnd,int step,DECNUM &Trep,double *&qfile,double *&Stfile )
+extern "C" void readXbbndstep(int nx, int ny, int ntheta, char * wavebnd, int step, DECNUM &Trep, double *&qfile, double *&Stfile)
 {
 	FILE * fwav;
-	FILE * fXq,* fXE;
+	FILE * fXq, *fXE;
 	char Xbqfile[256];
 	char XbEfile[256];
 	double dummy;
 	size_t result;
-	DECNUM thetamin,thetamax,dtheta,dtwavbnd;
-	int nwavbnd,nwavfile;
+	DECNUM thetamin, thetamax, dtheta, dtwavbnd;
+	int nwavbnd, nwavfile;
 
 	printf("Reading next bnd file... ");
-	fwav=fopen(wavebnd,"r");
-	fscanf(fwav,"%f\t%f\t%f\t%f\t%d\t%d",&thetamin,&thetamax,&dtheta,&dtwavbnd,&nwavbnd,&nwavfile);
-	for (int n=0; n<step; n++)
+	fwav = fopen(wavebnd, "r");
+	fscanf(fwav, "%f\t%f\t%f\t%f\t%d\t%d", &thetamin, &thetamax, &dtheta, &dtwavbnd, &nwavbnd, &nwavfile);
+	for (int n = 0; n < step; n++)
 	{
-		fscanf(fwav,"%f\t%s\t%s\n",&Trep,&Xbqfile,&XbEfile);
+		fscanf(fwav, "%f\t%s\t%s\n", &Trep, &Xbqfile, &XbEfile);
 	}
 	fclose(fwav);
 
 	//printf("Xbq: %s\n",Xbqfile);
-		//printf("Xbe: %s\n",XbEfile);
-		
-		fXq=fopen(Xbqfile,"rb");
-		if (!fXq)
-		{
-			printf("Unable to open file %s\t", Xbqfile);
-			return;
-		}
-		else
-		{
-			
-			
-			for (int nn=0; nn<4*ny*nwavbnd; nn++)
-			{
-				result=fread (&dummy,sizeof(double),1,fXq);
-				qfile[nn] = (DECNUM)dummy;
-			}
-			
-			fclose(fXq);
-		}
+	//printf("Xbe: %s\n",XbEfile);
+
+	fXq = fopen(Xbqfile, "rb");
+	if (!fXq)
+	{
+		printf("Unable to open file %s\t", Xbqfile);
+		return;
+	}
+	else
+	{
 
 
-		fXE=fopen(XbEfile,"rb");
-		for (int nn=0; nn<ntheta*ny*nwavbnd; nn++)
+		for (int nn = 0; nn < 4 * ny*nwavbnd; nn++)
 		{
-			fread (&dummy,sizeof(double),1,fXE);
-			//printf("St=%f\n ",dummy);
-			//Stfile[nn] = dummy;
-			Stfile[nn]=(DECNUM)dummy;
+			result = fread(&dummy, sizeof(double), 1, fXq);
+			qfile[nn] = (DECNUM)dummy;
 		}
-		fclose(fXE);
 
-		printf("done \n");
-	
+		fclose(fXq);
+	}
+
+
+	fXE = fopen(XbEfile, "rb");
+	for (int nn = 0; nn < ntheta*ny*nwavbnd; nn++)
+	{
+		fread(&dummy, sizeof(double), 1, fXE);
+		//printf("St=%f\n ",dummy);
+		//Stfile[nn] = dummy;
+		Stfile[nn] = (DECNUM)dummy;
+	}
+	fclose(fXE);
+
+	printf("done \n");
+
 }
 
-extern "C" void readStatbnd(int nx, int ny,int ntheta,DECNUM rho,DECNUM g,char * wavebnd,double *&Tpfile,double *&Stfile )
+extern "C" void readStatbnd(int nx, int ny, int ntheta, DECNUM rho, DECNUM g, char * wavebnd, double *&Tpfile, double *&Stfile)
 {
 	FILE * fwav;
-	
+
 	DECNUM dumDECNUM;
 	size_t result;
-	DECNUM thetamin,thetamax,dtheta,dtwavbnd;
+	DECNUM thetamin, thetamax, dtheta, dtwavbnd;
 	DECNUM Trepdum;
 	int nwavbnd;
 
 	printf("Reading bnd file... ");
-	fwav=fopen(wavebnd,"r");
-	fscanf(fwav,"%f\t%f\t%f\t%f\t%d",&thetamin,&thetamax,&dtheta,&dtwavbnd,&nwavbnd);
+	fwav = fopen(wavebnd, "r");
+	fscanf(fwav, "%f\t%f\t%f\t%f\t%d", &thetamin, &thetamax, &dtheta, &dtwavbnd, &nwavbnd);
 	//printf("rtwavbnd=%f\n ",rtwavbnd);
-	for (int ni=0; ni<nwavbnd; ni++)
+	for (int ni = 0; ni < nwavbnd; ni++)
+	{
+		fscanf(fwav, "%f\t", &Trepdum);
+		//printf("Tp=%f\n ",Trepdum);
+		Tpfile[ni] = Trepdum;
+		for (int i = 0; i < ntheta; i++)                             //! Fill St
 		{
-			fscanf(fwav,"%f\t",&Trepdum);
-			//printf("Tp=%f\n ",Trepdum);
-			Tpfile[ni]=Trepdum;
-			for (int i=0; i<ntheta; i++)                             //! Fill St
+			fscanf(fwav, "%f\t", &dumDECNUM);
+			//printf("St=%f\n ",dumDECNUM);
+			for (int ii = 0; ii < ny; ii++)
 			{
-				fscanf(fwav,"%f\t",&dumDECNUM);
-				//printf("St=%f\n ",dumDECNUM);
-				for (int ii=0; ii<ny; ii++)
-				{
-					Stfile[ii+i*ny+ni*ny*ntheta]=dumDECNUM;
-				}
+				Stfile[ii + i*ny + ni*ny*ntheta] = dumDECNUM;
 			}
 		}
-		fclose(fwav);
-		printf("done \n");
+	}
+	fclose(fwav);
+	printf("done \n");
 
 }
 

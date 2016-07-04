@@ -24,17 +24,17 @@
 //texture<DECNUM, 2, cudaReadModeElementType> texV;
 //texture<DECNUM, 2, cudaReadModeElementType> texZ;
 
-__global__ void longturb(int nx, int ny,DECNUM dx, DECNUM rho,DECNUM g,DECNUM dt,DECNUM beta,DECNUM * c,DECNUM *kturb,DECNUM * rolthick,DECNUM *dzsdt,DECNUM * uu,DECNUM *vv, DECNUM *hu, DECNUM *hv,int * wetu, int * wetv,DECNUM *h)
+__global__ void longturb(int nx, int ny, DECNUM dx, DECNUM rho, DECNUM g, DECNUM dt, DECNUM beta, DECNUM * c, DECNUM *kturb, DECNUM * rolthick, DECNUM *dzsdt, DECNUM * uu, DECNUM *vv, DECNUM *hu, DECNUM *hv, int * wetu, int * wetv, DECNUM *h)
 {
 	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
 	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
-	unsigned int i=ix+iy*nx;
-	int tx =threadIdx.x;
-	int ty= threadIdx.y;
+	unsigned int i = ix + iy*nx;
+	int tx = threadIdx.x;
+	int ty = threadIdx.y;
 
 
-	
-	
+
+
 	__shared__ DECNUM  uui[16][16];
 	__shared__ DECNUM  uul[16][16];
 	__shared__ DECNUM  vvi[16][16];
@@ -164,18 +164,18 @@ __global__ void longturb(int nx, int ny,DECNUM dx, DECNUM rho,DECNUM g,DECNUM dt
 
 }
 
-__global__ void Sbvr(int nx, int ny, DECNUM rho,DECNUM g,DECNUM eps, DECNUM Trep,DECNUM D50, DECNUM D90, DECNUM rhosed,DECNUM ws,DECNUM nuhfac,DECNUM * ueu, DECNUM * vev,DECNUM *H,DECNUM * DR,DECNUM * R, DECNUM * c,DECNUM * hh,DECNUM *urms,DECNUM * ceqsg,DECNUM * ceqbg, DECNUM *Tsg, DECNUM *zom, DECNUM * kturb)
+__global__ void Sbvr(int nx, int ny, DECNUM rho, DECNUM g, DECNUM eps, DECNUM Trep, DECNUM D50, DECNUM D90, DECNUM rhosed, DECNUM ws, DECNUM nuhfac, DECNUM * ueu, DECNUM * vev, DECNUM *H, DECNUM * DR, DECNUM * R, DECNUM * c, DECNUM * hh, DECNUM *urms, DECNUM * ceqsg, DECNUM * ceqbg, DECNUM *Tsg, DECNUM *zom, DECNUM * kturb)
 {
 	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
 	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
-	unsigned int i=ix+iy*nx;
-	int tx =threadIdx.x;
-	int ty= threadIdx.y;
+	unsigned int i = ix + iy*nx;
+	int tx = threadIdx.x;
+	int ty = threadIdx.y;
 
 
 
 
-	
+
 
 	__shared__ DECNUM  hhi[16][16];
 	//__shared__ DECNUM  Hi[16][16];
@@ -183,17 +183,17 @@ __global__ void Sbvr(int nx, int ny, DECNUM rho,DECNUM g,DECNUM eps, DECNUM Trep
 	__shared__ DECNUM  ueul[16][16];
 	__shared__ DECNUM  vevi[16][16];
 	__shared__ DECNUM  vevb[16][16];
-	
-	DECNUM ue,ve;
-	
-	DECNUM vmags,vmag,ML,Tbore,dcfin,dcf,kb,Urms2;
-	DECNUM B2,T1,Ucrc,Ucrw,Ucr,Ass,Asb,Cd,ceqb,ceqs;
+
+	DECNUM ue, ve;
+
+	DECNUM vmags, vmag, ML, Tbore, dcfin, dcf, kb, Urms2;
+	DECNUM B2, T1, Ucrc, Ucrw, Ucr, Ass, Asb, Cd, ceqb, ceqs;
 	//DECNUM D50=0.0038;
 	//DECNUM D90=0.0053;
-	DECNUM zo=0.006f;//zom[i];
-	DECNUM sedcal=1.0f;
+	DECNUM zo = 0.006f;//zom[i];
+	DECNUM sedcal = 1.0f;
 	int wetz;
-	DECNUM bulk=1.0f;//1.0f;
+	DECNUM bulk = 1.0f;//1.0f;
 
 
 	if (ix < nx && iy < ny)
@@ -326,18 +326,18 @@ __global__ void Sbvr(int nx, int ny, DECNUM rho,DECNUM g,DECNUM eps, DECNUM Trep
 }
 
 
-__global__ void Sednew(int nx, int ny, DECNUM rho,DECNUM g,DECNUM eps, DECNUM Trep,DECNUM D50, DECNUM D90, DECNUM rhosed,DECNUM ws,DECNUM nuhfac,DECNUM * ueu, DECNUM * vev,DECNUM *H,DECNUM * DR,DECNUM * R, DECNUM * c,DECNUM * hh,DECNUM *urms,DECNUM * ceqsg,DECNUM * ceqbg, DECNUM *Tsg, DECNUM *zom, DECNUM * kturb)
+__global__ void Sednew(int nx, int ny, DECNUM rho, DECNUM g, DECNUM eps, DECNUM Trep, DECNUM D50, DECNUM D90, DECNUM rhosed, DECNUM ws, DECNUM nuhfac, DECNUM * ueu, DECNUM * vev, DECNUM *H, DECNUM * DR, DECNUM * R, DECNUM * c, DECNUM * hh, DECNUM *urms, DECNUM * ceqsg, DECNUM * ceqbg, DECNUM *Tsg, DECNUM *zom, DECNUM * kturb)
 {
 	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
 	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
-	unsigned int i=ix+iy*nx;
-	int tx =threadIdx.x;
-	int ty= threadIdx.y;
+	unsigned int i = ix + iy*nx;
+	int tx = threadIdx.x;
+	int ty = threadIdx.y;
 
 
 
 
-	
+
 
 	__shared__ DECNUM  hhi[16][16];
 	//__shared__ DECNUM  Hi[16][16];
@@ -345,11 +345,11 @@ __global__ void Sednew(int nx, int ny, DECNUM rho,DECNUM g,DECNUM eps, DECNUM Tr
 	__shared__ DECNUM  ueul[16][16];
 	__shared__ DECNUM  vevi[16][16];
 	__shared__ DECNUM  vevb[16][16];
-	
-	DECNUM ue,ve;
-	
-	DECNUM vmags,vmag,ML,Tbore,dcfin,dcf,kb,Urms2;
-	DECNUM B2,T1,Ucrc,Ucrw,Ucr,Ass,Asb,Cd,ceqb,ceqs;
+
+	DECNUM ue, ve;
+
+	DECNUM vmags, vmag, ML, Tbore, dcfin, dcf, kb, Urms2;
+	DECNUM B2, T1, Ucrc, Ucrw, Ucr, Ass, Asb, Cd, ceqb, ceqs;
 	//DECNUM D50=0.0038;
 	//DECNUM D90=0.0053;
 
@@ -474,11 +474,11 @@ __global__ void Sednew(int nx, int ny, DECNUM rho,DECNUM g,DECNUM eps, DECNUM Tr
 
 
 
-__global__ void Rvr(int nx, int ny,DECNUM Trep,DECNUM facsk,DECNUM facas,DECNUM * H, DECNUM * hh, DECNUM * urms, DECNUM * c, DECNUM *ua)
+__global__ void Rvr(int nx, int ny, DECNUM Trep, DECNUM facsk, DECNUM facas, DECNUM * H, DECNUM * hh, DECNUM * urms, DECNUM * c, DECNUM *ua)
 {
 	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
 	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
-	unsigned int i=ix+iy*nx;
+	unsigned int i = ix + iy*nx;
 
 
 	if (ix < nx && iy < ny)
@@ -509,12 +509,12 @@ __global__ void Rvr(int nx, int ny,DECNUM Trep,DECNUM facsk,DECNUM facas,DECNUM 
 	}
 }
 
-__global__ void Erosus(int nx, int ny, DECNUM dt,DECNUM morfac,DECNUM por ,DECNUM * hh,DECNUM * ceqsg,DECNUM * ceqbg, DECNUM *Tsg, DECNUM * facero, DECNUM * structdepth)
+__global__ void Erosus(int nx, int ny, DECNUM dt, DECNUM morfac, DECNUM por, DECNUM * hh, DECNUM * ceqsg, DECNUM * ceqbg, DECNUM *Tsg, DECNUM * facero, DECNUM * structdepth)
 {
 	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
 	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
-	unsigned int i=ix+iy*nx;
-	
+	unsigned int i = ix + iy*nx;
+
 
 	if (ix < nx && iy < ny)
 	{
@@ -531,36 +531,36 @@ __global__ void Erosus(int nx, int ny, DECNUM dt,DECNUM morfac,DECNUM por ,DECNU
 }
 
 
-__global__ void Susp(int nx, int ny,DECNUM dx, DECNUM eps, DECNUM nuh,DECNUM nuhfac, DECNUM rho,DECNUM sus,DECNUM bed,DECNUM * ueu,DECNUM * vev,DECNUM * uu,DECNUM * uvg,DECNUM * hug,DECNUM * vv,DECNUM *vug,DECNUM *hvg,DECNUM * zb,DECNUM *h,DECNUM * DR, DECNUM * C,DECNUM * ceqbg,DECNUM * Sus, DECNUM * Svs,DECNUM * Sub, DECNUM * Svb,DECNUM * thetamean,DECNUM * ua)
+__global__ void Susp(int nx, int ny, DECNUM dx, DECNUM eps, DECNUM nuh, DECNUM nuhfac, DECNUM rho, DECNUM sus, DECNUM bed, DECNUM * ueu, DECNUM * vev, DECNUM * uu, DECNUM * uvg, DECNUM * hug, DECNUM * vv, DECNUM *vug, DECNUM *hvg, DECNUM * zb, DECNUM *h, DECNUM * DR, DECNUM * C, DECNUM * ceqbg, DECNUM * Sus, DECNUM * Svs, DECNUM * Sub, DECNUM * Svb, DECNUM * thetamean, DECNUM * ua)
 {
 
 	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
 	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
-	unsigned int i=ix+iy*nx;
-	int tx =threadIdx.x;
-	int ty= threadIdx.y;
+	unsigned int i = ix + iy*nx;
+	int tx = threadIdx.x;
+	int ty = threadIdx.y;
 
 
-	DECNUM cu,cv,Dc,dcsdx,dcsdy,hu,hv;
-	DECNUM dzbdx,dzbdy;
-	DECNUM wetu,wetv;
-	
+	DECNUM cu, cv, Dc, dcsdx, dcsdy, hu, hv;
+	DECNUM dzbdx, dzbdy;
+	DECNUM wetu, wetv;
+
 	DECNUM vmagu, vmagv;
-	DECNUM uau,uav;
-	DECNUM uv,vu;
-	DECNUM cub,cvb;
-	
+	DECNUM uau, uav;
+	DECNUM uv, vu;
+	DECNUM cub, cvb;
+
 	//DECNUM sus=1.0f;
 	//DECNUM bed=1.0f;
-	
-	DECNUM pbbed=1.0f; // WARNING sand fraction every where
-	
-	DECNUM facsl=1.6f; // between 0 and 1.6 tke into account the bed slope in bed load calculations
-	DECNUM urep,vrep;
+
+	DECNUM pbbed = 1.0f; // WARNING sand fraction every where
+
+	DECNUM facsl = 1.6f; // between 0 and 1.6 tke into account the bed slope in bed load calculations
+	DECNUM urep, vrep;
 
 
 
-	
+
 	__shared__ DECNUM  cci[16][16];
 	__shared__ DECNUM  ccr[16][16];
 	__shared__ DECNUM  cct[16][16];
@@ -571,14 +571,14 @@ __global__ void Susp(int nx, int ny,DECNUM dx, DECNUM eps, DECNUM nuh,DECNUM nuh
 	__shared__ DECNUM  cbt[16][16];
 
 	__shared__ DECNUM hhi[16][16];
-	
+
 	__shared__ DECNUM zbi[16][16];
 	__shared__ DECNUM zbr[16][16];
 	__shared__ DECNUM zbt[16][16];
-	
+
 	__shared__ DECNUM uui[16][16];
 
-	
+
 	__shared__ DECNUM vvi[16][16];
 
 
@@ -718,13 +718,13 @@ __global__ void Susp(int nx, int ny,DECNUM dx, DECNUM eps, DECNUM nuh,DECNUM nuh
 
 
 
-__global__ void Conc(int nx, int ny, DECNUM dx, DECNUM dt,DECNUM eps,DECNUM * hh,DECNUM * C, DECNUM * ceqsg, DECNUM *Tsg,DECNUM *facero,DECNUM * ero,DECNUM * depo,DECNUM * Sus,DECNUM *Svs)
+__global__ void Conc(int nx, int ny, DECNUM dx, DECNUM dt, DECNUM eps, DECNUM * hh, DECNUM * C, DECNUM * ceqsg, DECNUM *Tsg, DECNUM *facero, DECNUM * ero, DECNUM * depo, DECNUM * Sus, DECNUM *Svs)
 {
 	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
 	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
-	unsigned int i=ix+iy*nx;
-	int tx =threadIdx.x;
-	int ty= threadIdx.y;
+	unsigned int i = ix + iy*nx;
+	int tx = threadIdx.x;
+	int ty = threadIdx.y;
 
 
 
@@ -734,8 +734,8 @@ __global__ void Conc(int nx, int ny, DECNUM dx, DECNUM dt,DECNUM eps,DECNUM * hh
 	__shared__ DECNUM  Svsb[16][16];
 	__shared__ DECNUM  hhi[16][16];
 
-	DECNUM cs,dsusdx,dsvsdy,wetz;
-	DECNUM Pbed=1.0f;
+	DECNUM cs, dsusdx, dsvsdy, wetz;
+	DECNUM Pbed = 1.0f;
 
 	if (ix < nx && iy < ny)
 	{
@@ -821,23 +821,23 @@ __global__ void CClatbnd(int nx, int ny, DECNUM eps, DECNUM * hh, DECNUM * C)
 	}
 }
 
-__global__ void hardlayer(int nx, int ny,DECNUM dx,DECNUM dt,DECNUM * Sub, DECNUM * Svb, DECNUM * Sout, int * indSub,int * indSvb)
+__global__ void hardlayer(int nx, int ny, DECNUM dx, DECNUM dt, DECNUM * Sub, DECNUM * Svb, DECNUM * Sout, int * indSub, int * indSvb)
 {
 
 	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
 	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
-	unsigned int i=ix+iy*nx;
-	int tx =threadIdx.x;
-	int ty= threadIdx.y;
+	unsigned int i = ix + iy*nx;
+	int tx = threadIdx.x;
+	int ty = threadIdx.y;
 
 
-	
+
 	__shared__ DECNUM  Subi[16][16];
 	__shared__ DECNUM  Subl[16][16];
 	__shared__ DECNUM  Svbi[16][16];
 	__shared__ DECNUM  Svbb[16][16];
 	__shared__ DECNUM  Souti[16][16];
-	
+
 	if (ix < nx && iy < ny)
 	{
 		unsigned int xminus = mminus(ix, nx);
@@ -967,22 +967,22 @@ __global__ void bedupdate(int nx, int ny, DECNUM eps, DECNUM dx, DECNUM dt, DECN
 
 
 
-__global__ void zblatbnd(int nx,int ny,DECNUM * F)
+__global__ void zblatbnd(int nx, int ny, DECNUM * F)
 {
 	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
 	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
-	unsigned int i=ix+iy*nx;
-	int tx =threadIdx.x;
-	int ty= threadIdx.y;
+	unsigned int i = ix + iy*nx;
+	int tx = threadIdx.x;
+	int ty = threadIdx.y;
 
-	
-	
-	
+
+
+
 	//__shared__ DECNUM Fi[16][16];
 	//__shared__ DECNUM Ft[16][16];
 	//__shared__ DECNUM Fb[16][16];
 	//__shared__ DECNUM Fr[16][16];
-	
+
 	if (ix < nx && iy < ny)
 	{
 		unsigned int xminus = mminus(ix, nx);
@@ -1011,33 +1011,33 @@ __global__ void zblatbnd(int nx,int ny,DECNUM * F)
 		}
 
 	}
-			
+
 
 
 
 }
 
-__global__ void avalanching(int nx, int ny,DECNUM eps,DECNUM dx,DECNUM dt,DECNUM por,DECNUM drydzmax,DECNUM wetdzmax,DECNUM maxslpchg,DECNUM * hh,DECNUM * zb,DECNUM * dzb,DECNUM * structdepth)
+__global__ void avalanching(int nx, int ny, DECNUM eps, DECNUM dx, DECNUM dt, DECNUM por, DECNUM drydzmax, DECNUM wetdzmax, DECNUM maxslpchg, DECNUM * hh, DECNUM * zb, DECNUM * dzb, DECNUM * structdepth)
 {
 	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
 	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
-	unsigned int i=ix+iy*nx;
-	int tx =threadIdx.x;
-	int ty= threadIdx.y;
+	unsigned int i = ix + iy*nx;
+	int tx = threadIdx.x;
+	int ty = threadIdx.y;
 
-	
+
 	__shared__ DECNUM Zbi[16][16];
 	__shared__ DECNUM Zbt[16][16];
 	__shared__ DECNUM Zbr[16][16];
-	
+
 	__shared__ DECNUM dzbi[16][16];
 	__shared__ DECNUM dzbt[16][16];
 	__shared__ DECNUM dzbr[16][16];
-	
+
 	__shared__ DECNUM stdepi[16][16];
 	__shared__ DECNUM stdept[16][16];
 	__shared__ DECNUM stdepr[16][16];
-	
+
 
 	if (ix < nx && iy < ny)
 	{
@@ -1136,15 +1136,15 @@ __global__ void avalanching(int nx, int ny,DECNUM eps,DECNUM dx,DECNUM dt,DECNUM
 
 }
 
-__global__ void updatezb(int nx,int ny,DECNUM dx,DECNUM dt,DECNUM * zb,DECNUM * ddzb,DECNUM * dzb,DECNUM * zs,DECNUM *hh, DECNUM * structdepth)
-						
+__global__ void updatezb(int nx, int ny, DECNUM dx, DECNUM dt, DECNUM * zb, DECNUM * ddzb, DECNUM * dzb, DECNUM * zs, DECNUM *hh, DECNUM * structdepth)
+
 {
 	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
 	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
-	unsigned int i=ix+iy*nx;
-	
-	int tx =threadIdx.x;
-	int ty= threadIdx.y;
+	unsigned int i = ix + iy*nx;
+
+	int tx = threadIdx.x;
+	int ty = threadIdx.y;
 
 
 	if (ix < nx && iy < ny)
@@ -1159,16 +1159,16 @@ __global__ void updatezb(int nx,int ny,DECNUM dx,DECNUM dt,DECNUM * zb,DECNUM * 
 }
 
 
-__global__ void updatezom(int nx, int ny,DECNUM cf,DECNUM cf2,DECNUM fw,DECNUM fw2,DECNUM * structdepth, DECNUM * cfm,DECNUM * fwm)
+__global__ void updatezom(int nx, int ny, DECNUM cf, DECNUM cf2, DECNUM fw, DECNUM fw2, DECNUM * structdepth, DECNUM * cfm, DECNUM * fwm)
 {
 	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
 	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
-	unsigned int i=ix+iy*nx;
-	
-	int tx =threadIdx.x;
-	int ty= threadIdx.y;
-	
-	
+	unsigned int i = ix + iy*nx;
+
+	int tx = threadIdx.x;
+	int ty = threadIdx.y;
+
+
 	if (ix < nx && iy < ny)
 	{
 
@@ -1183,8 +1183,8 @@ __global__ void updatezom(int nx, int ny,DECNUM cf,DECNUM cf2,DECNUM fw,DECNUM f
 			fwm[i] = fw;
 		}
 	}
-	
-	
+
+
 }
 
 
