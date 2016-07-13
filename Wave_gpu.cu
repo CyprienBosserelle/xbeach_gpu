@@ -547,7 +547,7 @@ void flowbnd(void)
 			dim3 gridDim(ceil((nx*1.0f) / blockDim.x), ceil((ny*1.0f) / blockDim.y), 1);
 			// FLow abs_2d should be here not at the flow step		
 			// Set weakly reflective offshore boundary
-			ubnd << <gridDim, blockDim, 0 >> >(nx, ny, dx, dt, g, rho, totaltime, wavbndtime, dtwavbnd, slbndtime, rtsl, zsbndold, zsbndnew, Trep, qbndold_g, qbndnew_g, zs_g, uu_g, vv_g, vu_g, umeanbnd_g, vmeanbnd_g, zb_g, cg_g, hum_g, cfm_g, Fx_g, hh_g);
+			ubnd1D << <gridDim, blockDim, 0 >> >(nx, ny, dx, dt, g, rho, totaltime, wavbndtime, dtwavbnd, slbndtime, rtsl, zsbndold, zsbndnew, Trep, qbndold_g, qbndnew_g, zs_g, uu_g, vv_g, vu_g, umeanbnd_g, vmeanbnd_g, zb_g, cg_g, hum_g, cfm_g, Fx_g, hh_g);
 			//CUT_CHECK_ERROR("ubnd execution failed\n");
 			CUDA_CHECK(cudaThreadSynchronize());
 		}
@@ -1451,11 +1451,13 @@ int main(int argc, char **argv)
 
 	// Set initial water level on offshore bnd
 
-	for (int jj = 0; jj < ny; jj++)
+	for (int ii = 0; ii < nx; ii++)
 	{
-		zs[0 + jj*nx] = zsbndold;
-		hh[0 + jj*nx] = zb[0 + jj*nx] + zs[0 + jj*nx];
-
+		for (int jj = 0; jj < ny; jj++)
+		{
+			zs[ii + jj*nx] = max(zsbndold, -1.0f*zb[ii + jj*nx]+eps);
+			hh[ii + jj*nx] = zb[ii + jj*nx] + zs[ii + jj*nx];
+		}
 
 	}
 	// Allocate more CPU memory

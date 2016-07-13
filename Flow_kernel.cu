@@ -143,6 +143,75 @@ __global__ void ubnd(int nx, int ny, DECNUM dx, DECNUM dt, DECNUM g, DECNUM rho,
 
 
 }
+__global__ void ubnd1D(int nx, int ny, DECNUM dx, DECNUM dt, DECNUM g, DECNUM rho, DECNUM totaltime, DECNUM wavbndtime, DECNUM rt, DECNUM slbndtime, DECNUM rtsl, DECNUM zsbndold, DECNUM zsbndnew, DECNUM Trep, DECNUM * qbndold, DECNUM * qbndnew, DECNUM *zs, DECNUM * uu, DECNUM * vv, DECNUM *vu, DECNUM * umean, DECNUM * vmean, DECNUM * zb, DECNUM * cg, DECNUM * hum, DECNUM * zo, DECNUM *Fx, DECNUM *hh)
+{
+	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
+	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
+	unsigned int i = ix + iy*nx;
+
+	if (ix == 0)
+	{
+		unsigned int xminus = mminus(ix, nx);
+		unsigned int xplus = pplus(ix, nx);
+		unsigned int xplus2 = pplus2(ix, nx);
+		unsigned int yminus = mminus(iy, ny);
+		unsigned int yplus = pplus(iy, ny);
+
+		DECNUM ui, vi, thetai, vert;
+		
+		DECNUM ht, htr;
+		DECNUM epsi = 0.005; //Not used!
+		DECNUM ur, uumean, vvmean, urr, alphanew;
+		
+		DECNUM qx, qy, zsbnd;
+		
+		DECNUM cats = 4.0f; // number of wave period to average the current from
+		DECNUM factime = 1.0f/cats/Trep*dt;
+		DECNUM taper = min(totaltime / 100.0f, 1.0f);
+
+		
+
+			qx = (qbndold[iy] + (totaltime - wavbndtime + rt)*(qbndnew[iy] - qbndold[iy]) / rt)*taper;
+			qy = (qbndold[iy + ny] + (totaltime - wavbndtime + rt)*(qbndnew[iy + ny] - qbndold[iy + ny]) / rt)*taper;
+			zsbnd = zsbndold + (totaltime - rtsl)*(zsbndnew - zsbndold) / (slbndtime - rtsl);
+
+			ht = zsbnd + zb[i];
+			htr = zsbnd + zb[xplus + iy*nx];
+			ui = qx / ht;
+			vi = qy / ht;
+			ur = -1.0f*sqrtf(g*hh[i])*(zs[xplus + iy*nx] - zsbnd);
+			
+
+			
+
+			
+
+
+			uumean = factime*uu[i] + umean[iy] * (1 - factime);
+			//vvmean = factime*vvmm + vmean[iy] * (1 - factime);
+			umean[iy] = uumean;
+			//vmean[iy] = vvmean;
+
+
+
+			//
+			uu[i] = ur+uumean;//(2.0f)*ui +ur + uumean;//2.0f*ui-(sqrtf(g/(zs[i]+zb[i]))*(zs[i]-zsbnd));;//
+			//zs[i] = 1.5f*((bnp1 - uu[i])*(bnp1 - uu[i]) / (4.0f*g) - 0.5f*(zb[i] + zb[xplus + iy*nx])) - 0.5f*((betar - uu[xplus + iy*nx])*(betar - uu[xplus + iy*nx]) / (4.0f*g) - 0.5f*(zb[xplus + iy*nx] + zb[xplus2 + iy*nx]));
+			////
+			//zsbnd+qx/(dx*dx)*dt;//
+			zs[i] = zs[xplus + iy*nx];
+			//hh[i] = zsbnd + zb[i];
+			vv[i] = vv[xplus + iy*nx];
+		
+
+
+
+
+		
+	}
+
+
+}
 __global__ void wlevslopes(int nx, int ny, DECNUM dx, DECNUM eps, DECNUM *zs, DECNUM * dzsdx, DECNUM *dzsdy, DECNUM*hh)
 {
 	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;

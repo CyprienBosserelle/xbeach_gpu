@@ -353,6 +353,8 @@ void wavestep(void)
 	dim3 blockDim(16, 16, 1);
 	dim3 gridDim(ceil((nx*1.0f) / blockDim.x), ceil((ny*1.0f) / blockDim.y), 1);
 
+
+
 	dim3 blockDim4(4, 4, 1);
 	dim3 gridDim4(ceil((nx*1.0f) / blockDim.x), ceil((ny*1.0f) / blockDim.y), 1);
 

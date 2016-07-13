@@ -133,6 +133,33 @@ extern "C" void readStatbnd(int nx, int ny, int ntheta, DECNUM rho, DECNUM g, ch
 
 }
 
+/*
+extern "C" void readbathy(int &nx, int &ny, float &dx, float &grdalpha, float *&zb)
+{
+	//read input data:
+	printf("bathy: %s\n", filename);
 
 
+	//read md file
+	fid = fopen(filename, "r");
+	fscanf(fid, "%u\t%u\t%f\t%*f\t%f", &nx, &ny, &dx, &grdalpha);
+	grdalpha = grdalpha*pi / 180; // grid rotation
+
+	int jread;
+	//int jreadzs;
+	for (int fnod = ny; fnod >= 1; fnod--)
+	{
+
+		fscanf(fid, "%u", &jread);
+		
+		for (int inod = 0; inod < nx; inod++)
+		{
+			fscanf(fid, "%f", &zb[inod + (jread - 1)*nx]);
+
+		}
+	}
+
+	fclose(fid);
+}
+*/
 

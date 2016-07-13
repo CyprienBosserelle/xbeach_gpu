@@ -1143,6 +1143,101 @@ __global__ void thetaadvecuw2ho(int nx, int ny, int ntheta, DECNUM dtheta, DECNU
 }
 
 
+__global__ void thetaadvecuw2hoSLOW(int nx, int ny, int ntheta, DECNUM dtheta, DECNUM dx, DECNUM dt, DECNUM wci, DECNUM *ee, DECNUM *ctheta, DECNUM * thetaadvec){
+
+	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
+	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
+	unsigned int iz = blockIdx.z*blockDim.z + threadIdx.z;
+	unsigned int i = ix + iy*nx + iz*nx*ny;
+	int tx = threadIdx.x;
+	int ty = threadIdx.y;
+	int tz = threadIdx.z;
+	
+
+	DECNUM dxplus_i = 1.0f / dx;
+	DECNUM dxcent_i = 1.0f / (2.0f*dx);
+	DECNUM tthetaadvec, cthetab;
+	DECNUM costhet, sinthet;
+	DECNUM arrint, arrmint, eupwP, eupwM;
+
+	__shared__ DECNUM eek[16][16];
+	__shared__ DECNUM eekp[16][16];
+	__shared__ DECNUM eekp2[16][16];
+	__shared__ DECNUM eekm[16][16];
+	__shared__ DECNUM eekm2[16][16];
+
+
+	if (ix < nx && iy < ny)
+	{
+		unsigned int xminus = mminus(ix, nx);
+		unsigned int xplus = pplus(ix, nx);
+		unsigned int yminus = mminus(iy, ny);
+		unsigned int yplus = pplus(iy, ny);
+
+		
+
+
+
+
+		if (ntheta > 1)
+		{
+
+			for (int itheta = 0; itheta < ntheta; itheta++)
+			{
+				unsigned int Tminus = mminus(itheta, ntheta);
+				unsigned int Tplus = pplus(itheta, ntheta);
+				unsigned int Tminus2 = mminus2(itheta, ntheta);
+				unsigned int Tplus2 = pplus2(itheta, ntheta);
+
+
+				tthetaadvec = 0.0;
+
+				eek[tx][ty] = ee[i+itheta*nx*ny];
+				eekp[tx][ty] = ee[i + Tplus*nx*ny];
+				eekp2[tx][ty] = ee[i + Tplus2*nx*ny];
+				eekm[tx][ty] = ee[i + Tminus*nx*ny];
+				eekm2[tx][ty] = ee[i + Tplus*nx*ny];
+
+
+				cthetab = 0.5f*(ctheta[i + itheta*nx*ny] + ctheta[i + Tplus*nx*ny]);
+				eupwM = eek[tx][ty] + max(eekm[tx][ty] - 3.0f*eek[tx][ty], 0.0f) / (eekm[tx][ty] - 3.0f*eek[tx][ty]) * (0.5f*eek[tx][ty] - 0.5f*eekm[tx][ty]);
+				eupwP = eekp[tx][ty] + max(eekp2[tx][ty] - 3.0f*eekp[tx][ty], 0.0f) / (eekp2[tx][ty] - 3.0f*eekp[tx][ty]) * (0.5f*eekp[tx][ty] - 0.5f*eekp2[tx][ty]);
+				
+				arrint = max(cthetab, 0.0f)*eupwM + min(cthetab, 0.0f)*eupwP;
+
+				
+				cthetab = 0.5f*(ctheta[i + Tminus*nx*ny] + ctheta[i + itheta*nx*ny]);
+
+				eupwM = eekm[tx][ty] + max(eekm2[tx][ty] - 3.0f*eekm[tx][ty], 0.0f) / (eekm2[tx][ty] - 3.0f*eekm[tx][ty]) * (0.5f*eekm[tx][ty] - 0.5f*eekm2[tx][ty]);
+				eupwP = eek[tx][ty] + max(eekp[tx][ty] - 3.0f*eek[tx][ty], 0.0f) / (eekp[tx][ty] - 3.0f*eek[tx][ty]) * (0.5f*eek[tx][ty] - 0.5f*eekp[tx][ty]);
+
+				arrmint = max(cthetab, 0.0f)*eupwM + min(cthetab, 0.0f)*eupwP;
+
+
+				tthetaadvec = (arrint - arrmint) / dtheta;
+
+
+				if (itheta == ntheta - 1)
+				{
+					tthetaadvec = (0.0f - arrmint) / dtheta;
+				}
+				if (itheta == 0)
+				{
+					tthetaadvec = (arrint - 0.0f) / dtheta;
+				}
+
+
+				thetaadvec[i + itheta*nx*ny] = tthetaadvec;
+			}
+		}
+		else
+		{
+			thetaadvec[i + 0 * nx*ny] = 0.0f;
+		}
+	}
+
+}
+
 __global__ void eulerupwind(int nx, int ny, int ntheta, DECNUM dtheta, DECNUM dx, DECNUM dt, DECNUM wci, DECNUM *ee, DECNUM *xadvec, DECNUM *yadvec, DECNUM * thetaadvec){
 
 
