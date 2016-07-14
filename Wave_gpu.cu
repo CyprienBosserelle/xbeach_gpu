@@ -1450,7 +1450,7 @@ int main(int argc, char **argv)
 
 
 	// Set initial water level on offshore bnd
-
+	//Unnecessary
 	for (int ii = 0; ii < nx; ii++)
 	{
 		for (int jj = 0; jj < ny; jj++)

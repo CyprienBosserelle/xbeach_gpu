@@ -168,7 +168,7 @@ __global__ void ubnd1D(int nx, int ny, DECNUM dx, DECNUM dt, DECNUM g, DECNUM rh
 		DECNUM cats = 4.0f; // number of wave period to average the current from
 		DECNUM factime = 1.0f/cats/Trep*dt;
 		DECNUM taper = min(totaltime / 100.0f, 1.0f);
-
+		DECNUM zsplus = zs[xplus + iy*nx];
 		
 
 			qx = (qbndold[iy] + (totaltime - wavbndtime + rt)*(qbndnew[iy] - qbndold[iy]) / rt)*taper;
@@ -179,7 +179,7 @@ __global__ void ubnd1D(int nx, int ny, DECNUM dx, DECNUM dt, DECNUM g, DECNUM rh
 			htr = zsbnd + zb[xplus + iy*nx];
 			ui = qx / ht;
 			vi = qy / ht;
-			ur = -1.0f*sqrtf(g*hh[i])*(zs[xplus + iy*nx] - zsbnd);
+			ur = -1.0f*sqrtf(g/hh[i])*(zsplus - zsbnd);
 			
 
 			
@@ -195,12 +195,12 @@ __global__ void ubnd1D(int nx, int ny, DECNUM dx, DECNUM dt, DECNUM g, DECNUM rh
 
 
 			//
-			uu[i] = ur+uumean;//(2.0f)*ui +ur + uumean;//2.0f*ui-(sqrtf(g/(zs[i]+zb[i]))*(zs[i]-zsbnd));;//
+			uu[i] = (2.0f)*ui +ur + uumean;//2.0f*ui-(sqrtf(g/(zs[i]+zb[i]))*(zs[i]-zsbnd));;//
 			//zs[i] = 1.5f*((bnp1 - uu[i])*(bnp1 - uu[i]) / (4.0f*g) - 0.5f*(zb[i] + zb[xplus + iy*nx])) - 0.5f*((betar - uu[xplus + iy*nx])*(betar - uu[xplus + iy*nx]) / (4.0f*g) - 0.5f*(zb[xplus + iy*nx] + zb[xplus2 + iy*nx]));
 			////
 			//zsbnd+qx/(dx*dx)*dt;//
-			zs[i] = zs[xplus + iy*nx];
-			//hh[i] = zsbnd + zb[i];
+			zs[i] =  zsplus;
+			//hh[i] = zsplus + zb[i];
 			vv[i] = vv[xplus + iy*nx];
 		
 
@@ -264,6 +264,7 @@ __global__ void wlevslopes(int nx, int ny, DECNUM dx, DECNUM eps, DECNUM *zs, DE
 		//dzsdx[i]=(zs[ix+1+iy*nx]-zs[ix-1+iy*nx])/(2*dx);
 		dzsdx[i] = (zsr[tx][ty] - zsi[tx][ty]) / dx;//*whi*whr;
 		dzsdy[i] = (zst[tx][ty] - zsi[tx][ty]) / dx;//*whi*wht;
+		
 	}
 
 
