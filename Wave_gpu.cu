@@ -522,7 +522,7 @@ void flowbnd(void)
 	{
 		zsbndold = zsbndnew;
 		rtsl = slbndtime;
-		fscanf(fsl, "%lf\t%lf", &slbndtime, &zsbndnew);
+		fscanf(fsl, "%f\t%f", &slbndtime, &zsbndnew);
 		//slbndtime=+rtsl;
 		//zsbnd=zsbndold+(t-slbndtime+rtsl)*(zsbndnew-zsbndold)/rtsl;
 	}
@@ -566,7 +566,7 @@ void flowbnd(void)
 		windthold = windthnew;
 		windvold = windvnew;
 		rtwind = windtime;
-		fscanf(fwind, "%lf\t%lf\t%lf", &windtime, &windvnew, &windthnew);
+		fscanf(fwind, "%f\t%f\t%f", &windtime, &windvnew, &windthnew);
 		//windtime=windtime+rtwind;
 		//printf("windthold=%f\n",windthold);
 		//printf("windthnew=%f\n",windthnew);
