@@ -134,6 +134,28 @@ __global__ void resetavg_var(int nx, int ny, DECNUM * Varmean)
 	}
 }
 
+__global__ void FLOWDT(int nx, int ny, DECNUM dx, DECNUM cfl, DECNUM *dtflow, DECNUM *hh)
+{
+	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
+	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
+	unsigned int i = ix + iy*nx;
+	if (ix < nx && iy < ny)
+	{
+		dtflow[i] = cfl*dx/(sqrtf(9.81*hh[i]));
+	}
+}
+
+__global__ void WAVEDT(int nx, int ny, DECNUM dtheta, DECNUM *dtwave, DECNUM *ctheta)
+{
+	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
+	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
+	unsigned int i = ix + iy*nx;
+	if (ix < nx && iy < ny)
+	{
+		dtflow[i] = dtheta / (ctheta[i]);
+	}
+}
+
 __global__ void offshorebndWav(int nx, int ny, int ntheta, DECNUM totaltime, DECNUM Trep, DECNUM *St, DECNUM *sigm, DECNUM *ee)
 {
 	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;

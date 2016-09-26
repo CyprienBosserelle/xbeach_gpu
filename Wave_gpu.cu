@@ -82,7 +82,7 @@ DECNUM uumin = 0.0f;
 int nx, ny;
 DECNUM dx, dt, eps;
 DECNUM grdalpha;
-DECNUM totaltime = 0.0f;
+DECNUM totaltime;
 int nstpw, nwstp;//nb of hd step between wave step and next step for calculating waves and
 DECNUM wdt;// wave model time step
 DECNUM wavbndtime;
@@ -279,7 +279,9 @@ void mainloopGPU(void)
 
 		nstep++;
 		wdt = dt; // Sometinmes in stationary wave run one can have a larger wdt (wave time step)
-		totaltime = nstep*dt;	//total run time acheived until now in s
+
+
+		totaltime = totaltime+dt;	//total run time acheived until now in s
 
 		dim3 blockDim(16, 16, 1);// This means that the grid has to be a factor of 16 on both x and y
 		dim3 gridDim(ceil((nx*1.0f) / blockDim.x), ceil((ny*1.0f) / blockDim.y), 1);
@@ -446,7 +448,7 @@ void mainloopCPU(void)
 
 		nstep++;
 		wdt = dt; // Sometinmes in stationary wave run one can have a larger wdt (wave time step)
-		totaltime = nstep*dt;	//total run time acheived until now in s
+		totaltime = totaltime + dt;	//total run time acheived until now in s
 
 
 
@@ -1090,6 +1092,9 @@ int main(int argc, char **argv)
 
 
 	starttime = clock();
+
+	// Initialise totaltime
+	totaltime = 0.0f;
 
 	//////////////////////////////////////////////////////
 	/////             Read Operational file          /////
