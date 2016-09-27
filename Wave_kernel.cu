@@ -145,37 +145,40 @@ __global__ void FLOWDT(int nx, int ny, DECNUM dx, DECNUM cfl, DECNUM *dtflow, DE
 	}
 }
 
-__global__ void minmaxKernel(DECNUM *max, DECNUM *min, DECNUM *a) {
-	__shared__ double maxtile[16];
-	__shared__ double mintile[16];
+__global__ void minmaxKernel(int ntot, DECNUM *max, DECNUM *min, DECNUM *a) {
+	__shared__ double maxtile[32];
+	__shared__ double mintile[32];
 
 	unsigned int tid = threadIdx.x;
 	unsigned int i = blockIdx.x * blockDim.x + threadIdx.x;
-	maxtile[tid] = a[i];
-	mintile[tid] = a[i];
-	__syncthreads();
-
-	// strided index and non-divergent branch
-	for (unsigned int s = 1; s < blockDim.x; s *= 2) {
-		int index = 2 * s * tid;
-		if (index < blockDim.x) {
-			if (maxtile[tid + s] > maxtile[tid])
-				maxtile[tid] = maxtile[tid + s];
-			if (mintile[tid + s] < mintile[tid])
-				mintile[tid] = mintile[tid + s];
-		}
+	if (i < ntot)
+	{
+		maxtile[tid] = a[i];
+		mintile[tid] = a[i];
 		__syncthreads();
-	}
 
-	if (tid == 0) {
-		max[blockIdx.x] = maxtile[0];
-		min[blockIdx.x] = mintile[0];
+		// strided index and non-divergent branch
+		for (unsigned int s = 1; s < blockDim.x; s *= 2) {
+			int index = 2 * s * tid;
+			if (index < blockDim.x) {
+				if (maxtile[tid + s] > maxtile[tid])
+					maxtile[tid] = maxtile[tid + s];
+				if (mintile[tid + s] < mintile[tid])
+					mintile[tid] = mintile[tid + s];
+			}
+			__syncthreads();
+		}
+
+		if (tid == 0) {
+			max[blockIdx.x] = maxtile[0];
+			min[blockIdx.x] = mintile[0];
+		}
 	}
 }
 
 __global__ void finalminmaxKernel(DECNUM *max, DECNUM *min) {
-	__shared__ double maxtile[16];
-	__shared__ double mintile[16];
+	__shared__ double maxtile[32];
+	__shared__ double mintile[32];
 
 	unsigned int tid = threadIdx.x;
 	unsigned int i = blockIdx.x * blockDim.x + threadIdx.x;

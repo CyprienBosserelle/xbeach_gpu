@@ -1465,15 +1465,15 @@ int main(int argc, char **argv)
 
 	// Set initial water level on offshore bnd
 	//Unnecessary
-	for (int ii = 0; ii < nx; ii++)
-	{
-		for (int jj = 0; jj < ny; jj++)
-		{
-			zs[ii + jj*nx] = max(zsbndold, -1.0f*zb[ii + jj*nx]+eps);
-			hh[ii + jj*nx] = zb[ii + jj*nx] + zs[ii + jj*nx];
-		}
-
-	}
+	//for (int ii = 0; ii < nx; ii++)
+	//{
+	//	for (int jj = 0; jj < ny; jj++)
+	//	{
+	//		zs[ii + jj*nx] = max(zsbndold, -1.0f*zb[ii + jj*nx]+eps);
+	//		hh[ii + jj*nx] = zb[ii + jj*nx] + zs[ii + jj*nx];
+	//	}
+//
+	//}
 	// Allocate more CPU memory
 
 
@@ -1920,10 +1920,13 @@ int main(int argc, char **argv)
 
 
 		dim3 blockDim(16, 16, 1);
+		dim3 blockDimLine(32, 1, 1);
+
 		dim3 gridDim(ceil((nx*1.0f) / blockDim.x), ceil((ny*1.0f) / blockDim.y), 1);
+		dim3 gridDimLine(ceil((nx*ny*1.0f) / blockDimLine.x), 1, 1);
 
 		printf("gridDim=%i,%i,%i\n", gridDim.x, gridDim.y, gridDim.z);
-
+		printf("gridDim=%i,%i,%i\n", gridDimLine.x, gridDimLine.y, gridDimLine.z);
 
 		//Calculate bottomm friction based on initial hard layer file
 		updatezom << <gridDim, blockDim, 0 >> >(nx, ny, cf, cf2, fw, fw2, stdep_g, cfm_g, fwm_g);
@@ -1938,23 +1941,36 @@ int main(int argc, char **argv)
 		CUDA_CHECK(cudaThreadSynchronize());
 
 
-		minmaxKernel << <gridDim, blockDim, 0 >> >(arrmax_g, arrmin_g, dtflow_g);
+		minmaxKernel << <gridDimLine, blockDimLine, 0 >> >(nx*ny, arrmax_g, arrmin_g, dtflow_g);
 		//CUT_CHECK_ERROR("UpdateZom execution failed\n");
 		CUDA_CHECK(cudaThreadSynchronize());
 
-		finalminmaxKernel << <gridDim, blockDim, 0 >> >(arrmax_g, arrmin_g);
+		finalminmaxKernel << <1, blockDimLine, 0 >> >(arrmax_g, arrmin_g);
 		CUDA_CHECK(cudaThreadSynchronize());
 
 		CUDA_CHECK(cudaMemcpy(arrmax, arrmax_g, nx*ny*sizeof(DECNUM), cudaMemcpyDeviceToHost));
 		CUDA_CHECK(cudaMemcpy(arrmin, arrmin_g, nx*ny*sizeof(DECNUM), cudaMemcpyDeviceToHost));
 
+		//CUDA_CHECK(cudaMemcpy(hh, hh_g, nx*ny*sizeof(DECNUM), cudaMemcpyDeviceToHost));
 
-		dt = arrmax[0];
+		//float hhmin=hh[0];
 
-			printf("Reduction test: dt=%f, Min=%f\n", arrmax[0], arrmin[0]);
+		//for (int ix = 0; ix < nx; ix++)
+		//{
+		//	for (int iy = 0; iy < ny; iy++)
+		//	{
+		//		hhmin = min(hhmin, hh[ix + iy*nx]);
+		//	}
+		//}
 
 
 
+		dt = arrmin[0];
+
+		printf("Reduction test: dt=%f\n", arrmin[0]);
+
+
+		
 		if (imodel == 1 || imodel > 2)
 		{
 			set_bnd << <gridDim, blockDim, 0 >> >(nx, ny, Trep, ntheta, theta_g, sigm_g);
@@ -1968,6 +1984,7 @@ int main(int argc, char **argv)
 			CUDA_CHECK(cudaThreadSynchronize());
 
 		}
+		
 	}
 	else
 	{
