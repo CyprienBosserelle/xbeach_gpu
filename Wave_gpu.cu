@@ -81,6 +81,8 @@ DECNUM uumin = 0.0f;
 
 int nx, ny;
 DECNUM dx, dt, eps;
+DECNUM *arrmin, *arrmax;
+DECNUM *arrmin_g, *arrmax_g;
 DECNUM grdalpha;
 DECNUM totaltime;
 int nstpw, nwstp;//nb of hd step between wave step and next step for calculating waves and
@@ -192,7 +194,7 @@ int istepout = 0;//
 int nstepplot = 0;//nb of step between plots. 0= no plotting
 int istepplot = 1;
 int displayon = 0;
-int endstep;
+int endtime;
 
 
 
@@ -219,6 +221,7 @@ DECNUM *dzsdx_g, *dzsdy_g;
 DECNUM *zeros;
 
 DECNUM * Hmean_g, *uumean_g, *vvmean_g, *hhmean_g, *zsmean_g, *Cmean_g;
+DECNUM *dtflow_g;
 DECNUM *Hmean, *uumean, *vvmean, *hhmean, *zsmean, *Cmean;
 
 int GPUDEVICE;
@@ -274,11 +277,14 @@ exit(EXIT_FAILURE);
 void mainloopGPU(void)
 {
 
-	while (nstep <= endstep)
+	while (totaltime <= endtime)
 	{
 
 		nstep++;
 		wdt = dt; // Sometinmes in stationary wave run one can have a larger wdt (wave time step)
+
+		
+
 
 
 		totaltime = totaltime+dt;	//total run time acheived until now in s
@@ -443,7 +449,7 @@ void mainloopGPU(void)
 void mainloopCPU(void)
 {
 	printf("Computing CPU mode\n");
-	while (nstep <= endstep)
+	while (totaltime <= endtime)
 	{
 
 		nstep++;
@@ -1167,7 +1173,7 @@ int main(int argc, char **argv)
 	//fscanf(fop,"%f\t%*s",&Hplotmax);
 	//fscanf(fop,"%d\t%*s",&nstepplot);
 	fscanf(fop, "%d\t%*s", &nstepout); // output step
-	fscanf(fop, "%d\t%*s", &endstep);// end step
+	fscanf(fop, "%d\t%*s", &endtime);// end step
 	//fscanf(fop,"%d\t%d\t%*s",&iout,&jout);
 	fscanf(fop, "%s\t%*s", &tsoutfile);// output file
 	fclose(fop);
@@ -1235,6 +1241,7 @@ int main(int argc, char **argv)
 	stdep = (DECNUM *)malloc(nx*ny*sizeof(DECNUM));
 	zeros = (DECNUM *)malloc(nx*ny*sizeof(DECNUM));
 	umeanbnd = (DECNUM *)malloc(ny*sizeof(DECNUM));
+	
 
 
 
@@ -1451,6 +1458,8 @@ int main(int argc, char **argv)
 	hhmean = (DECNUM *)malloc(nx*ny*sizeof(DECNUM));
 	zsmean = (DECNUM *)malloc(nx*ny*sizeof(DECNUM));
 	Cmean = (DECNUM *)malloc(nx*ny*sizeof(DECNUM));
+	arrmax = (DECNUM *)malloc(nx*ny*sizeof(DECNUM));
+	arrmin = (DECNUM *)malloc(nx*ny*sizeof(DECNUM));
 
 
 
@@ -1604,6 +1613,12 @@ int main(int argc, char **argv)
 		CUDA_CHECK(cudaMalloc((void **)&zsmean_g, nx*ny*sizeof(DECNUM)));
 		CUDA_CHECK(cudaMalloc((void **)&Cmean_g, nx*ny*sizeof(DECNUM)));
 		CUDA_CHECK(cudaMalloc((void **)&ceqsg_g, nx*ny*sizeof(DECNUM)));
+		CUDA_CHECK(cudaMalloc((void **)&arrmin_g, nx*ny*sizeof(DECNUM)));
+		CUDA_CHECK(cudaMalloc((void **)&arrmax_g, nx*ny*sizeof(DECNUM)));
+		CUDA_CHECK(cudaMalloc((void **)&dtflow_g, nx*ny*sizeof(DECNUM)));
+
+
+		
 
 	}
 	else
@@ -1914,6 +1929,31 @@ int main(int argc, char **argv)
 		updatezom << <gridDim, blockDim, 0 >> >(nx, ny, cf, cf2, fw, fw2, stdep_g, cfm_g, fwm_g);
 		//CUT_CHECK_ERROR("UpdateZom execution failed\n");
 		CUDA_CHECK(cudaThreadSynchronize());
+
+
+		// Calculate initial maximum timestep
+
+
+		FLOWDT << <gridDim, blockDim, 0 >> >(nx, ny, dx, 0.5f, dtflow_g, hh_g);
+		CUDA_CHECK(cudaThreadSynchronize());
+
+
+		minmaxKernel << <gridDim, blockDim, 0 >> >(arrmax_g, arrmin_g, dtflow_g);
+		//CUT_CHECK_ERROR("UpdateZom execution failed\n");
+		CUDA_CHECK(cudaThreadSynchronize());
+
+		finalminmaxKernel << <gridDim, blockDim, 0 >> >(arrmax_g, arrmin_g);
+		CUDA_CHECK(cudaThreadSynchronize());
+
+		CUDA_CHECK(cudaMemcpy(arrmax, arrmax_g, nx*ny*sizeof(DECNUM), cudaMemcpyDeviceToHost));
+		CUDA_CHECK(cudaMemcpy(arrmin, arrmin_g, nx*ny*sizeof(DECNUM), cudaMemcpyDeviceToHost));
+
+
+		dt = arrmax[0];
+
+			printf("Reduction test: dt=%f, Min=%f\n", arrmax[0], arrmin[0]);
+
+
 
 		if (imodel == 1 || imodel > 2)
 		{

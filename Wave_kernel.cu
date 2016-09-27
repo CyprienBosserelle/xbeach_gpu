@@ -141,9 +141,66 @@ __global__ void FLOWDT(int nx, int ny, DECNUM dx, DECNUM cfl, DECNUM *dtflow, DE
 	unsigned int i = ix + iy*nx;
 	if (ix < nx && iy < ny)
 	{
-		dtflow[i] = cfl*dx/(sqrtf(9.81*hh[i]));
+		dtflow[i] = cfl*dx / (sqrtf(9.81*hh[i]));
 	}
 }
+
+__global__ void minmaxKernel(DECNUM *max, DECNUM *min, DECNUM *a) {
+	__shared__ double maxtile[16];
+	__shared__ double mintile[16];
+
+	unsigned int tid = threadIdx.x;
+	unsigned int i = blockIdx.x * blockDim.x + threadIdx.x;
+	maxtile[tid] = a[i];
+	mintile[tid] = a[i];
+	__syncthreads();
+
+	// strided index and non-divergent branch
+	for (unsigned int s = 1; s < blockDim.x; s *= 2) {
+		int index = 2 * s * tid;
+		if (index < blockDim.x) {
+			if (maxtile[tid + s] > maxtile[tid])
+				maxtile[tid] = maxtile[tid + s];
+			if (mintile[tid + s] < mintile[tid])
+				mintile[tid] = mintile[tid + s];
+		}
+		__syncthreads();
+	}
+
+	if (tid == 0) {
+		max[blockIdx.x] = maxtile[0];
+		min[blockIdx.x] = mintile[0];
+	}
+}
+
+__global__ void finalminmaxKernel(DECNUM *max, DECNUM *min) {
+	__shared__ double maxtile[16];
+	__shared__ double mintile[16];
+
+	unsigned int tid = threadIdx.x;
+	unsigned int i = blockIdx.x * blockDim.x + threadIdx.x;
+	maxtile[tid] = max[i];
+	mintile[tid] = min[i];
+	__syncthreads();
+
+	// strided index and non-divergent branch
+	for (unsigned int s = 1; s < blockDim.x; s *= 2) {
+		int index = 2 * s * tid;
+		if (index < blockDim.x) {
+			if (maxtile[tid + s] > maxtile[tid])
+				maxtile[tid] = maxtile[tid + s];
+			if (mintile[tid + s] < mintile[tid])
+				mintile[tid] = mintile[tid + s];
+		}
+		__syncthreads();
+	}
+
+	if (tid == 0) {
+		max[blockIdx.x] = maxtile[0];
+		min[blockIdx.x] = mintile[0];
+	}
+}
+
 
 __global__ void WAVEDT(int nx, int ny, DECNUM dtheta, DECNUM *dtwave, DECNUM *ctheta)
 {
@@ -152,7 +209,7 @@ __global__ void WAVEDT(int nx, int ny, DECNUM dtheta, DECNUM *dtwave, DECNUM *ct
 	unsigned int i = ix + iy*nx;
 	if (ix < nx && iy < ny)
 	{
-		dtflow[i] = dtheta / (ctheta[i]);
+		dtwave[i] = dtheta / (ctheta[i]);
 	}
 }
 
