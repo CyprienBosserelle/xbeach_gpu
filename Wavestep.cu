@@ -339,7 +339,7 @@ void wavebnd(void)
 	//Wave model step
 	//wavestep();
 	nwstp = nstep + nstpw;
-	wdt = dt;
+	//wdt = dt;
 	//}
 
 }
@@ -479,7 +479,7 @@ void wavestep(void)
 	////CUT_CHECK_ERROR("eulerupwind thetaadvecuw execution failed\n");
 	//CUDA_CHECK( cudaThreadSynchronize() );
 
-	thetaadvecuw2ho << <gridDim, blockDim, 0 >> >(nx, ny, ntheta, dtheta, dx, wdt, wci, ee_g, ctheta_g, thetaadvec_g);
+	thetaadvecuw2ho << <gridDim, blockDim, 0 >> >(nx, ny, ntheta, dtheta, dx, dt, wci, ee_g, ctheta_g, thetaadvec_g);
 	//CUT_CHECK_ERROR("eulerupwind thetaadvec execution failed\n");
 	CUDA_CHECK(cudaThreadSynchronize());
 	//CUDA_CHECK( cudaMemcpy(ctheta,yadvec_g,  ny*nx*ntheta*sizeof(DECNUM ), cudaMemcpyDeviceToHost) );
@@ -596,7 +596,7 @@ void wavestep(void)
 		////CUT_CHECK_ERROR("eulerupwind thetaadvecuw execution failed\n");
 		//CUDA_CHECK( cudaThreadSynchronize() );	
 
-		thetaadvecuw2ho << <gridDim, blockDim, 0 >> >(nx, ny, ntheta, dtheta, dx, wdt, wci, rr_g, ctheta_g, thetaadvec_g);
+		thetaadvecuw2ho << <gridDim, blockDim, 0 >> >(nx, ny, ntheta, dtheta, dx, dt, wci, rr_g, ctheta_g, thetaadvec_g);
 		//CUT_CHECK_ERROR("eulerupwind thetaadvec execution failed\n");
 		CUDA_CHECK(cudaThreadSynchronize());
 
@@ -789,7 +789,7 @@ void wavestepCPU(void)
 
 	yadvecupwind2CPU(nx, ny, ntheta, dtheta, dx, dt, wci_g, ee_g, cg_g, sxnth_g, vv_g, yadvec_g);
 
-	thetaadvecuw2hoCPU(nx, ny, ntheta, dtheta, dx, wdt, wci, ee_g, ctheta_g, thetaadvec_g);
+	thetaadvecuw2hoCPU(nx, ny, ntheta, dtheta, dx, dt, wci, ee_g, ctheta_g, thetaadvec_g);
 
 	//Apply advection
 	eulerupwindCPU(nx, ny, ntheta, dtheta, dx, dt, wci, ee_g, xadvec_g, yadvec_g, thetaadvec_g);
@@ -834,7 +834,7 @@ void wavestepCPU(void)
 
 		yadvecupwind2CPU(nx, ny, ntheta, dtheta, dx, dt, wci_g, rr_g, c_g, sxnth_g, vv_g, yadvec_g);
 
-		thetaadvecuw2hoCPU(nx, ny, ntheta, dtheta, dx, wdt, wci, rr_g, ctheta_g, thetaadvec_g);
+		thetaadvecuw2hoCPU(nx, ny, ntheta, dtheta, dx, dt, wci, rr_g, ctheta_g, thetaadvec_g);
 
 		eulerupwindCPU(nx, ny, ntheta, dtheta, dx, dt, wci, rr_g, xadvec_g, yadvec_g, thetaadvec_g);
 

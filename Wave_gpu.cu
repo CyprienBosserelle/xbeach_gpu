@@ -194,7 +194,7 @@ int istepout = 0;//
 int nstepplot = 0;//nb of step between plots. 0= no plotting
 int istepplot = 1;
 int displayon = 0;
-int endtime;
+float endtime;
 
 
 
@@ -276,22 +276,76 @@ exit(EXIT_FAILURE);
 // Main loop that actually runs the model
 void mainloopGPU(void)
 {
+	
 
 	while (totaltime <= endtime)
 	{
+		dim3 blockDim(16, 16, 1);// This means that the grid has to be a factor of 16 on both x and y
+		dim3 gridDim(ceil((nx*1.0f) / blockDim.x), ceil((ny*1.0f) / blockDim.y), 1);
+
+		dim3 blockDimLine(32, 1, 1);
+		dim3 gridDimLine(ceil((nx*ny*1.0f) / blockDimLine.x), 1, 1);
 
 		nstep++;
-		wdt = dt; // Sometinmes in stationary wave run one can have a larger wdt (wave time step)
+		wdt = dt; // previous timestep
+
+		//Calculate timestep
+		FLOWDT << <gridDim, blockDim, 0 >> >(nx, ny, dx, 0.5f, dtflow_g, hh_g);
+		CUDA_CHECK(cudaThreadSynchronize());
+
+
+		minmaxKernel << <gridDimLine, blockDimLine, 0 >> >(nx*ny, arrmax_g, arrmin_g, dtflow_g);
+		//CUT_CHECK_ERROR("UpdateZom execution failed\n");
+		CUDA_CHECK(cudaThreadSynchronize());
+
+		finalminmaxKernel << <1, blockDimLine, 0 >> >(arrmax_g, arrmin_g);
+		CUDA_CHECK(cudaThreadSynchronize());
+
+		//CUDA_CHECK(cudaMemcpy(arrmax, arrmax_g, nx*ny*sizeof(DECNUM), cudaMemcpyDeviceToHost));
+		CUDA_CHECK(cudaMemcpy(arrmin, arrmin_g, nx*ny*sizeof(DECNUM), cudaMemcpyDeviceToHost));
+
+		dt = arrmin[0];
 
 		
+		
+		if ((imodel == 1 || imodel > 2) && totaltime>0.0f)
+		{
+			float dtwave;
+			// Make sure the CFL condition for flow do not violate CFL condition for Waves
+			WAVEDT << <gridDim, blockDim, 0 >> >(nx, ny, ntheta, 0.9f, dtheta, dtflow_g, ctheta_g);
+			CUDA_CHECK(cudaThreadSynchronize());
 
+
+			minmaxKernel << <gridDimLine, blockDimLine, 0 >> >(nx*ny, arrmax_g, arrmin_g, dtflow_g);
+			//CUT_CHECK_ERROR("UpdateZom execution failed\n");
+			CUDA_CHECK(cudaThreadSynchronize());
+
+			finalminmaxKernel << <1, blockDimLine, 0 >> >(arrmax_g, arrmin_g);
+			CUDA_CHECK(cudaThreadSynchronize());
+
+			//CUDA_CHECK(cudaMemcpy(arrmax, arrmax_g, nx*ny*sizeof(DECNUM), cudaMemcpyDeviceToHost));
+			CUDA_CHECK(cudaMemcpy(arrmin, arrmin_g, nx*ny*sizeof(DECNUM), cudaMemcpyDeviceToHost));
+
+			dtwave = arrmin[0];
+
+			dt = min(dt, dtwave);
+		}
+
+		float diffdt = dt - wdt;
+		// prevent time step to chnage too quickly (less than 10%)
+		if (abs(diffdt) / wdt > 0.1)
+		{
+			dt = wdt*(1 + (diffdt) / abs(diffdt)*0.1);
+		}
+
+
+
+		printf("Timestep: %f\n", dt);
 
 
 		totaltime = totaltime+dt;	//total run time acheived until now in s
 
-		dim3 blockDim(16, 16, 1);// This means that the grid has to be a factor of 16 on both x and y
-		dim3 gridDim(ceil((nx*1.0f) / blockDim.x), ceil((ny*1.0f) / blockDim.y), 1);
-
+		
 
 		if (imodel == 1 || imodel > 2)
 		{
@@ -528,6 +582,7 @@ void flowbnd(void)
 
 	if (totaltime >= slbndtime)
 	{
+
 		zsbndold = zsbndnew;
 		rtsl = slbndtime;
 		fscanf(fsl, "%f\t%f", &slbndtime, &zsbndnew);
@@ -1094,10 +1149,10 @@ int main(int argc, char **argv)
 {
 
 	// Start timer to keep track of time 
-	clock_t starttime, endtime;
+	clock_t startcputime, endcputime;
 
 
-	starttime = clock();
+	startcputime = clock();
 
 	// Initialise totaltime
 	totaltime = 0.0f;
@@ -1173,7 +1228,7 @@ int main(int argc, char **argv)
 	//fscanf(fop,"%f\t%*s",&Hplotmax);
 	//fscanf(fop,"%d\t%*s",&nstepplot);
 	fscanf(fop, "%d\t%*s", &nstepout); // output step
-	fscanf(fop, "%d\t%*s", &endtime);// end step
+	fscanf(fop, "%f\t%*s", &endtime);// end step
 	//fscanf(fop,"%d\t%d\t%*s",&iout,&jout);
 	fscanf(fop, "%s\t%*s", &tsoutfile);// output file
 	fclose(fop);
@@ -1919,18 +1974,19 @@ int main(int argc, char **argv)
 		//fprintf(Tsout,"Totaltime\t hh\t zs\t uu\t vv\t H\n");
 
 
-		dim3 blockDim(16, 16, 1);
+		
 		dim3 blockDimLine(32, 1, 1);
-
-		dim3 gridDim(ceil((nx*1.0f) / blockDim.x), ceil((ny*1.0f) / blockDim.y), 1);
 		dim3 gridDimLine(ceil((nx*ny*1.0f) / blockDimLine.x), 1, 1);
+		dim3 blockDim(16, 16, 1);
+		dim3 gridDim(ceil((nx*1.0f) / blockDim.x), ceil((ny*1.0f) / blockDim.y), 1);
+		
 
 		printf("gridDim=%i,%i,%i\n", gridDim.x, gridDim.y, gridDim.z);
 		printf("gridDim=%i,%i,%i\n", gridDimLine.x, gridDimLine.y, gridDimLine.z);
 
 		//Calculate bottomm friction based on initial hard layer file
 		updatezom << <gridDim, blockDim, 0 >> >(nx, ny, cf, cf2, fw, fw2, stdep_g, cfm_g, fwm_g);
-		//CUT_CHECK_ERROR("UpdateZom execution failed\n");
+		//CUT_CHECK_ERROR("UpdateZom execution failed\n");`
 		CUDA_CHECK(cudaThreadSynchronize());
 
 
@@ -1948,7 +2004,7 @@ int main(int argc, char **argv)
 		finalminmaxKernel << <1, blockDimLine, 0 >> >(arrmax_g, arrmin_g);
 		CUDA_CHECK(cudaThreadSynchronize());
 
-		CUDA_CHECK(cudaMemcpy(arrmax, arrmax_g, nx*ny*sizeof(DECNUM), cudaMemcpyDeviceToHost));
+		//CUDA_CHECK(cudaMemcpy(arrmax, arrmax_g, nx*ny*sizeof(DECNUM), cudaMemcpyDeviceToHost));
 		CUDA_CHECK(cudaMemcpy(arrmin, arrmin_g, nx*ny*sizeof(DECNUM), cudaMemcpyDeviceToHost));
 
 		//CUDA_CHECK(cudaMemcpy(hh, hh_g, nx*ny*sizeof(DECNUM), cudaMemcpyDeviceToHost));
@@ -1967,7 +2023,7 @@ int main(int argc, char **argv)
 
 		dt = arrmin[0];
 
-		printf("Reduction test: dt=%f\n", arrmin[0]);
+		printf("Initial timestep: dt=%f\n", arrmin[0]);
 
 
 		
@@ -2049,9 +2105,9 @@ int main(int argc, char **argv)
 	fclose(fsl);
 	fclose(fwind);
 
-	endtime = clock();
+	endcputime = clock();
 
-	printf("Total runtime= %d  seconds\n", (endtime - starttime) / CLOCKS_PER_SEC);
+	printf("Total runtime= %d  seconds\n", (endcputime - startcputime) / CLOCKS_PER_SEC);
 
 	cudaThreadExit();
 

@@ -205,14 +205,22 @@ __global__ void finalminmaxKernel(DECNUM *max, DECNUM *min) {
 }
 
 
-__global__ void WAVEDT(int nx, int ny, DECNUM dtheta, DECNUM *dtwave, DECNUM *ctheta)
+__global__ void WAVEDT(int nx, int ny, int ntheta, DECNUM cfl, DECNUM dtheta, DECNUM *dtwave, DECNUM *ctheta)
 {
 	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
 	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
-	unsigned int i = ix + iy*nx;
+	unsigned int iz = blockIdx.z*blockDim.z + threadIdx.z;
+	unsigned int i = ix + iy*nx + iz*nx*ny;
+
+	float mindt=9999999.9f;
 	if (ix < nx && iy < ny)
 	{
-		dtwave[i] = dtheta / (ctheta[i]);
+		for (int itheta = 0; itheta < ntheta; itheta++)
+		{
+			mindt = min(dtheta / (cfl*ctheta[i + itheta*nx*ny]), mindt);
+		}
+
+		dtwave[i] = mindt;
 	}
 }
 
