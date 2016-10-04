@@ -84,7 +84,7 @@ DECNUM dx, dt, eps;
 DECNUM *arrmin, *arrmax;
 DECNUM *arrmin_g, *arrmax_g;
 DECNUM grdalpha;
-DECNUM totaltime;
+double totaltime;
 int nstpw, nwstp;//nb of hd step between wave step and next step for calculating waves and
 DECNUM wdt;// wave model time step
 DECNUM wavbndtime;
@@ -308,7 +308,7 @@ void mainloopGPU(void)
 
 		
 		
-		if ((imodel == 1 || imodel > 2) && totaltime>0.0f)
+		if ((imodel == 1 || imodel > 2) && totaltime>0.0)
 		{
 			float dtwave;
 			// Make sure the CFL condition for flow do not violate CFL condition for Waves
@@ -347,10 +347,10 @@ void mainloopGPU(void)
 
 
 
-		printf("Timestep: %f\n", dt);
+		//printf("Timestep: %f\n", dt);
 
 
-		totaltime = totaltime+dt;	//total run time acheived until now in s
+		totaltime = totaltime + (double) dt;	//total run time acheived until now in s
 
 		
 
@@ -471,7 +471,7 @@ void mainloopGPU(void)
 			//CUDA_CHECK( cudaMemcpy(xxp, xxp_g, npart*sizeof(DECNUM ), cudaMemcpyDeviceToHost) );
 			//CUDA_CHECK( cudaMemcpy(yyp, yyp_g, npart*sizeof(DECNUM ), cudaMemcpyDeviceToHost) );
 			printf("Writing output, totaltime:%f s\n", totaltime);
-			writestep2nc(tsoutfile, nx, ny,/*npart,*/totaltime, imodel,/*xxp,yyp,*/zb, zs, uu, vv, H, H, thetamean, D, urms, ueu, vev, C, dzb, Fx, Fy, hh, Hmean, uumean, vvmean, hhmean, zsmean, Cmean);
+			writestep2nc(tsoutfile, nx, ny,/*npart,*/(float) totaltime, imodel,/*xxp,yyp,*/zb, zs, uu, vv, H, H, thetamean, D, urms, ueu, vev, C, dzb, Fx, Fy, hh, Hmean, uumean, vvmean, hhmean, zsmean, Cmean);
 
 			//write3dvarnc(nx,ny,ntheta,totaltime,ctheta);
 			//outfile[],nx,ny,npart,totaltime,xxp,yyp,zs,uu, vv, H,Tp,Dp,      D,Urms,ueu,vev)
@@ -563,9 +563,9 @@ void mainloopCPU(void)
 			divavg_varCPU(nx, ny, nstepout, zsmean_g);
 			divavg_varCPU(nx, ny, nstepout, Cmean_g);
 
-			printf("Writing output, totaltime:%f s\n", totaltime);
+			printf("Writing output, totaltime:%d s\n", totaltime);
 			//printf("test Hs: %f\n",H_g[0+16*nx]);
-			writestep2nc(tsoutfile, nx, ny, totaltime, imodel, zb_g, zs_g, uu_g, vv_g, H_g, xadvec_g, thetamean_g, D_g, urms_g, ueu_g, vev_g, Cc_g, dzb_g, Fx_g, Fy_g, hh_g, Hmean_g, uumean_g, vvmean_g, hhmean_g, zsmean_g, Cmean_g);
+			writestep2nc(tsoutfile, nx, ny, (float) totaltime, imodel, zb_g, zs_g, uu_g, vv_g, H_g, xadvec_g, thetamean_g, D_g, urms_g, ueu_g, vev_g, Cc_g, dzb_g, Fx_g, Fy_g, hh_g, Hmean_g, uumean_g, vvmean_g, hhmean_g, zsmean_g, Cmean_g);
 
 			//Clear avg vars
 			resetavg_varCPU(nx, ny, Hmean_g);
@@ -605,7 +605,7 @@ void flowbnd(void)
 	{
 		for (int ni = 0; ni < ny; ni++)
 		{
-			zsbnd[ni] = zsbndold + (totaltime - rtsl)*(zsbndnew - zsbndold) / (slbndtime - rtsl);
+			zsbnd[ni] = zsbndold + ((float) totaltime - rtsl)*(zsbndnew - zsbndold) / (slbndtime - rtsl);
 		}
 	}
 
@@ -617,13 +617,13 @@ void flowbnd(void)
 			dim3 gridDim(ceil((nx*1.0f) / blockDim.x), ceil((ny*1.0f) / blockDim.y), 1);
 			// FLow abs_2d should be here not at the flow step		
 			// Set weakly reflective offshore boundary
-			ubnd1D << <gridDim, blockDim, 0 >> >(nx, ny, dx, dt, g, rho, totaltime, wavbndtime, dtwavbnd, slbndtime, rtsl, zsbndold, zsbndnew, Trep, qbndold_g, qbndnew_g, zs_g, uu_g, vv_g, vu_g, umeanbnd_g, vmeanbnd_g, zb_g, cg_g, hum_g, cfm_g, Fx_g, hh_g);
+			ubnd1D << <gridDim, blockDim, 0 >> >(nx, ny, dx, dt, g, rho, (float) totaltime, wavbndtime, dtwavbnd, slbndtime, rtsl, zsbndold, zsbndnew, Trep, qbndold_g, qbndnew_g, zs_g, uu_g, vv_g, vu_g, umeanbnd_g, vmeanbnd_g, zb_g, cg_g, hum_g, cfm_g, Fx_g, hh_g);
 			//CUT_CHECK_ERROR("ubnd execution failed\n");
 			CUDA_CHECK(cudaThreadSynchronize());
 		}
 		else
 		{
-			ubndCPU(nx, ny, dx, dt, g, rho, totaltime, wavbndtime, dtwavbnd, slbndtime, rtsl, zsbndold, zsbndnew, Trep, qbndold_g, qbndnew_g, zs_g, uu_g, vv_g, vu_g, umeanbnd_g, vmeanbnd_g, zb_g, cg_g, hum_g, cfm_g, Fx_g, hh_g);
+			ubndCPU(nx, ny, dx, dt, g, rho, (float) totaltime, wavbndtime, dtwavbnd, slbndtime, rtsl, zsbndold, zsbndnew, Trep, qbndold_g, qbndnew_g, zs_g, uu_g, vv_g, vu_g, umeanbnd_g, vmeanbnd_g, zb_g, cg_g, hum_g, cfm_g, Fx_g, hh_g);
 
 		}
 	}
