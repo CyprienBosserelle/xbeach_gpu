@@ -141,7 +141,7 @@ __global__ void FLOWDT(int nx, int ny, DECNUM dx, DECNUM cfl, DECNUM *dtflow, DE
 	unsigned int i = ix + iy*nx;
 	if (ix < nx && iy < ny)
 	{
-		dtflow[i] = cfl*dx / (sqrtf(9.81*hh[i]));
+		dtflow[i] = cfl*dx / (sqrtf(9.81f*hh[i]));
 	}
 }
 
@@ -217,7 +217,7 @@ __global__ void WAVEDT(int nx, int ny, int ntheta, DECNUM cfl, DECNUM dtheta, DE
 	{
 		for (int itheta = 0; itheta < ntheta; itheta++)
 		{
-			mindt = min(dtheta / (cfl*ctheta[i + itheta*nx*ny]), mindt);
+			mindt = min(cfl*dtheta / abs(ctheta[i + itheta*nx*ny]), mindt);
 		}
 
 		dtwave[i] = mindt;

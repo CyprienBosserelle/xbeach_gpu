@@ -290,7 +290,7 @@ void mainloopGPU(void)
 		wdt = dt; // previous timestep
 
 		//Calculate timestep
-		FLOWDT << <gridDim, blockDim, 0 >> >(nx, ny, dx, 0.5f, dtflow_g, hh_g);
+		FLOWDT << <gridDim, blockDim, 0 >> >(nx, ny, dx, 0.8f, dtflow_g, hh_g);
 		CUDA_CHECK(cudaThreadSynchronize());
 
 
@@ -304,7 +304,7 @@ void mainloopGPU(void)
 		//CUDA_CHECK(cudaMemcpy(arrmax, arrmax_g, nx*ny*sizeof(DECNUM), cudaMemcpyDeviceToHost));
 		CUDA_CHECK(cudaMemcpy(arrmin, arrmin_g, nx*ny*sizeof(DECNUM), cudaMemcpyDeviceToHost));
 
-		dt = arrmin[0];
+		dt = arrmin[0]*0.5f;
 
 		
 		
@@ -312,7 +312,7 @@ void mainloopGPU(void)
 		{
 			float dtwave;
 			// Make sure the CFL condition for flow do not violate CFL condition for Waves
-			WAVEDT << <gridDim, blockDim, 0 >> >(nx, ny, ntheta, 0.9f, dtheta, dtflow_g, ctheta_g);
+			WAVEDT << <gridDim, blockDim, 0 >> >(nx, ny, ntheta, 0.8f, dtheta, dtflow_g, ctheta_g);
 			CUDA_CHECK(cudaThreadSynchronize());
 
 
@@ -326,17 +326,24 @@ void mainloopGPU(void)
 			//CUDA_CHECK(cudaMemcpy(arrmax, arrmax_g, nx*ny*sizeof(DECNUM), cudaMemcpyDeviceToHost));
 			CUDA_CHECK(cudaMemcpy(arrmin, arrmin_g, nx*ny*sizeof(DECNUM), cudaMemcpyDeviceToHost));
 
-			dtwave = arrmin[0];
+			dtwave = arrmin[0]*0.5f;
 
 			dt = min(dt, dtwave);
 		}
 
 		float diffdt = dt - wdt;
-		// prevent time step to chnage too quickly (less than 10%)
+		// prevent time step to change too quickly (less than 10%)
 		if (abs(diffdt) / wdt > 0.1)
 		{
 			dt = wdt*(1 + (diffdt) / abs(diffdt)*0.1);
 		}
+
+
+		//dt=0.18;
+
+		//dt = wdt;
+
+		
 
 
 
@@ -1993,7 +2000,7 @@ int main(int argc, char **argv)
 		// Calculate initial maximum timestep
 
 
-		FLOWDT << <gridDim, blockDim, 0 >> >(nx, ny, dx, 0.5f, dtflow_g, hh_g);
+		FLOWDT << <gridDim, blockDim, 0 >> >(nx, ny, dx, 0.25f, dtflow_g, hh_g);
 		CUDA_CHECK(cudaThreadSynchronize());
 
 
