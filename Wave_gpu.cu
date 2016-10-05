@@ -189,12 +189,21 @@ FILE * Tsout;
 char tsoutfile[256];
 int iout, jout;
 int imodel; //1: Wave only; 2: Current Only; 3: Wave + current; 4: Wave + current + Sediment transport
+
+
+
 int nstepout = 0;//nb of step between outputs. 0= no output
 int istepout = 0;//
+
+double outputtimestep;
+double nextoutputtime;
+
+
+
 int nstepplot = 0;//nb of step between plots. 0= no plotting
 int istepplot = 1;
 int displayon = 0;
-float endtime;
+double endtime;
 
 
 
@@ -231,7 +240,7 @@ int usesmago;
 
 // Particle stuff
 int npart;
-int sedstart;
+double sedstart; // Warm up time in seconds before starting sediment transport simulation 
 int wxstep = 1;
 
 
@@ -344,8 +353,8 @@ void mainloopGPU(void)
 		//dt = wdt;
 
 		
-
-
+		//need to limit timestep so that it matches the exact output time
+		dt = (nextoutputtime - totaltime) / ceil((nextoutputtime - totaltime) / dt);
 
 		//printf("Timestep: %f\n", dt);
 
@@ -376,7 +385,7 @@ void mainloopGPU(void)
 		{
 			flowstep();// solve the shallow water and continuity for this step
 		}
-		if (imodel >= 4 && nstep >= sedstart)
+		if (imodel >= 4 && totaltime >= sedstart)
 		{
 			//Sediment step
 			sedimentstep();//solve the sediment dispersion, and morphology
@@ -408,33 +417,36 @@ void mainloopGPU(void)
 		CUDA_CHECK(cudaThreadSynchronize());
 
 
-		if (nstep == istepout && nstepout > 0)
+		if (nextoutputtime-totaltime <= dt*0.001  && outputtimestep > 0)
 		{
 			istepout = istepout + nstepout;
 
+			//
+			nextoutputtime = nextoutputtime + outputtimestep;
+
 			//Avg mean variables
 
-			divavg_var << <gridDim, blockDim, 0 >> >(nx, ny, nstepout, Hmean_g);
+			divavg_var << <gridDim, blockDim, 0 >> >(nx, ny, nstep, Hmean_g);
 			//CUT_CHECK_ERROR("Div avg execution failed\n");
 			CUDA_CHECK(cudaThreadSynchronize());
 
-			divavg_var << <gridDim, blockDim, 0 >> >(nx, ny, nstepout, uumean_g);
+			divavg_var << <gridDim, blockDim, 0 >> >(nx, ny, nstep, uumean_g);
 			//CUT_CHECK_ERROR("Div avg execution failed\n");
 			CUDA_CHECK(cudaThreadSynchronize());
 
-			divavg_var << <gridDim, blockDim, 0 >> >(nx, ny, nstepout, vvmean_g);
+			divavg_var << <gridDim, blockDim, 0 >> >(nx, ny, nstep, vvmean_g);
 			//CUT_CHECK_ERROR("Div avg execution failed\n");
 			CUDA_CHECK(cudaThreadSynchronize());
 
-			divavg_var << <gridDim, blockDim, 0 >> >(nx, ny, nstepout, hhmean_g);
+			divavg_var << <gridDim, blockDim, 0 >> >(nx, ny, nstep, hhmean_g);
 			//CUT_CHECK_ERROR("Div avg execution failed\n");
 			CUDA_CHECK(cudaThreadSynchronize());
 
-			divavg_var << <gridDim, blockDim, 0 >> >(nx, ny, nstepout, zsmean_g);
+			divavg_var << <gridDim, blockDim, 0 >> >(nx, ny, nstep, zsmean_g);
 			//CUT_CHECK_ERROR("Div avg execution failed\n");
 			CUDA_CHECK(cudaThreadSynchronize());
 
-			divavg_var << <gridDim, blockDim, 0 >> >(nx, ny, nstepout, Cmean_g);
+			divavg_var << <gridDim, blockDim, 0 >> >(nx, ny, nstep, Cmean_g);
 			//CUT_CHECK_ERROR("Div avg execution failed\n");
 			CUDA_CHECK(cudaThreadSynchronize());
 
@@ -470,7 +482,7 @@ void mainloopGPU(void)
 			}
 			//CUDA_CHECK( cudaMemcpy(xxp, xxp_g, npart*sizeof(DECNUM ), cudaMemcpyDeviceToHost) );
 			//CUDA_CHECK( cudaMemcpy(yyp, yyp_g, npart*sizeof(DECNUM ), cudaMemcpyDeviceToHost) );
-			printf("Writing output, totaltime:%f s\n", totaltime);
+			printf("Writing output, totaltime:%f s, Mean dt=%f\n", totaltime, outputtimestep/nstep);
 			writestep2nc(tsoutfile, nx, ny,/*npart,*/(float) totaltime, imodel,/*xxp,yyp,*/zb, zs, uu, vv, H, H, thetamean, D, urms, ueu, vev, C, dzb, Fx, Fy, hh, Hmean, uumean, vvmean, hhmean, zsmean, Cmean);
 
 			//write3dvarnc(nx,ny,ntheta,totaltime,ctheta);
@@ -502,6 +514,8 @@ void mainloopGPU(void)
 			resetavg_var << <gridDim, blockDim, 0 >> >(nx, ny, Cmean_g);
 			//CUT_CHECK_ERROR("Reset avg execution failed\n");
 			CUDA_CHECK(cudaThreadSynchronize());
+
+			nstep = 0;
 		}
 	}
 }
@@ -1162,7 +1176,8 @@ int main(int argc, char **argv)
 	startcputime = clock();
 
 	// Initialise totaltime
-	totaltime = 0.0f;
+	totaltime = 0.0;
+	nextoutputtime = 0.0;
 
 	//////////////////////////////////////////////////////
 	/////             Read Operational file          /////
@@ -1231,11 +1246,11 @@ int main(int argc, char **argv)
 	fscanf(fop, "%s\t%*s", &slbnd); // tide/surge bnd file
 	fscanf(fop, "%s\t%*s", &windfile); // Wind forcing file
 	//fscanf(fop,"%d\t%*s",&npart);
-	fscanf(fop, "%d\t%*s", &sedstart);// which step to start sediment transport and morpho
+	fscanf(fop, "%f\t%*s", &sedstart);// which step to start sediment transport and morpho
 	//fscanf(fop,"%f\t%*s",&Hplotmax);
 	//fscanf(fop,"%d\t%*s",&nstepplot);
-	fscanf(fop, "%d\t%*s", &nstepout); // output step
-	fscanf(fop, "%f\t%*s", &endtime);// end step
+	fscanf(fop, "%lf\t%*s", &outputtimestep); // output step
+	fscanf(fop, "%lf\t%*s", &endtime);// end step
 	//fscanf(fop,"%d\t%d\t%*s",&iout,&jout);
 	fscanf(fop, "%s\t%*s", &tsoutfile);// output file
 	fclose(fop);
@@ -1263,6 +1278,7 @@ int main(int argc, char **argv)
 	fscanf(fid, "%u\t%u\t%f\t%*f\t%f", &nx, &ny, &dx, &grdalpha);
 	printf("nx=%d\tny=%d\tdx=%f\talpha=%f\n", nx, ny, dx, grdalpha);
 
+	printf("output time step=%f\n", outputtimestep);
 
 	//READ INITIAL ZS CONDITION
 	//fiz=fopen("zsinit.md","r");
@@ -2075,7 +2091,9 @@ int main(int argc, char **argv)
 
 	//create3dnc(nx,ny,ntheta,dx,0.0f,theta,ctheta);
 
-	istepout = istepout + nstepout;
+	istepout = istepout + nstepout; // Depreciated
+	nextoutputtime = nextoutputtime + outputtimestep;
+
 	printf("...done\n");
 
 
