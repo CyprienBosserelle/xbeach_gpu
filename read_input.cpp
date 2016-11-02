@@ -15,11 +15,7 @@
 //along with this program.  If not, see <http://www.gnu.org/licenses/>.         //
 //////////////////////////////////////////////////////////////////////////////////
 
-#include <stdio.h>
-#include <math.h>
-#include <algorithm>
-#include <fstream>
-#include <string>
+#include "XBeachGPU.h"
 
 #define pi 3.14159265
 using DECNUM = float;
@@ -133,6 +129,76 @@ extern "C" void readStatbnd(int nx, int ny, int ntheta, DECNUM rho, DECNUM g, ch
 
 }
 
+XBGPUParam readparamstr(std::string line, XBGPUParam param)
+{
+
+
+	std::string parameterstr, parametervalue;
+
+	//
+	parameterstr = "gammax =";
+	parametervalue = findparameter(parameterstr, line);
+	if (!parametervalue.empty())
+	{
+		param.gammax = std::stod(parametervalue);
+	}
+
+	
+	return param;
+}
+
+std::string findparameter(std::string parameterstr, std::string line)
+{
+	std::size_t found, Numberstart, Numberend;
+	std::string parameternumber;
+	found = line.find(parameterstr);
+	if (found != std::string::npos) // found a line that has Lonmin
+	{
+		//std::cout <<"found LonMin at : "<< found << std::endl;
+		Numberstart = found + parameterstr.length();
+		found = line.find(";");
+		if (found != std::string::npos) // found a line that has Lonmin
+		{
+			Numberend = found;
+		}
+		else
+		{
+			Numberend = line.length();
+		}
+		parameternumber = line.substr(Numberstart, Numberend - Numberstart);
+		//std::cout << parameternumber << std::endl;
+
+	}
+	return trim(parameternumber, " ");
+}
+
+void split(const std::string &s, char delim, std::vector<std::string> &elems) {
+	std::stringstream ss;
+	ss.str(s);
+	std::string item;
+	while (std::getline(ss, item, delim)) {
+		elems.push_back(item);
+	}
+}
+
+
+std::vector<std::string> split(const std::string &s, char delim) {
+	std::vector<std::string> elems;
+	split(s, delim, elems);
+	return elems;
+}
+
+std::string trim(const std::string& str, const std::string& whitespace)
+{
+	const auto strBegin = str.find_first_not_of(whitespace);
+	if (strBegin == std::string::npos)
+		return ""; // no content
+
+	const auto strEnd = str.find_last_not_of(whitespace);
+	const auto strRange = strEnd - strBegin + 1;
+
+	return str.substr(strBegin, strRange);
+}
 /*
 extern "C" void readbathy(int &nx, int &ny, float &dx, float &grdalpha, float *&zb)
 {

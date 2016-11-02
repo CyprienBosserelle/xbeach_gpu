@@ -16,27 +16,10 @@
 //////////////////////////////////////////////////////////////////////////////////
 
 // includes, system
-
+#include "cuda_runtime.h"
+#include "device_launch_parameters.h"
+#include "XBeachGPU.h"
 using DECNUM = float;
-
-//#include "stdafx.h"
-#include <stdio.h>
-#include <math.h>
-#include <iostream>
-#include <fstream>
-//#include <cutil.h>
-#include <string>
-#include <netcdf.h>
-#include <time.h>
-
-
-
-using namespace std;
-
-
-
-
-
 
 //global variables
 
@@ -233,6 +216,7 @@ DECNUM * Hmean_g, *uumean_g, *vvmean_g, *hhmean_g, *zsmean_g, *Cmean_g;
 DECNUM *dtflow_g;
 DECNUM *Hmean, *uumean, *vvmean, *hhmean, *zsmean, *Cmean;
 
+
 int GPUDEVICE;
 
 int startflowstep;
@@ -247,16 +231,16 @@ int wxstep = 1;
 char wavebndfile[256];
 
 
-#include "Wave_kernel.cu"
-#include "Flow_kernel.cu"
-#include "Sediment_kernel.cu"
+
 
 //#include "read_input.cpp"
 
-#include "XBeachGPU.h"
+
+
+#include "Wave_kernel.cu"
+#include "Flow_kernel.cu"
+#include "Sediment_kernel.cu"
 #include "Wavestep.cu"
-
-
 template <class T> const T& min(const T& a, const T& b) {
 	return !(b < a) ? a : b;     // or: return !comp(b,a)?a:b; for version (2)
 }
@@ -1193,6 +1177,30 @@ int main(int argc, char **argv)
 	char zofile[256];
 	char HLfile[256];
 
+	XBGPUParam XParam;
+
+	std::ifstream fs("XBG_param.txt");
+
+	if (fs.fail()){
+		std::cerr << "XBG_param.txt file could not be opened" << std::endl;
+		
+		exit(1);
+	}
+
+	std::string line;
+	while (std::getline(fs, line))
+	{
+		//std::cout << line << std::endl;
+
+		//Get param or skip empty lines
+		if (!line.empty() && line.substr(0, 1).compare("#") != 0)
+		{
+			Xparam = readparamstr(line, Xparam);
+			//std::cout << line << std::endl;
+		}
+
+	}
+	fs.close();
 
 
 
@@ -1286,9 +1294,10 @@ int main(int argc, char **argv)
 
 	grdalpha = grdalpha*pi / 180; // grid rotation
 
-	//if(imodel>=2)
-	//{
 	printf("Opening sea level bnd...");
+	
+	//std::vector<SLBnd> readWLfile(std::string WLfilename);
+	
 	fsl = fopen(slbnd, "r");
 
 	fscanf(fsl, "%f\t%f", &rtsl, &zsbndold);
