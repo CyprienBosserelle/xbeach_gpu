@@ -302,8 +302,8 @@ __global__ void sanity(int nx, int ny, DECNUM eps, DECNUM * hh, DECNUM * sigm, i
 	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
 	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
 	unsigned int i = ix + iy*nx;
-	int tx = threadIdx.x;
-	int ty = threadIdx.y;
+	//int tx = threadIdx.x;
+	//int ty = threadIdx.y;
 
 	if (ix < nx && iy < ny)
 	{
@@ -350,7 +350,7 @@ __global__ void dispersion(int nx, int ny, DECNUM twopi, DECNUM g, DECNUM aphi, 
 
 		errdisp = 1000.0f;
 		//while (errdisp > 0.0001f)
-		for (int k = 1; k < 200; k++)
+		for (int p = 1; p < 200; p++)
 		{
 			L2 = L0*tanh(2 * pi*hhi[tx][ty] / L1);
 			errdisp = abs(L2 - L1);
@@ -359,7 +359,7 @@ __global__ void dispersion(int nx, int ny, DECNUM twopi, DECNUM g, DECNUM aphi, 
 			{
 				break;
 			}
-			if (k == 199)
+			if (p == 199)
 			{
 				L1 = L0*powf(tanh(powf(sigmi[tx][ty] * sigmi[tx][ty] * hhi[tx][ty] / g, 3.0f / 4.0f)), 2.0f / 3.0f);
 				break;

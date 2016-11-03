@@ -135,7 +135,8 @@ XBGPUParam readparamstr(std::string line, XBGPUParam param)
 
 	std::string parameterstr, parametervalue;
 
-	//
+	///////////////////////////////////////////////////////
+	// General parameters
 	parameterstr = "bathy =";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
@@ -154,15 +155,6 @@ XBGPUParam readparamstr(std::string line, XBGPUParam param)
 		
 	
 	//
-	parameterstr = "gammax =";
-	parametervalue = findparameter(parameterstr, line);
-	if (!parametervalue.empty())
-	{
-		param.gammax = std::stod(parametervalue);
-	}
-
-	
-	//
 	parameterstr = "swave =";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
@@ -175,7 +167,23 @@ XBGPUParam readparamstr(std::string line, XBGPUParam param)
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
-		param.swave = std::stoi(parametervalue);
+		param.flow = std::stoi(parametervalue);
+	}
+
+	//
+	parameterstr = "sedtrans =";
+	parametervalue = findparameter(parameterstr, line);
+	if (!parametervalue.empty())
+	{
+		param.sedtrans = std::stoi(parametervalue);
+	}
+
+	//
+	parameterstr = "morphology =";
+	parametervalue = findparameter(parameterstr, line);
+	if (!parametervalue.empty())
+	{
+		param.morphology = std::stoi(parametervalue);
 	}
 
 	//
@@ -186,6 +194,8 @@ XBGPUParam readparamstr(std::string line, XBGPUParam param)
 		param.GPUDEVICE = std::stoi(parametervalue);
 	}
 
+	///////////////////////////////////////////////////////
+	// Flow parameters
 	//
 	parameterstr = "eps =";
 	parametervalue = findparameter(parameterstr, line);
@@ -270,6 +280,248 @@ XBGPUParam readparamstr(std::string line, XBGPUParam param)
 	{
 		param.hwci = std::stod(parametervalue);
 	}
+
+	///////////////////////////////////////////////////////
+	// Wave parameters
+	//
+	parameterstr = "breakmodel =";
+	parametervalue = findparameter(parameterstr, line);
+	if (!parametervalue.empty())
+	{
+		param.breakmodel = std::stoi(parametervalue);
+	}
+
+	parameterstr = "gamma =";
+	parametervalue = findparameter(parameterstr, line);
+	if (!parametervalue.empty())
+	{
+		param.gammaa = std::stod(parametervalue);
+	}
+
+	parameterstr = "n =";
+	parametervalue = findparameter(parameterstr, line);
+	if (!parametervalue.empty())
+	{
+		param.n = std::stod(parametervalue);
+	}
+
+	parameterstr = "alpha =";
+	parametervalue = findparameter(parameterstr, line);
+	if (!parametervalue.empty())
+	{
+		param.alpha = std::stod(parametervalue);
+	}
+
+	parameterstr = "gammax =";
+	parametervalue = findparameter(parameterstr, line);
+	if (!parametervalue.empty())
+	{
+		param.gammax = std::stod(parametervalue);
+	}
+
+	parameterstr = "beta =";
+	parametervalue = findparameter(parameterstr, line);
+	if (!parametervalue.empty())
+	{
+		param.beta = std::stod(parametervalue);
+	}
+
+	parameterstr = "fw =";
+	parametervalue = findparameter(parameterstr, line);
+	if (!parametervalue.empty())
+	{
+		param.fw = std::stod(parametervalue);
+	}
+
+	parameterstr = "fwsand =";
+	parametervalue = findparameter(parameterstr, line);
+	if (!parametervalue.empty())
+	{
+		param.fwsand = std::stod(parametervalue);
+	}
+
+	parameterstr = "fwreef =";
+	parametervalue = findparameter(parameterstr, line);
+	if (!parametervalue.empty())
+	{
+		param.fwreef = std::stod(parametervalue);
+	}
+
+	///////////////////////////////////////////////////////
+	// Sediment parameters
+	//
+	parameterstr = "D50 =";
+	parametervalue = findparameter(parameterstr, line);
+	if (!parametervalue.empty())
+	{
+		param.D50 = std::stod(parametervalue);
+	}
+
+	parameterstr = "D90 =";
+	parametervalue = findparameter(parameterstr, line);
+	if (!parametervalue.empty())
+	{
+		param.D90 = std::stod(parametervalue);
+	}
+
+	parameterstr = "rhosed =";
+	parametervalue = findparameter(parameterstr, line);
+	if (!parametervalue.empty())
+	{
+		param.rhosed = std::stod(parametervalue);
+	}
+
+	parameterstr = "wws =";
+	parametervalue = findparameter(parameterstr, line);
+	if (!parametervalue.empty())
+	{
+		param.wws = std::stod(parametervalue);
+		// Value should be calculated in the sanity check
+	}
+
+	parameterstr = "drydzmax =";
+	parametervalue = findparameter(parameterstr, line);
+	if (!parametervalue.empty())
+	{
+		param.drydzmax = std::stod(parametervalue);
+		// Value should be calculated in the sanity check
+	}
+
+	parameterstr = "wetdzmax =";
+	parametervalue = findparameter(parameterstr, line);
+	if (!parametervalue.empty())
+	{
+		param.wetdzmax = std::stod(parametervalue);
+		// Value should be calculated in the sanity check
+	}
+
+	parameterstr = "maxslpchg =";
+	parametervalue = findparameter(parameterstr, line);
+	if (!parametervalue.empty())
+	{
+		param.maxslpchg = std::stod(parametervalue);
+		// Value should be calculated in the sanity check
+	}
+
+	parameterstr = "por =";
+	parametervalue = findparameter(parameterstr, line);
+	if (!parametervalue.empty())
+	{
+		param.por = std::stod(parametervalue);
+		// Value should be calculated in the sanity check
+	}
+
+	parameterstr = "morfac =";
+	parametervalue = findparameter(parameterstr, line);
+	if (!parametervalue.empty())
+	{
+		param.morfac = std::stod(parametervalue);
+		// Value should be calculated in the sanity check
+	}
+
+	parameterstr = "sus =";
+	parametervalue = findparameter(parameterstr, line);
+	if (!parametervalue.empty())
+	{
+		param.sus = std::stod(parametervalue);
+		// Value should be calculated in the sanity check
+	}
+
+	parameterstr = "bed =";
+	parametervalue = findparameter(parameterstr, line);
+	if (!parametervalue.empty())
+	{
+		param.bed = std::stod(parametervalue);
+		// Value should be calculated in the sanity check
+	}
+
+
+	parameterstr = "facsk =";
+	parametervalue = findparameter(parameterstr, line);
+	if (!parametervalue.empty())
+	{
+		param.facsk = std::stod(parametervalue);
+		// Value should be calculated in the sanity check
+	}
+
+	parameterstr = "facas =";
+	parametervalue = findparameter(parameterstr, line);
+	if (!parametervalue.empty())
+	{
+		param.facas = std::stod(parametervalue);
+		
+	}
+
+	///////////////////////////////////////////////////////
+	// Timekeeping parameters
+	//
+	parameterstr = "dt =";
+	parametervalue = findparameter(parameterstr, line);
+	if (!parametervalue.empty())
+	{
+		param.dt = std::stod(parametervalue);
+
+	}
+
+	parameterstr = "CFL =";
+	parametervalue = findparameter(parameterstr, line);
+	if (!parametervalue.empty())
+	{
+		param.CFL = std::stod(parametervalue);
+
+	}
+
+	parameterstr = "sedstart =";
+	parametervalue = findparameter(parameterstr, line);
+	if (!parametervalue.empty())
+	{
+		param.sedstart = std::stod(parametervalue);
+
+	}
+
+	parameterstr = "outputtimestep =";
+	parametervalue = findparameter(parameterstr, line);
+	if (!parametervalue.empty())
+	{
+		param.outputtimestep = std::stod(parametervalue);
+
+	}
+
+	parameterstr = "endtime =";
+	parametervalue = findparameter(parameterstr, line);
+	if (!parametervalue.empty())
+	{
+		param.endtime = std::stod(parametervalue);
+
+	}
+
+	///////////////////////////////////////////////////////
+	// Input and output files
+	//
+	parameterstr = "SedThkfile =";
+	parametervalue = findparameter(parameterstr, line);
+	if (!parametervalue.empty())
+	{
+		param.SedThkfile = parametervalue;
+		//std::cerr << "Bathymetry file found!" << std::endl;
+	}
+
+	parameterstr = "wavebndfile =";
+	parametervalue = findparameter(parameterstr, line);
+	if (!parametervalue.empty())
+	{
+		param.wavebndfile = parametervalue;
+		//std::cerr << "Bathymetry file found!" << std::endl;
+	}
+
+	parameterstr = "wavebndtype =";
+	parametervalue = findparameter(parameterstr, line);
+	if (!parametervalue.empty())
+	{
+		param.wavebndtype = std::stoi(parametervalue);
+	}
+
+
 	return param;
 }
 

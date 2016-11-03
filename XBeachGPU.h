@@ -35,9 +35,9 @@ class XBGPUParam{
 public:
 	
 	//General parameters 
-	int modeltype;// Type of model: 1: wave only; 2: currents only 3: waves+currents 4:waves+currents+sediment(+ morphology if morfac>0)
-	int swave, flow, sed, morpho;
-	int GPUDEVICE=0;// What GPU device to use 
+	int modeltype;// Type of model: 1: wave only; 2: currents only 3: waves+currents 4:waves+currents+sediment(+ morphology if morfac>0) //Need to remove
+	int swave=1, flow=1, sedtrans=0, morphology=0;
+	int GPUDEVICE=0;// What GPU device to use default is the firt one availabe (i.e. 0) CPU only should be -1 (not operational yet) and 1 for second GPU etc...
 	int nx, ny; // grid size
 	double dx; // grid resolution
 	
@@ -61,19 +61,19 @@ public:
 	double alpha=1.0; // calibration for wave dissipation (should be 1)
 	double gammax=2.0; //gammax=2.0f; //maximum ratio Hrms/hh
 	double beta=0.15; // Roller slope dissipation param
-	double fw;//Wave bottom dissipation parameters fw 
+	double fw=0.001;//Wave bottom dissipation parameters fw 
 	double fwsand, fwreef; //Wave bottom dissipation parameters fw is for sand fw2 is for reefs.see cf comments
 	
 	//Sediment parameters
-	double D50, D90; // sand grain size in m
-	double rhosed; // sand density in kg/m3
-	double wws; //// sand fall velocity (should be calculated) m/s
-	double drydzmax, wetdzmax; // max slope in avalannching model
-	double maxslpchg; // max change within a step to avoid avalanching tsunami
-	double por; // sand porosity (should not be constant)
-	double morfac; // morphological factor 0 no changes in morphology 1 normal changes in morpho >1 accelerated morphological changes (beware this doesn't accelerate the bnd you have to do this manually)
-	double sus, bed; // calibration coeff for suspended load and bed load
-	double facsk, facas;// calibration factor for wave skewness and Asymetry
+	double D50=0.00038, D90=0.00053; // sand grain size in m
+	double rhosed = 2650.0; // sand density in kg/m3
+	double wws=0.0509; //// sand fall velocity (should be calculated) m/s
+	double drydzmax=1.0, wetdzmax=2.0; // max slope in avalannching model
+	double maxslpchg=0.01; // max change within a step to avoid avalanching tsunami
+	double por=0.4; // sand porosity (should not be constant)
+	double morfac=1.0; // morphological factor 0 no changes in morphology 1 normal changes in morpho >1 accelerated morphological changes (beware this doesn't accelerate the bnd you have to do this manually)
+	double sus=1.0, bed=1.0; // calibration coeff for suspended load and bed load
+	double facsk=0.2, facas=0.2;// calibration factor for wave skewness and Asymetry
 
 	// File
 	std::string Bathymetryfile;// bathymetry file name
@@ -86,10 +86,10 @@ public:
 	
 
 	//Timekeeping
-	double dt, cfl;// Model time step in s. either one is defined
-	double sedstart;// time to start sediment transport and morpho
-	double outputtimestep; //number of seconds between output
-	double endtime; // Total runtime in s
+	double dt, CFL=0.7;// Model time step in s. either one should be defined if both then dt is constant
+	double sedstart=3600.0;// time to start sediment transport and morpho
+	double outputtimestep=0.0; //number of seconds between output 0.0 for none
+	double endtime; // Total runtime in s will be calculated based on bnd input as min(length of the shortest time series, user defined)
 	
 };
 class SLBnd {
