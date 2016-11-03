@@ -36,28 +36,33 @@ public:
 	
 	//General parameters 
 	int modeltype;// Type of model: 1: wave only; 2: currents only 3: waves+currents 4:waves+currents+sediment(+ morphology if morfac>0)
-	int GPUDEVICE;// What GPU device to use 
+	int swave, flow, sed, morpho;
+	int GPUDEVICE=0;// What GPU device to use 
 	int nx, ny; // grid size
 	double dx; // grid resolution
 	
 	//Flow parameters
-	double eps;//drying height in m
-	double cf, cfsand, cfreef;// bottom friction for flow model cf is for sand and cf2 fro reef area (Reef and sand discrimination is done based on sediment thickness file if none is present cf2 cannot be used )
-	double nuh, nuhfac;// Viscosity coeff ,//nuhfac=1.0f;//0.001f; //viscosity coefficient for roller induced turbulent horizontal viscosity// it should be small contrary to what XBeach recommend as default
-	int usesmago;// Uses smagorynsky formulation to calculate viscosity 0: No 1: Yes
-	double smag; // Smagorinsky coeff only used if usesmago = 1
-	double lat; // Latitude of the grid use negative for south hemisphere (this implies the grid is small on earth scale)
-	double Cd; // Wind drag coeff
-	double wci, hwci; // Wave current interaction switch (can also be used as a number between 0 and 1 to reduce the interaction if unstable) // hwci=0.010f;//min depth for wci
+	double eps=0.01;//drying height in m
+	double cf = 0.01; // bottom friction for flow model cf 
+	double cfsand, cfreef;// bottom friction for sand and for reef area (Reef and sand discrimination is done based on sediment thickness file if none is present cf2 cannot be used )
+	double nuh = 1.0;// Viscosity coeff ,
+	double nuhfac=1.0;//nuhfac=1.0f;//0.001f; //viscosity coefficient for roller induced turbulent horizontal viscosity// it should be small contrary to what XBeach recommend as default
+	int usesmago=0;// Uses smagorynsky formulation to calculate viscosity 0: No 1: Yes
+	double smag=1.0; // Smagorinsky coeff only used if usesmago = 1
+	double lat=0.0; // Latitude of the grid use negative for south hemisphere (this implies the grid is small on earth scale)
+	double Cd=0.002; // Wind drag coeff
+	double wci = 0;// Wave current interaction switch (can also be used as a number between 0 and 1 to reduce the interaction if unstable) 
+	double hwci=0.1; // hwci=0.010f;//min depth for wci
 
 	//Wave parameters
-	int breakmodel;// Wave dissipation model 1: roelvink 2: Baldock. use 1 for unsteady runs (i.e. with wave group) and use 2 for steady runs
-	double gammaa; // Wave breaking gamma param 
-	double n; // exponential; in Roelving breaking model
-	double alpha; // calibration for wave dissipation (should be 1)
-	double gammax; //gammax=2.0f; //maximum ratio Hrms/hh
-	double beta; // Roller slope dissipation param
-	double fw, fwsand, fwreef; //Wave bottom dissipation parameters fw is for sand fw2 is for reefs.see cf comments
+	int breakmodel=1;// Wave dissipation model 1: roelvink 2: Baldock. use 1 for unsteady runs (i.e. with wave group) and use 2 for steady runs
+	double gammaa=0.6; // Wave breaking gamma param 
+	double n=8.0; // exponential; in Roelving breaking model
+	double alpha=1.0; // calibration for wave dissipation (should be 1)
+	double gammax=2.0; //gammax=2.0f; //maximum ratio Hrms/hh
+	double beta=0.15; // Roller slope dissipation param
+	double fw;//Wave bottom dissipation parameters fw 
+	double fwsand, fwreef; //Wave bottom dissipation parameters fw is for sand fw2 is for reefs.see cf comments
 	
 	//Sediment parameters
 	double D50, D90; // sand grain size in m
