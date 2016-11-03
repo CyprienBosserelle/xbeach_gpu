@@ -162,6 +162,114 @@ XBGPUParam readparamstr(std::string line, XBGPUParam param)
 	}
 
 	
+	//
+	parameterstr = "swave =";
+	parametervalue = findparameter(parameterstr, line);
+	if (!parametervalue.empty())
+	{
+		param.swave = std::stoi(parametervalue);
+	}
+
+	//
+	parameterstr = "flow =";
+	parametervalue = findparameter(parameterstr, line);
+	if (!parametervalue.empty())
+	{
+		param.swave = std::stoi(parametervalue);
+	}
+
+	//
+	parameterstr = "gpudevice =";
+	parametervalue = findparameter(parameterstr, line);
+	if (!parametervalue.empty())
+	{
+		param.GPUDEVICE = std::stoi(parametervalue);
+	}
+
+	//
+	parameterstr = "eps =";
+	parametervalue = findparameter(parameterstr, line);
+	if (!parametervalue.empty())
+	{
+		param.eps = std::stod(parametervalue);
+	}
+	
+	parameterstr = "cf =";
+	parametervalue = findparameter(parameterstr, line);
+	if (!parametervalue.empty())
+	{
+		param.cf = std::stod(parametervalue);
+	}
+
+	parameterstr = "cfsand =";
+	parametervalue = findparameter(parameterstr, line);
+	if (!parametervalue.empty())
+	{
+		param.cfsand = std::stod(parametervalue);
+	}
+
+	parameterstr = "cfreef =";
+	parametervalue = findparameter(parameterstr, line);
+	if (!parametervalue.empty())
+	{
+		param.cfreef = std::stod(parametervalue);
+	}
+
+	parameterstr = "nuh =";
+	parametervalue = findparameter(parameterstr, line);
+	if (!parametervalue.empty())
+	{
+		param.nuh = std::stod(parametervalue);
+	}
+
+	parameterstr = "nuhfac =";
+	parametervalue = findparameter(parameterstr, line);
+	if (!parametervalue.empty())
+	{
+		param.nuhfac = std::stod(parametervalue);
+	}
+
+	parameterstr = "usesmago =";
+	parametervalue = findparameter(parameterstr, line);
+	if (!parametervalue.empty())
+	{
+		param.usesmago = std::stoi(parametervalue);
+	}
+
+	parameterstr = "smag =";
+	parametervalue = findparameter(parameterstr, line);
+	if (!parametervalue.empty())
+	{
+		param.smag = std::stod(parametervalue);
+	}
+
+	parameterstr = "lat =";
+	parametervalue = findparameter(parameterstr, line);
+	if (!parametervalue.empty())
+	{
+		param.lat = std::stod(parametervalue);
+	}
+
+	parameterstr = "Cd =";
+	parametervalue = findparameter(parameterstr, line);
+	if (!parametervalue.empty())
+	{
+		param.Cd = std::stod(parametervalue);
+	}
+
+	parameterstr = "wci =";
+	parametervalue = findparameter(parameterstr, line);
+	if (!parametervalue.empty())
+	{
+		param.wci = std::stod(parametervalue);
+	}
+
+	parameterstr = "hwci =";
+	parametervalue = findparameter(parameterstr, line);
+	if (!parametervalue.empty())
+	{
+		param.hwci = std::stod(parametervalue);
+	}
 	return param;
 }
 
