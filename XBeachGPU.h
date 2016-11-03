@@ -158,6 +158,12 @@ extern "C" void addavg_varCPU(int nx, int ny,DECNUM * &Varmean,DECNUM * Var);
 extern "C" void divavg_varCPU(int nx, int ny,DECNUM ntdiv,DECNUM * &Varmean);
 extern "C" void resetavg_varCPU(int nx, int ny,DECNUM * &Varmean);
 
+XBGPUParam readparamstr(std::string line, XBGPUParam param);
+std::string findparameter(std::string parameterstr, std::string line);
+void split(const std::string &s, char delim, std::vector<std::string> &elems);
+std::vector<std::string> split(const std::string &s, char delim);
+std::string trim(const std::string& str, const std::string& whitespace);
+
 
 // General functions
 //void CUDA_CHECK(cudaError CUDerr);

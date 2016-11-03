@@ -136,6 +136,24 @@ XBGPUParam readparamstr(std::string line, XBGPUParam param)
 	std::string parameterstr, parametervalue;
 
 	//
+	parameterstr = "bathy =";
+	parametervalue = findparameter(parameterstr, line);
+	if (!parametervalue.empty())
+	{
+		param.Bathymetryfile = parametervalue;
+		//std::cerr << "Bathymetry file found!" << std::endl;
+	}
+	
+	//
+	parameterstr = "depfile =";
+	parametervalue = findparameter(parameterstr, line);
+	if (!parametervalue.empty())
+	{
+		param.Bathymetryfile = parametervalue;
+	}
+		
+	
+	//
 	parameterstr = "gammax =";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())

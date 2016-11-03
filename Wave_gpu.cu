@@ -1195,12 +1195,15 @@ int main(int argc, char **argv)
 		//Get param or skip empty lines
 		if (!line.empty() && line.substr(0, 1).compare("#") != 0)
 		{
-			Xparam = readparamstr(line, Xparam);
-			//std::cout << line << std::endl;
+			XParam = readparamstr(line, XParam);
+			std::cout << line << std::endl;
 		}
 
 	}
 	fs.close();
+
+	std::cout << XParam.Bathymetryfile << std::endl;
+
 
 
 
