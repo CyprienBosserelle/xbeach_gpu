@@ -525,6 +525,18 @@ XBGPUParam readparamstr(std::string line, XBGPUParam param)
 	return param;
 }
 
+XBGPUParam checkparamsanity(XBGPUParam param)
+{
+	//First check that a bathy file was specified
+	if (param.Bathymetryfile.empty())
+	{
+		std::cerr << "No bathymetry file specified. Please specify using 'bathy = Filename.bot'" << std::endl;
+		exit(1);
+	}
+
+	return param;
+}
+
 std::string findparameter(std::string parameterstr, std::string line)
 {
 	std::size_t found, Numberstart, Numberend;

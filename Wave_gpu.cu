@@ -1196,16 +1196,18 @@ int main(int argc, char **argv)
 		if (!line.empty() && line.substr(0, 1).compare("#") != 0)
 		{
 			XParam = readparamstr(line, XParam);
-			std::cout << line << std::endl;
+			//std::cout << line << std::endl;
 		}
 
 	}
 	fs.close();
 
+	XParam = checkparamsanity(XParam);
 	std::cout << XParam.Bathymetryfile << std::endl;
 
-
-
+	///
+	nstpw = 1;
+	
 
 	FILE * fop;
 	fop = fopen(opfile, "r");
@@ -1266,15 +1268,15 @@ int main(int argc, char **argv)
 	fscanf(fop, "%s\t%*s", &tsoutfile);// output file
 	fclose(fop);
 
-	printf("bathy file: %s\n", filename);
-	printf("Imodel: %d\n", imodel);
+	//printf("bathy file: %s\n", filename);
+	//printf("Imodel: %d\n", imodel);
 	//printf("nstepplot: %d\n",nstepplot);
-	printf("smago?: %d\n", usesmago);
-	printf("bed: %f\n", bed);
+	//printf("smago?: %d\n", usesmago);
+	//printf("bed: %f\n", bed);
 
-	printf("facsk=%f facas=%f\n", facsk, facsk);
+	//printf("facsk=%f facas=%f\n", facsk, facsk);
 
-
+	//filename = XParam.Bathymetryfile.c_str();
 
 	wdt = 0.0;
 
@@ -1283,9 +1285,9 @@ int main(int argc, char **argv)
 
 
 	//read input data:
-	printf("bathy: %s\n", filename);
+	printf("bathy: %s\n", XParam.Bathymetryfile.c_str());
 
-	fid = fopen(filename, "r");
+	fid = fopen(XParam.Bathymetryfile.c_str(), "r");
 	fscanf(fid, "%u\t%u\t%f\t%*f\t%f", &nx, &ny, &dx, &grdalpha);
 	printf("nx=%d\tny=%d\tdx=%f\talpha=%f\n", nx, ny, dx, grdalpha);
 
