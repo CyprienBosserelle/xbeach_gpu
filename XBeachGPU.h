@@ -40,7 +40,7 @@ public:
 	int GPUDEVICE=0;// What GPU device to use default is the firt one availabe (i.e. 0) CPU only should be -1 (not operational yet) and 1 for second GPU etc...
 	int nx, ny; // grid size
 	double dx; // grid resolution
-	double grdalpha; // grid rotation Y axis from the North input
+	double grdalpha; // grid rotation Y axis from the North input in degrees but later converted to rad
 	
 	//Flow parameters
 	double eps=0.01;//drying height in m

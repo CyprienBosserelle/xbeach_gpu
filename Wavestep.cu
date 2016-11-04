@@ -17,9 +17,14 @@ void CUDA_CHECK(cudaError CUDerr)
 }
 
 
-void waveinitGPU(void)
+void waveinitGPU(XBGPUParam Param)
 {
 	// Initialize wave model
+	int nx, ny;
+	nx = Param.nx;
+	ny = Param.ny;
+
+
 
 	//Wave input bnd
 	printf("Opening wave bnd\n");

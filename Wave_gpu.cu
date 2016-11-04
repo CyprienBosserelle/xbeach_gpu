@@ -62,11 +62,11 @@ DECNUM * viscu_g, *viscv_g;
 DECNUM uumin = 0.0f;
 
 
-int nx, ny;
-DECNUM dx, dt, eps;
+//int nx, ny;
+DECNUM  dt, eps;
 DECNUM *arrmin, *arrmax;
 DECNUM *arrmin_g, *arrmax_g;
-DECNUM grdalpha;
+//DECNUM dx,grdalpha;
 double totaltime;
 int nstpw, nwstp;//nb of hd step between wave step and next step for calculating waves and
 DECNUM wdt;// wave model time step
@@ -505,9 +505,14 @@ void mainloopGPU(void)
 }
 
 
-void mainloopCPU(void)
+void mainloopCPU(XBGPUParam Param)
 {
 	printf("Computing CPU mode\n");
+
+	int nx, ny;
+	nx = Param.nx;
+	ny = Param.ny;
+
 	while (totaltime <= endtime)
 	{
 
@@ -1166,7 +1171,8 @@ int main(int argc, char **argv)
 	//////////////////////////////////////////////////////
 	/////             Read Operational file          /////
 	//////////////////////////////////////////////////////
-
+	int nx, ny;
+	float dx, grdalpha;
 
 	char opfile[] = "opfile.dat"; // Compulsory input file
 
@@ -1288,16 +1294,16 @@ int main(int argc, char **argv)
 	printf("bathy: %s\n", XParam.Bathymetryfile.c_str());
 
 	fid = fopen(XParam.Bathymetryfile.c_str(), "r");
-	fscanf(fid, "%u\t%u\t%f\t%*f\t%f", &nx, &ny, &dx, &grdalpha);
-	printf("nx=%d\tny=%d\tdx=%f\talpha=%f\n", nx, ny, dx, grdalpha);
+	fscanf(fid, "%u\t%u\t%f\t%*f\t%f", &XParam.nx, &XParam.ny, &XParam.dx, &XParam.grdalpha);
+	printf("nx=%d\tny=%d\tdx=%f\talpha=%f\n", XParam.nx, XParam.ny, XParam.dx, XParam.grdalpha);
 
-	printf("output time step=%f\n", outputtimestep);
+	printf("output time step=%f\n", XParam.outputtimestep);
 
 	//READ INITIAL ZS CONDITION
 	//fiz=fopen("zsinit.md","r");
 	//fscanf(fiz,"%u\t%u\t%f\t%*f\t%f",&nx,&ny,&dx,&grdalpha);
 
-	grdalpha = grdalpha*pi / 180; // grid rotation
+	XParam.grdalpha = XParam.grdalpha*pi / 180; // grid rotation
 
 	printf("Opening sea level bnd...");
 	
@@ -1320,6 +1326,10 @@ int main(int argc, char **argv)
 	//	zsbndold=0;
 	//	zsbndnew=0;
 	//}
+
+	nx = XParam.nx;
+	ny = XParam.ny;
+	dx = XParam.dx;
 
 	// Allocate CPU memory
 
@@ -1482,7 +1492,7 @@ int main(int argc, char **argv)
 
 
 	windv = windvold;
-	windth = (1.5f*pi - grdalpha) - windthold*pi / 180.0f;
+	windth = (1.5f*pi - XParam.grdalpha) - windthold*pi / 180.0f;
 
 
 
@@ -1612,7 +1622,7 @@ int main(int argc, char **argv)
 
 		if (imodel == 1 || imodel > 2)
 		{
-			waveinitGPU();
+			waveinitGPU(XParam);
 		}
 
 		//CUT_DEVICE_INIT(argc, argv);
@@ -1719,7 +1729,7 @@ int main(int argc, char **argv)
 
 		if (imodel == 1 || imodel > 2)
 		{
-			waveinitGPU();
+			waveinitGPU(XParam);
 		}
 
 		//Allocate GPU memory
@@ -2130,11 +2140,11 @@ int main(int argc, char **argv)
 	// Run the model
 	if (GPUDEVICE >= 0)
 	{
-		mainloopGPU();
+		mainloopGPU(XParam);
 	}
 	else
 	{
-		mainloopCPU();
+		mainloopCPU(XParam);
 	}
 
 
