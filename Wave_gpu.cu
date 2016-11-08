@@ -267,9 +267,12 @@ exit(EXIT_FAILURE);
 
 
 // Main loop that actually runs the model
-void mainloopGPU(void)
+void mainloopGPU(XBGPUParam Param)
 {
 	
+	int nx, ny;
+	nx = Param.nx;
+	ny = Param.ny;
 
 	while (totaltime <= endtime)
 	{
@@ -283,7 +286,7 @@ void mainloopGPU(void)
 		wdt = dt; // previous timestep
 
 		//Calculate timestep
-		FLOWDT << <gridDim, blockDim, 0 >> >(nx, ny, dx, 0.8f, dtflow_g, hh_g);
+		FLOWDT << <gridDim, blockDim, 0 >> >(nx, ny, Param.dx, 0.8f, dtflow_g, hh_g);
 		CUDA_CHECK(cudaThreadSynchronize());
 
 
@@ -349,30 +352,30 @@ void mainloopGPU(void)
 
 		if (imodel == 1 || imodel > 2)
 		{
-			wavebnd(); // Calculate the boundary condition for this step
+			wavebnd(Param); // Calculate the boundary condition for this step
 		}
 
 		if (imodel >= 2)
 		{
-			flowbnd();// Calculate the flow boundary for this step
+			flowbnd(Param);// Calculate the flow boundary for this step
 		}
 
 		if (imodel == 1 || imodel > 2)
 		{
 
-			wavestep(); // Calculate the wave action ballance for this step
+			wavestep(Param); // Calculate the wave action ballance for this step
 		}
 
 
 
 		if (imodel >= 2)
 		{
-			flowstep();// solve the shallow water and continuity for this step
+			flowstep(Param);// solve the shallow water and continuity for this step
 		}
 		if (imodel >= 4 && totaltime >= sedstart)
 		{
 			//Sediment step
-			sedimentstep();//solve the sediment dispersion, and morphology
+			sedimentstep(Param);//solve the sediment dispersion, and morphology
 		}
 
 		//add last value for avg calc
@@ -524,16 +527,16 @@ void mainloopCPU(XBGPUParam Param)
 
 		if (imodel == 1 || imodel > 2)
 		{
-			wavebnd(); // Calculate the boundary condition for this step
+			wavebnd(Param); // Calculate the boundary condition for this step
 		}
 
 		if (imodel >= 2)
 		{
-			flowbnd();// Calculate the flow boundary for this step
+			flowbnd(Param);// Calculate the flow boundary for this step
 		}
 		if (imodel == 1 || imodel > 2)
 		{
-			wavestepCPU(); // Calculate the wave action ballance for this step
+			wavestepCPU(Param); // Calculate the wave action ballance for this step
 		}
 		if (imodel >= 2)
 		{
@@ -586,9 +589,15 @@ void mainloopCPU(XBGPUParam Param)
 
 
 
-void flowbnd(void)
+void flowbnd(XBGPUParam Param)
 {
+	
+	int nx, ny;
+	
+	nx = Param.nx;
+	ny = Param.ny;
 	//update sl bnd
+	
 
 	if (totaltime >= slbndtime)
 	{
@@ -620,13 +629,13 @@ void flowbnd(void)
 			dim3 gridDim(ceil((nx*1.0f) / blockDim.x), ceil((ny*1.0f) / blockDim.y), 1);
 			// FLow abs_2d should be here not at the flow step		
 			// Set weakly reflective offshore boundary
-			ubnd1D << <gridDim, blockDim, 0 >> >(nx, ny, dx, dt, g, rho, (float) totaltime, wavbndtime, dtwavbnd, slbndtime, rtsl, zsbndold, zsbndnew, Trep, qbndold_g, qbndnew_g, zs_g, uu_g, vv_g, vu_g, umeanbnd_g, vmeanbnd_g, zb_g, cg_g, hum_g, cfm_g, Fx_g, hh_g);
+			ubnd1D << <gridDim, blockDim, 0 >> >(nx, ny, Param.dx, dt, g, rho, (float) totaltime, wavbndtime, dtwavbnd, slbndtime, rtsl, zsbndold, zsbndnew, Trep, qbndold_g, qbndnew_g, zs_g, uu_g, vv_g, vu_g, umeanbnd_g, vmeanbnd_g, zb_g, cg_g, hum_g, cfm_g, Fx_g, hh_g);
 			//CUT_CHECK_ERROR("ubnd execution failed\n");
 			CUDA_CHECK(cudaThreadSynchronize());
 		}
 		else
 		{
-			ubndCPU(nx, ny, dx, dt, g, rho, (float) totaltime, wavbndtime, dtwavbnd, slbndtime, rtsl, zsbndold, zsbndnew, Trep, qbndold_g, qbndnew_g, zs_g, uu_g, vv_g, vu_g, umeanbnd_g, vmeanbnd_g, zb_g, cg_g, hum_g, cfm_g, Fx_g, hh_g);
+			ubndCPU(nx, ny, Param.dx, dt, g, rho, (float) totaltime, wavbndtime, dtwavbnd, slbndtime, rtsl, zsbndold, zsbndnew, Trep, qbndold_g, qbndnew_g, zs_g, uu_g, vv_g, vu_g, umeanbnd_g, vmeanbnd_g, zb_g, cg_g, hum_g, cfm_g, Fx_g, hh_g);
 
 		}
 	}
@@ -648,7 +657,7 @@ void flowbnd(void)
 	windv = windvold + (totaltime - rtwind)*(windvnew - windvold) / (windtime - rtwind);
 	//printf("windv=%f\n",windv);
 
-	windth = (1.5*pi - grdalpha) - windth*pi / 180;
+	windth = (1.5*pi - Param.grdalpha) - windth*pi / 180;
 	//printf("windv=%f\twindth=%f\n",windv,windth);
 
 
@@ -658,8 +667,12 @@ void flowbnd(void)
 }
 
 
-void flowstep(void)
+void flowstep(XBGPUParam Param)
 {
+	int nx, ny;
+
+	nx = Param.nx;
+	ny = Param.ny;
 	// Flow model timestep
 	dim3 blockDim(16, 16, 1);
 	dim3 gridDim(ceil((nx*1.0f) / blockDim.x), ceil((ny*1.0f) / blockDim.y), 1);
@@ -737,7 +750,7 @@ void flowstep(void)
 	//
 	// Water level slopes
 	//
-	wlevslopes << <gridDim, blockDim, 0 >> >(nx, ny, dx, eps, zs_g, dzsdx_g, dzsdy_g, hh_g);
+	wlevslopes << <gridDim, blockDim, 0 >> >(nx, ny, Param.dx, Param.eps, zs_g, dzsdx_g, dzsdy_g, hh_g);
 	//CUT_CHECK_ERROR("wlevslopes execution failed\n");
 	CUDA_CHECK(cudaThreadSynchronize());
 
@@ -747,7 +760,7 @@ void flowstep(void)
 	// Water depth at u pts for momentum and continuity eq (hum hu)
 	//
 
-	udepthmomcont << <gridDim, blockDim, 0 >> >(nx, ny, dx, eps, uumin, wetu_g, zs_g, uu_g, hh_g, hum_g, hu_g, zb_g);
+	udepthmomcont << <gridDim, blockDim, 0 >> >(nx, ny, Param.dx, Param.eps, uumin, wetu_g, zs_g, uu_g, hh_g, hum_g, hu_g, zb_g);
 	//CUT_CHECK_ERROR("udepthmomcont execution failed\n");
 	CUDA_CHECK(cudaThreadSynchronize());
 
@@ -755,7 +768,7 @@ void flowstep(void)
 	// Water depth at v pts for momentum and continuity eq (hvm hv)
 	//
 
-	vdepthmomcont << <gridDim, blockDim, 0 >> >(nx, ny, dx, eps, uumin, wetv_g, zs_g, vv_g, hh_g, hvm_g, hv_g, zb_g);
+	vdepthmomcont << <gridDim, blockDim, 0 >> >(nx, ny, Param.dx, Param.eps, uumin, wetv_g, zs_g, vv_g, hh_g, hvm_g, hv_g, zb_g);
 	//CUT_CHECK_ERROR("vdepthmomcont execution failed\n");
 	CUDA_CHECK(cudaThreadSynchronize());
 
@@ -768,13 +781,13 @@ void flowstep(void)
 	// Advection in the x direction using 2n order finite difference
 	//
 
-	ududx_adv2 << <gridDim, blockDim, 0 >> >(nx, ny, dx, hu_g, hum_g, uu_g, ududx_g);
+	ududx_adv2 << <gridDim, blockDim, 0 >> >(nx, ny, Param.dx, hu_g, hum_g, uu_g, ududx_g);
 	//CUT_CHECK_ERROR("uadvec execution failed\n");
 	CUDA_CHECK(cudaThreadSynchronize());
 
 
 	//vdudy
-	vdudy_adv2 << <gridDim, blockDim, 0 >> >(nx, ny, dx, hv_g, hum_g, uu_g, vv_g, vdudy_g);
+	vdudy_adv2 << <gridDim, blockDim, 0 >> >(nx, ny, Param.dx, hv_g, hum_g, uu_g, vv_g, vdudy_g);
 	//CUT_CHECK_ERROR("uadvec execution failed\n");
 	CUDA_CHECK(cudaThreadSynchronize());
 
@@ -785,7 +798,7 @@ void flowstep(void)
 	// Smagorinsky formulation or Normal eddy viscosity
 	//
 	CUDA_CHECK(cudaMalloc((void **)&nuh_g, nx*ny*sizeof(DECNUM)));
-	smago << <gridDim, blockDim, 0 >> >(nx, ny, dx, uu_g, vv_g, nuh, nuh_g, usesmago);
+	smago << <gridDim, blockDim, 0 >> >(nx, ny, Param.dx, uu_g, vv_g, nuh, nuh_g, usesmago);
 	//CUT_CHECK_ERROR("uadvec execution failed\n");
 	CUDA_CHECK(cudaThreadSynchronize());
 
@@ -793,7 +806,7 @@ void flowstep(void)
 	// increase eddy viscosity by wave induced breaking as in Reniers 2004 & Set viscu = 0.0 near water line
 	//
 	CUDA_CHECK(cudaMalloc((void **)&viscu_g, nx*ny*sizeof(DECNUM)));
-	viscou << <gridDim, blockDim, 0 >> >(nx, ny, dx, rho, eps, nuhfac, nuh_g, hh_g, hum_g, hvm_g, DR_g, uu_g, wetu_g, viscu_g);
+	viscou << <gridDim, blockDim, 0 >> >(nx, ny, Param.dx, Param.rho, Param.eps, Param.nuhfac, nuh_g, hh_g, hum_g, hvm_g, DR_g, uu_g, wetu_g, viscu_g);
 	//CUT_CHECK_ERROR("visco execution failed\n");
 	CUDA_CHECK(cudaThreadSynchronize());
 
@@ -802,7 +815,7 @@ void flowstep(void)
 	// Explicit Euler step momentum u-direction
 	//
 
-	eulerustep << <gridDim, blockDim, 0 >> >(nx, ny, dx, dt, g, rho, cfm_g, fc, windth, windv, Cd, uu_g, urms_g, ududx_g, vdudy_g, viscu_g, dzsdx_g, hu_g, hum_g, Fx_g, vu_g, ueu_g, vmageu_g, wetu_g);
+	eulerustep << <gridDim, blockDim, 0 >> >(nx, ny, Param.dx, dt, Param.g, Param.rho, cfm_g, fc, windth, windv, Cd, uu_g, urms_g, ududx_g, vdudy_g, viscu_g, dzsdx_g, hu_g, hum_g, Fx_g, vu_g, ueu_g, vmageu_g, wetu_g);
 	//CUT_CHECK_ERROR("eulerustep execution failed\n");
 	CUDA_CHECK(cudaThreadSynchronize());
 
@@ -819,12 +832,12 @@ void flowstep(void)
 	// Advection in the y direction using 2n order finite difference
 	//
 	//vdvdy
-	vdvdy_adv2 << <gridDim, blockDim, 0 >> >(nx, ny, dx, hv_g, hvm_g, vv_g, vdvdy_g);
+	vdvdy_adv2 << <gridDim, blockDim, 0 >> >(nx, ny, Param.dx, hv_g, hvm_g, vv_g, vdvdy_g);
 	//CUT_CHECK_ERROR("vadvec for v execution failed\n");
 	CUDA_CHECK(cudaThreadSynchronize());
 	//udvdx
 
-	udvdx_adv2 << <gridDim, blockDim, 0 >> >(nx, ny, dx, hu_g, hvm_g, uu_g, vv_g, udvdx_g);
+	udvdx_adv2 << <gridDim, blockDim, 0 >> >(nx, ny, Param.dx, hu_g, hvm_g, uu_g, vv_g, udvdx_g);
 	//CUT_CHECK_ERROR("vadvec for v execution failed\n");
 	CUDA_CHECK(cudaThreadSynchronize());
 
@@ -832,7 +845,7 @@ void flowstep(void)
 	// increase eddy viscosity by wave induced breaking as in Reniers 2004 & Set viscv = 0.0 near water line
 	//
 	CUDA_CHECK(cudaMalloc((void **)&viscv_g, nx*ny*sizeof(DECNUM)));
-	viscov << <gridDim, blockDim, 0 >> >(nx, ny, dx, rho, eps, nuhfac, nuh_g, hh_g, hum_g, hvm_g, DR_g, vv_g, wetv_g, viscv_g);
+	viscov << <gridDim, blockDim, 0 >> >(nx, ny, Param.dx, Param.rho, Param.eps, Param.nuhfac, nuh_g, hh_g, hum_g, hvm_g, DR_g, vv_g, wetv_g, viscv_g);
 	//CUT_CHECK_ERROR("visco v execution failed\n");
 	CUDA_CHECK(cudaThreadSynchronize());
 	CUDA_CHECK(cudaFree(nuh_g));
@@ -847,7 +860,7 @@ void flowstep(void)
 	// Explicit Euler step momentum v-direction
 	//
 
-	eulervstep << <gridDim, blockDim, 0 >> >(nx, ny, dx, dt, g, rho, cfm_g, fc, windth, windv, Cd, vv_g, urms_g, udvdx_g, vdvdy_g, viscv_g, dzsdy_g, hv_g, hvm_g, Fy_g, uv_g, vev_g, vmagev_g, wetv_g);
+	eulervstep << <gridDim, blockDim, 0 >> >(nx, ny, Param.dx, dt, Param.g, Param.rho, cfm_g, fc, windth, windv, Cd, vv_g, urms_g, udvdx_g, vdvdy_g, viscv_g, dzsdy_g, hv_g, hvm_g, Fy_g, uv_g, vev_g, vmagev_g, wetv_g);
 	//CUT_CHECK_ERROR("eulervstep execution failed\n");
 	CUDA_CHECK(cudaThreadSynchronize());
 
@@ -864,7 +877,7 @@ void flowstep(void)
 	//v velocities at u pts and u velocities at v pts
 	//
 
-	calcuvvu << <gridDim, blockDim, 0 >> >(nx, ny, dx, uu_g, vv_g, vu_g, uv_g, ust_g, thetamean_g, ueu_g, vev_g, vmageu_g, vmagev_g, wetu_g, wetv_g);
+	calcuvvu << <gridDim, blockDim, 0 >> >(nx, ny, Param.dx, uu_g, vv_g, vu_g, uv_g, ust_g, thetamean_g, ueu_g, vev_g, vmageu_g, vmagev_g, wetu_g, wetv_g);
 	//CUT_CHECK_ERROR("calcuvvu execution failed\n");
 	CUDA_CHECK(cudaThreadSynchronize());
 
@@ -886,14 +899,14 @@ void flowstep(void)
 	//
 	//Calculate hu
 	//
-	depthhu << <gridDim, blockDim, 0 >> >(nx, ny, dx, uumin, eps, hh_g, uu_g, hu_g, zs_g, zb_g);
+	depthhu << <gridDim, blockDim, 0 >> >(nx, ny, Param.dx, uumin, eps, hh_g, uu_g, hu_g, zs_g, zb_g);
 	//CUT_CHECK_ERROR("depthhu execution failed\n");
 	CUDA_CHECK(cudaThreadSynchronize());
 
 	//
 	//Calculate hv
 	//
-	depthhv << <gridDim, blockDim, 0 >> >(nx, ny, dx, uumin, eps, hh_g, vv_g, hv_g, zs_g, zb_g);
+	depthhv << <gridDim, blockDim, 0 >> >(nx, ny, Param.dx, uumin, Param.eps, hh_g, vv_g, hv_g, zs_g, zb_g);
 	//CUT_CHECK_ERROR("depthhv execution failed\n");
 	CUDA_CHECK(cudaThreadSynchronize());
 
@@ -901,7 +914,7 @@ void flowstep(void)
 	//
 	// Update water level using continuity eq.
 	//
-	continuity << <gridDim, blockDim, 0 >> >(nx, ny, dx, dt, eps, uu_g, hu_g, vv_g, hv_g, zs_g, hh_g, zb_g, dzsdt_g);
+	continuity << <gridDim, blockDim, 0 >> >(nx, ny, Param.dx, dt, Param.eps, uu_g, hu_g, vv_g, hv_g, zs_g, hh_g, zb_g, dzsdt_g);
 	//CUT_CHECK_ERROR("continuity execution failed\n");
 	CUDA_CHECK(cudaThreadSynchronize());
 
@@ -914,7 +927,7 @@ void flowstep(void)
 	CUDA_CHECK(cudaThreadSynchronize());
 
 
-	hsbnd << <gridDim, blockDim, 0 >> >(nx, ny, eps, hh_g, zb_g, zs_g);
+	hsbnd << <gridDim, blockDim, 0 >> >(nx, ny, Param.eps, hh_g, zb_g, zs_g);
 	//CUT_CHECK_ERROR("hh lateral bnd execution failed\n");
 	CUDA_CHECK(cudaThreadSynchronize());
 
@@ -926,8 +939,13 @@ void flowstep(void)
 
 }
 
-void sedimentstep(void)
+void sedimentstep(XBGPUParam Param)
 {
+	int nx, ny;
+
+	nx = Param.nx;
+	ny = Param.ny;
+	double dx = Param.dx;
 	// suspended sediment timestep
 	dim3 blockDim(16, 16, 1);
 	dim3 gridDim(ceil((nx*1.0f) / blockDim.x), ceil((ny*1.0f) / blockDim.y), 1);
@@ -978,7 +996,7 @@ void sedimentstep(void)
 	//
 	// Compute long wave turbulence due to breaking
 	//
-	longturb << <gridDim, blockDim, 0 >> >(nx, ny, dx, rho, g, dt, beta, c_g, kturb_g, rolthick_g, dzsdt_g, uu_g, vv_g, hu_g, hv_g, wetu_g, wetv_g, hh_g);
+	longturb << <gridDim, blockDim, 0 >> >(nx, ny, dx, Param.rho, Param.g, dt, Param.beta, c_g, kturb_g, rolthick_g, dzsdt_g, uu_g, vv_g, hu_g, hv_g, wetu_g, wetv_g, hh_g);
 	//CUT_CHECK_ERROR("longturb execution failed\n");
 	CUDA_CHECK(cudaThreadSynchronize());
 
@@ -991,11 +1009,11 @@ void sedimentstep(void)
 	CUDA_CHECK(cudaMalloc((void **)&ua_g, nx*ny*sizeof(DECNUM)));
 	//BEWARE BELOW SHOULD BE hh_old_g
 	//Sbvr or Sednew
-	Sbvr << <gridDim, blockDim, 0 >> >(nx, ny, rho, g, eps, Trep, D50, D90, rhosed, wws, nuhfac, ueu_g, vev_g, H_g, DR_g, R_g, c_g, hh_g, urms_g, ceqsg_g, ceqbg_g, Tsg_g, cfm_g, kturb_g);
+	Sbvr << <gridDim, blockDim, 0 >> >(nx, ny, Param.rho, Param.g, Param.eps, Trep, Param.D50, Param.D90, Param.rhosed, Param.wws, Param.nuhfac, ueu_g, vev_g, H_g, DR_g, R_g, c_g, hh_g, urms_g, ceqsg_g, ceqbg_g, Tsg_g, cfm_g, kturb_g);
 	//CUT_CHECK_ERROR("CalcCeq execution failed\n");
 	CUDA_CHECK(cudaThreadSynchronize());
 
-	Rvr << <gridDim, blockDim, 0 >> >(nx, ny, Trep, facsk, facas, H_g, hh_g, urms_g, c_g, ua_g);
+	Rvr << <gridDim, blockDim, 0 >> >(nx, ny, Trep, Param.facsk, Param.facas, H_g, hh_g, urms_g, c_g, ua_g);
 	//CUT_CHECK_ERROR("Rvr execution failed\n");
 	CUDA_CHECK(cudaThreadSynchronize());
 
@@ -1008,7 +1026,7 @@ void sedimentstep(void)
 	// Limit erosion to available sediment on top of hard layer
 	//
 	CUDA_CHECK(cudaMalloc((void **)&facero_g, nx*ny*sizeof(DECNUM)));
-	Erosus << <gridDim, blockDim, 0 >> >(nx, ny, dt, morfac, por, hh_g, ceqsg_g, ceqbg_g, Tsg_g, facero_g, stdep_g);
+	Erosus << <gridDim, blockDim, 0 >> >(nx, ny, dt, Param.morfac, Param.por, hh_g, ceqsg_g, ceqbg_g, Tsg_g, facero_g, stdep_g);
 	//CUT_CHECK_ERROR("Erosus execution failed\n");
 	CUDA_CHECK(cudaThreadSynchronize());
 
@@ -1025,7 +1043,7 @@ void sedimentstep(void)
 	CUDA_CHECK(cudaMalloc((void **)&Svs_g, nx*ny*sizeof(DECNUM)));
 	CUDA_CHECK(cudaMalloc((void **)&Sub_g, nx*ny*sizeof(DECNUM)));
 	CUDA_CHECK(cudaMalloc((void **)&Svb_g, nx*ny*sizeof(DECNUM)));
-	Susp << <gridDim, blockDim, 0 >> >(nx, ny, dx, eps, nuh, nuhfac, rho, sus, bed, ueu_g, vev_g, uu_g, uv_g, hu_g, vv_g, vu_g, hv_g, zb_g, hh_g, DR_g, Cc_g, ceqbg_g, Sus_g, Svs_g, Sub_g, Svb_g, thetamean_g, ua_g);
+	Susp << <gridDim, blockDim, 0 >> >(nx, ny, dx, Param.eps, Param.nuh, Param.nuhfac, Param.rho, Param.sus, Param.bed, ueu_g, vev_g, uu_g, uv_g, hu_g, vv_g, vu_g, hv_g, zb_g, hh_g, DR_g, Cc_g, ceqbg_g, Sus_g, Svs_g, Sub_g, Svb_g, thetamean_g, ua_g);
 	//CUT_CHECK_ERROR("Susp execution failed\n");
 	CUDA_CHECK(cudaThreadSynchronize());
 
@@ -1036,7 +1054,7 @@ void sedimentstep(void)
 
 	CUDA_CHECK(cudaMalloc((void **)&ero_g, nx*ny*sizeof(DECNUM)));
 	CUDA_CHECK(cudaMalloc((void **)&depo_g, nx*ny*sizeof(DECNUM)));
-	Conc << <gridDim, blockDim, 0 >> >(nx, ny, dx, dt, eps, hh_g, Cc_g, ceqsg_g, Tsg_g, facero_g, ero_g, depo_g, Sus_g, Svs_g);
+	Conc << <gridDim, blockDim, 0 >> >(nx, ny, dx, dt, Param.eps, hh_g, Cc_g, ceqsg_g, Tsg_g, facero_g, ero_g, depo_g, Sus_g, Svs_g);
 	//CUT_CHECK_ERROR("Conc execution failed\n");
 	CUDA_CHECK(cudaThreadSynchronize());
 
@@ -1044,7 +1062,7 @@ void sedimentstep(void)
 	//
 	// Update global variables and fix bnds
 	//
-	CClatbnd << <gridDim, blockDim, 0 >> >(nx, ny, eps, hh_g, Cc_g);
+	CClatbnd << <gridDim, blockDim, 0 >> >(nx, ny, Param.eps, hh_g, Cc_g);
 	//CUT_CHECK_ERROR("CClatbnd execution failed\n");
 	CUDA_CHECK(cudaThreadSynchronize());
 
@@ -1070,7 +1088,7 @@ void sedimentstep(void)
 		//
 		// Bed update
 		//
-		bedupdate << <gridDim, blockDim, 0 >> >(nx, ny, eps, dx, dt, morfac, por, hh_g, ero_g, depo_g, Sub_g, Svb_g, Sout_g, indSub_g, indSvb_g, zb_g, dzb_g, stdep_g);
+		bedupdate << <gridDim, blockDim, 0 >> >(nx, ny, Param.eps, dx, dt, Param.morfac, Param.por, hh_g, ero_g, depo_g, Sub_g, Svb_g, Sout_g, indSub_g, indSvb_g, zb_g, dzb_g, stdep_g);
 		//CUT_CHECK_ERROR("bedupdate execution failed\n");
 		CUDA_CHECK(cudaThreadSynchronize());
 
@@ -1093,7 +1111,7 @@ void sedimentstep(void)
 		//
 		CUDA_CHECK(cudaMalloc((void **)&ddzb_g, nx*ny*sizeof(DECNUM)));
 		CUDA_CHECK(cudaMemcpy(ddzb_g, zeros, nx*ny*sizeof(DECNUM), cudaMemcpyHostToDevice));
-		avalanching << <gridDim, blockDim, 0 >> >(nx, ny, eps, dx, dt, por, drydzmax, wetdzmax, maxslpchg, hh_g, zb_g, ddzb_g, stdep_g);
+		avalanching << <gridDim, blockDim, 0 >> >(nx, ny, Param.eps, dx, dt, Param.por, Param.drydzmax, Param.wetdzmax, Param.maxslpchg, hh_g, zb_g, ddzb_g, stdep_g);
 		//CUT_CHECK_ERROR("avalanching execution failed\n");
 		CUDA_CHECK(cudaThreadSynchronize());
 
@@ -1120,7 +1138,7 @@ void sedimentstep(void)
 		//CUT_CHECK_ERROR("Zb twodimbnd execution failed\n");
 		CUDA_CHECK(cudaThreadSynchronize());
 
-		updatezom << <gridDim, blockDim, 0 >> >(nx, ny, cf, cf2, fw, fw2, stdep_g, cfm_g, fwm_g);
+		updatezom << <gridDim, blockDim, 0 >> >(nx, ny, Param.cfsand, Param.cfreef, Param.fwsand, Param.fwreef, stdep_g, cfm_g, fwm_g);
 		//CUT_CHECK_ERROR("UpdateZom execution failed\n");
 		CUDA_CHECK(cudaThreadSynchronize());
 	}

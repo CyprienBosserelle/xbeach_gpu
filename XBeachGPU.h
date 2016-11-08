@@ -17,7 +17,6 @@
 #include <time.h>
 #include <string>
 #include <cmath>
-
 #include <sstream>
 #include <iterator>
 #include <netcdf.h>
@@ -43,6 +42,8 @@ public:
 	double grdalpha; // grid rotation Y axis from the North input in degrees but later converted to rad
 	
 	//Flow parameters
+	double g = 9.81;
+	double rho = 1025.0;
 	double eps=0.01;//drying height in m
 	double cf = 0.01; // bottom friction for flow model cf 
 	double cfsand, cfreef;// bottom friction for sand and for reef area (Reef and sand discrimination is done based on sediment thickness file if none is present cf2 cannot be used )
@@ -180,12 +181,12 @@ template <class T> const T& max (const T& a, const T& b);
 
 
 extern "C"
-void waveinitGPU(void);
-void wavebnd(void);
-void flowbnd(void);
-void wavestep(void);
-void flowstep(void);
-void sedimentstep(void);
+void waveinitGPU(XBGPUParam Param);
+void wavebnd(XBGPUParam Param);
+void flowbnd(XBGPUParam Param);
+void wavestep(XBGPUParam Param);
+void flowstep(XBGPUParam Param);
+void sedimentstep(XBGPUParam Param);
 
 
 
