@@ -34,7 +34,7 @@ class XBGPUParam{
 public:
 	
 	//General parameters 
-	int modeltype;// Type of model: 1: wave only; 2: currents only 3: waves+currents 4:waves+currents+sediment(+ morphology if morfac>0) //Need to remove
+	int modeltype;// Type of model: 1: wave only; 2: currents only 3: waves+currents 4:waves+currents+sediment(+ morphology if morfac>0) //Obsolete Need to remove
 	int swave=1, flow=1, sedtrans=0, morphology=0;
 	int GPUDEVICE=0;// What GPU device to use default is the firt one availabe (i.e. 0) CPU only should be -1 (not operational yet) and 1 for second GPU etc...
 	int nx, ny; // grid size
@@ -52,6 +52,7 @@ public:
 	int usesmago=0;// Uses smagorynsky formulation to calculate viscosity 0: No 1: Yes
 	double smag=1.0; // Smagorinsky coeff only used if usesmago = 1
 	double lat=0.0; // Latitude of the grid use negative for south hemisphere (this implies the grid is small on earth scale)
+	double fc = 0.0;
 	double Cd=0.002; // Wind drag coeff
 	double wci = 0;// Wave current interaction switch (can also be used as a number between 0 and 1 to reduce the interaction if unstable) 
 	double hwci=0.1; // hwci=0.010f;//min depth for wci
@@ -81,7 +82,7 @@ public:
 	std::string Bathymetryfile;// bathymetry file name
 	std::string SedThkfile; // Structure file write down "none" if none present
 	std::string wavebndfile;// wave bnd file
-	int wavebndtype; // 1 is quasistationary wave spectrum; 2 is for infrgravity and long bound waves Xbeach type
+	int wavebndtype = 2; // 1 is quasistationary wave spectrum; 2 is for infrgravity and long bound waves Xbeach type
 	std::string slbnd; // tide/surge bnd file
 	std::string windfile; // Wind forcing file
 	std::string outfile; //outputfile
@@ -91,7 +92,7 @@ public:
 	double dt, CFL=0.7;// Model time step in s. either one should be defined if both then dt is constant
 	double sedstart=3600.0;// time to start sediment transport and morpho
 	double outputtimestep=0.0; //number of seconds between output 0.0 for none
-	double endtime; // Total runtime in s will be calculated based on bnd input as min(length of the shortest time series, user defined)
+	double endtime=0.0; // Total runtime in s will be calculated based on bnd input as min(length of the shortest time series, user defined)
 	
 };
 class SLBnd {
@@ -106,8 +107,8 @@ public:
 
 // additional functions
 void makjonswap(DECNUM hm0gew,DECNUM fp,DECNUM mainang,DECNUM rt,DECNUM scoeff,DECNUM gam,DECNUM * theta,int ntheta,DECNUM& TTrep,DECNUM * &Stt);
-extern "C" void creatncfile(char outfile[], int nx,int ny,/*int npart,*/DECNUM dx,DECNUM totaltime,int imodel,/*DECNUM * xxp,DECNUM * yyp,*/DECNUM *zb,DECNUM *zs,DECNUM * uu, DECNUM * vv, DECNUM * H,DECNUM * Tp,DECNUM * Dp,DECNUM * D,DECNUM * Urms,DECNUM * ueu,DECNUM * vev,DECNUM * C,DECNUM *Fx,DECNUM *Fy,DECNUM *hh,DECNUM *Hmean,DECNUM *uumean,DECNUM *vvmean,DECNUM *hhmean,DECNUM *zsmean,DECNUM *Cmean);
-extern "C" void writestep2nc(char outfile[], int nx,int ny,/*int npart,*/DECNUM totaltime,int imodel/*,DECNUM *xxp,DECNUM *yyp*/,DECNUM *zb,DECNUM *zs,DECNUM * uu, DECNUM * vv, DECNUM * H, DECNUM * Tp, DECNUM *Dp,DECNUM *D,DECNUM *Urms,DECNUM *ueu,DECNUM *vev,DECNUM *C,DECNUM *dzb,DECNUM *Fx,DECNUM *Fy,DECNUM *hh,DECNUM *Hmean,DECNUM *uumean,DECNUM *vvmean,DECNUM *hhmean,DECNUM *zsmean,DECNUM *Cmean);
+extern "C" void creatncfile(XBGPUParam XParam, DECNUM totaltime, DECNUM *zb, DECNUM *zs, DECNUM * uu, DECNUM * vv, DECNUM * H, DECNUM * Tp, DECNUM * Dp, DECNUM * D, DECNUM * Urms, DECNUM * ueu, DECNUM * vev, DECNUM * C, DECNUM *Fx, DECNUM *Fy, DECNUM * hh, DECNUM *Hmean, DECNUM *uumean, DECNUM *vvmean, DECNUM *hhmean, DECNUM *zsmean, DECNUM *Cmean);
+extern "C" void writestep2nc(XBGPUParam XParam, DECNUM totaltime, DECNUM *zb, DECNUM *zs, DECNUM * uu, DECNUM * vv, DECNUM * H, DECNUM * Tp, DECNUM * Dp, DECNUM * D, DECNUM * Urms, DECNUM *ueu, DECNUM * vev, DECNUM * C, DECNUM *dzb, DECNUM *Fx, DECNUM *Fy, DECNUM *hh, DECNUM *Hmean, DECNUM *uumean, DECNUM *vvmean, DECNUM *hhmean, DECNUM *zsmean, DECNUM *Cmean);
 
 extern "C" void create3dnc(int nx,int ny,int nt,DECNUM dx,DECNUM totaltime,DECNUM *theta,DECNUM * var);
 extern "C" void write3dvarnc(int nx,int ny,int nt,DECNUM totaltime,DECNUM * var);
@@ -115,10 +116,10 @@ extern "C" void write3dvarnc(int nx,int ny,int nt,DECNUM totaltime,DECNUM * var)
 extern "C" void read3Dnc(int nx, int ny,int ntheta,char ncfile[],DECNUM * &ee);
 extern "C" void read2Dnc(int nx, int ny,char ncfile[],DECNUM * &hh);
 
-extern "C" void readXbbndhead(char * wavebndfile,DECNUM &thetamin,DECNUM &thetamax,DECNUM &dtheta,DECNUM &dtwavbnd,int &nwavbnd,int &nwavfile);
-extern "C" void readXbbndstep(int nx, int ny,int ntheta,char * wavebndfile,int step,DECNUM &Trep,double *&qfile,double *&Stfile );
-extern "C" void readStatbnd(int nx, int ny,int ntheta,DECNUM rho,DECNUM g,char * wavebndfile,double *&Tpfile,double *&Stfile );
-extern "C" void readbndhead(char * wavebndfile,DECNUM &thetamin,DECNUM &thetamax,DECNUM &dtheta,DECNUM &dtwavbnd,int &nwavbnd);
+extern "C" void readXbbndhead(const char * wavebndfile,DECNUM &thetamin,DECNUM &thetamax,DECNUM &dtheta,DECNUM &dtwavbnd,int &nwavbnd,int &nwavfile);
+extern "C" void readXbbndstep(int nx, int ny,int ntheta,const char * wavebndfile,int step,DECNUM &Trep,double *&qfile,double *&Stfile );
+extern "C" void readStatbnd(int nx, int ny,int ntheta,DECNUM rho,DECNUM g,const char * wavebndfile,double *&Tpfile,double *&Stfile );
+extern "C" void readbndhead(const char * wavebndfile,DECNUM &thetamin,DECNUM &thetamax,DECNUM &dtheta,DECNUM &dtwavbnd,int &nwavbnd);
 
 //Below is for teh new CPU routine
 extern "C" int mminusC(int ix,int nx);

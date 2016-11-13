@@ -21,14 +21,14 @@
 using DECNUM = float;
 
 
-extern "C" void readXbbndhead(char * wavebnd, DECNUM &thetamin, DECNUM &thetamax, DECNUM &dtheta, DECNUM &dtwavbnd, int &nwavbnd, int &nwavfile)
+extern "C" void readXbbndhead(const char * wavebnd, DECNUM &thetamin, DECNUM &thetamax, DECNUM &dtheta, DECNUM &dtwavbnd, int &nwavbnd, int &nwavfile)
 {
 	FILE * fwav;
 	fwav = fopen(wavebnd, "r");
 	fscanf(fwav, "%f\t%f\t%f\t%f\t%d\t%d", &thetamin, &thetamax, &dtheta, &dtwavbnd, &nwavbnd, &nwavfile);
 	fclose(fwav);
 }
-extern "C" void readbndhead(char * wavebnd, DECNUM &thetamin, DECNUM &thetamax, DECNUM &dtheta, DECNUM &dtwavbnd, int &nwavbnd)
+extern "C" void readbndhead(const char * wavebnd, DECNUM &thetamin, DECNUM &thetamax, DECNUM &dtheta, DECNUM &dtwavbnd, int &nwavbnd)
 {
 	FILE * fwav;
 	fwav = fopen(wavebnd, "r");
@@ -38,7 +38,7 @@ extern "C" void readbndhead(char * wavebnd, DECNUM &thetamin, DECNUM &thetamax, 
 	fclose(fwav);
 }
 
-extern "C" void readXbbndstep(int nx, int ny, int ntheta, char * wavebnd, int step, DECNUM &Trep, double *&qfile, double *&Stfile)
+extern "C" void readXbbndstep(int nx, int ny, int ntheta, const char * wavebnd, int step, DECNUM &Trep, double *&qfile, double *&Stfile)
 {
 	FILE * fwav;
 	FILE * fXq, *fXE;
@@ -95,7 +95,7 @@ extern "C" void readXbbndstep(int nx, int ny, int ntheta, char * wavebnd, int st
 
 }
 
-extern "C" void readStatbnd(int nx, int ny, int ntheta, DECNUM rho, DECNUM g, char * wavebnd, double *&Tpfile, double *&Stfile)
+extern "C" void readStatbnd(int nx, int ny, int ntheta, DECNUM rho, DECNUM g, const char * wavebnd, double *&Tpfile, double *&Stfile)
 {
 	FILE * fwav;
 

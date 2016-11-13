@@ -29,9 +29,9 @@ double * Stfile;
 double * qfile;
 double * Tpfile;
 int nwbndstep = 0;
-int wavebndtype;
+//int wavebndtype;
 int nstep = 0;
-int breakmod = 1;
+//int breakmod = 1;
 
 DECNUM * hh;//=ones(20,40).*10; //Depth+SL
 DECNUM * zb, *qbndold, *qbndnew;
@@ -55,7 +55,7 @@ int *wetu_g, *wetv_g;
 DECNUM *ududx_g, *vdudy_g;
 DECNUM *udvdx_g, *vdvdy_g;
 DECNUM *vu_g, *uv_g;
-DECNUM  nuh, nuhfac;
+//DECNUM  nuh, nuhfac;
 DECNUM *nuh_g;
 DECNUM * viscu_g, *viscv_g;
 
@@ -63,25 +63,25 @@ DECNUM uumin = 0.0f;
 
 
 //int nx, ny;
-DECNUM  dt, eps;
+//DECNUM  dt, eps;
 DECNUM *arrmin, *arrmax;
 DECNUM *arrmin_g, *arrmax_g;
 //DECNUM dx,grdalpha;
 double totaltime;
-int nstpw, nwstp;//nb of hd step between wave step and next step for calculating waves and
+int nwstp;//nb of hd step between wave step and next step for calculating waves and
 DECNUM wdt;// wave model time step
 DECNUM wavbndtime;
 DECNUM slbndtime;
 DECNUM windtime;
-DECNUM Cd; //Wind drag
+//DECNUM Cd; //Wind drag
 DECNUM fp, hm0gew, mainang, rt, scoeff, gam;
 int nwavbnd, nwavfile;
 DECNUM dtwavbnd;
 int roller;
-DECNUM wci;
+//DECNUM wci;
 DECNUM *wci_g;
-DECNUM gammax, hwci, gammaa, n, alpha, beta, t1;
-DECNUM fw, fw2;
+//DECNUM gammax, hwci, gammaa, n, alpha, beta, t1;
+//DECNUM fw, fw2;
 DECNUM *fwm_g;//Wave dissipation factor map
 
 DECNUM phi = (1.0f + sqrt(5.0f)) / 2;
@@ -92,11 +92,11 @@ DECNUM twopi = 8 * atan(1.0f);
 DECNUM g = 9.81f;
 DECNUM rho = 1025.0f;
 DECNUM zo;
-DECNUM cf, cf2;//friction
+//DECNUM cf, cf2;//friction
 DECNUM *cfm, *cfm_g; //friction map
 
-DECNUM lat; //lattitude 
-DECNUM fc; //coriolis
+//DECNUM lat; //lattitude 
+//DECNUM fc; //coriolis
 
 int ntheta;
 DECNUM thetamin, thetamax;
@@ -142,20 +142,20 @@ DECNUM * urms_g;
 DECNUM * ust_g;
 DECNUM omega;// = 2*pi/Trep;
 
-DECNUM D50, D90, rhosed;
+//DECNUM D50, D90, rhosed;
 
 DECNUM * kturb_g, *rolthick_g, *dzsdt_g;
 DECNUM * Ceq_g, *ceqsg_g, *ceqbg_g, *Tsg_g, *facero_g;
 DECNUM * C, *Cc_g, *stdep, *stdep_g;
 DECNUM * Sus_g, *Svs_g, *Sub_g, *Svb_g;
-DECNUM morfac, por;
+//DECNUM morfac, por;
 DECNUM * ero_g, *depo_g;
 DECNUM *dzb, *dzb_g, *ddzb_g;
 DECNUM * Sout_g;
 int * indSub_g, *indSvb_g;
-DECNUM sus = 1.0f;
-DECNUM bed = 1.0f;
-DECNUM facsk, facas;
+//DECNUM sus = 1.0f;
+//DECNUM bed = 1.0f;
+//DECNUM facsk, facas;
 
 DECNUM * zsbnd;
 DECNUM rtsl;
@@ -169,16 +169,16 @@ FILE * fwind;
 FILE * Tsout;
 //FILE * fXq,* fXE;
 
-char tsoutfile[256];
+//char tsoutfile[256];
 int iout, jout;
-int imodel; //1: Wave only; 2: Current Only; 3: Wave + current; 4: Wave + current + Sediment transport
+//int imodel; //1: Wave only; 2: Current Only; 3: Wave + current; 4: Wave + current + Sediment transport
 
 
 
 int nstepout = 0;//nb of step between outputs. 0= no output
 int istepout = 0;//
 
-double outputtimestep;
+//double outputtimestep;
 double nextoutputtime;
 
 
@@ -186,13 +186,13 @@ double nextoutputtime;
 int nstepplot = 0;//nb of step between plots. 0= no plotting
 int istepplot = 1;
 int displayon = 0;
-double endtime;
+//double endtime;
 
 
 
-DECNUM wws;
-DECNUM drydzmax;
-DECNUM wetdzmax;
+//DECNUM wws;
+//DECNUM drydzmax;
+//DECNUM wetdzmax;
 DECNUM maxslpchg;
 
 
@@ -217,18 +217,18 @@ DECNUM *dtflow_g;
 DECNUM *Hmean, *uumean, *vvmean, *hhmean, *zsmean, *Cmean;
 
 
-int GPUDEVICE;
+
 
 int startflowstep;
-int usesmago;
+//int usesmago;
 
 // Particle stuff
 int npart;
-double sedstart; // Warm up time in seconds before starting sediment transport simulation 
+//double sedstart; // Warm up time in seconds before starting sediment transport simulation 
 int wxstep = 1;
 
 
-char wavebndfile[256];
+//char wavebndfile[256];
 
 
 
@@ -269,12 +269,12 @@ exit(EXIT_FAILURE);
 // Main loop that actually runs the model
 void mainloopGPU(XBGPUParam Param)
 {
-	
+	double dt = Param.dt;
 	int nx, ny;
 	nx = Param.nx;
 	ny = Param.ny;
 
-	while (totaltime <= endtime)
+	while (totaltime <= Param.endtime)
 	{
 		dim3 blockDim(16, 16, 1);// This means that the grid has to be a factor of 16 on both x and y
 		dim3 gridDim(ceil((nx*1.0f) / blockDim.x), ceil((ny*1.0f) / blockDim.y), 1);
@@ -300,11 +300,11 @@ void mainloopGPU(XBGPUParam Param)
 		//CUDA_CHECK(cudaMemcpy(arrmax, arrmax_g, nx*ny*sizeof(DECNUM), cudaMemcpyDeviceToHost));
 		CUDA_CHECK(cudaMemcpy(arrmin, arrmin_g, nx*ny*sizeof(DECNUM), cudaMemcpyDeviceToHost));
 
-		dt = arrmin[0]*0.5f;
+		dt = arrmin[0] * 0.5f;
 
 		
 		
-		if ((imodel == 1 || imodel > 2) && totaltime>0.0)
+		if ((Param.swave == 1 ) && totaltime>0.0)
 		{
 			float dtwave;
 			// Make sure the CFL condition for flow do not violate CFL condition for Waves
@@ -344,23 +344,23 @@ void mainloopGPU(XBGPUParam Param)
 		dt = (nextoutputtime - totaltime) / ceil((nextoutputtime - totaltime) / dt);
 
 		//printf("Timestep: %f\n", dt);
+		Param.dt = dt;
 
-
-		totaltime = totaltime + (double) dt;	//total run time acheived until now in s
+		totaltime = totaltime + dt;	//total run time acheived until now in s
 
 		
 
-		if (imodel == 1 || imodel > 2)
+		if (Param.swave == 1 )
 		{
 			wavebnd(Param); // Calculate the boundary condition for this step
 		}
 
-		if (imodel >= 2)
+		if (Param.flow == 1)
 		{
 			flowbnd(Param);// Calculate the flow boundary for this step
 		}
 
-		if (imodel == 1 || imodel > 2)
+		if (Param.swave == 1 )
 		{
 
 			wavestep(Param); // Calculate the wave action ballance for this step
@@ -368,11 +368,11 @@ void mainloopGPU(XBGPUParam Param)
 
 
 
-		if (imodel >= 2)
+		if (Param.flow == 1)
 		{
 			flowstep(Param);// solve the shallow water and continuity for this step
 		}
-		if (imodel >= 4 && totaltime >= sedstart)
+		if (Param.morphology >= 4 && totaltime >= Param.sedstart)
 		{
 			//Sediment step
 			sedimentstep(Param);//solve the sediment dispersion, and morphology
@@ -404,12 +404,12 @@ void mainloopGPU(XBGPUParam Param)
 		CUDA_CHECK(cudaThreadSynchronize());
 
 
-		if (nextoutputtime-totaltime <= dt*0.001  && outputtimestep > 0)
+		if (nextoutputtime-totaltime <= dt*0.001  && Param.outputtimestep > 0)
 		{
 			istepout = istepout + nstepout;
 
 			//
-			nextoutputtime = nextoutputtime + outputtimestep;
+			nextoutputtime = nextoutputtime + Param.outputtimestep;
 
 			//Avg mean variables
 
@@ -462,15 +462,16 @@ void mainloopGPU(XBGPUParam Param)
 			//CUDA_CHECK( cudaMemcpy(C,k_g, nx*ny*sizeof(DECNUM ), cudaMemcpyDeviceToHost) );
 			//CUDA_CHECK( cudaMemcpy(ctheta,ee_g, nx*ny*ntheta*sizeof(DECNUM ), cudaMemcpyDeviceToHost) );
 			CUDA_CHECK(cudaMemcpy(hh, hh_g, nx*ny*sizeof(DECNUM), cudaMemcpyDeviceToHost));
-			if (imodel == 4)// If moprhology is on
+			if (Param.morphology == 1 )// If moprhology is on
 			{
 				CUDA_CHECK(cudaMemcpy(zb, zb_g, nx*ny*sizeof(DECNUM), cudaMemcpyDeviceToHost));
 				CUDA_CHECK(cudaMemcpy(dzb, dzb_g, nx*ny*sizeof(DECNUM), cudaMemcpyDeviceToHost));
 			}
 			//CUDA_CHECK( cudaMemcpy(xxp, xxp_g, npart*sizeof(DECNUM ), cudaMemcpyDeviceToHost) );
 			//CUDA_CHECK( cudaMemcpy(yyp, yyp_g, npart*sizeof(DECNUM ), cudaMemcpyDeviceToHost) );
-			printf("Writing output, totaltime:%f s, Mean dt=%f\n", totaltime, outputtimestep/nstep);
-			writestep2nc(tsoutfile, nx, ny,/*npart,*/(float) totaltime, imodel,/*xxp,yyp,*/zb, zs, uu, vv, H, H, thetamean, D, urms, ueu, vev, C, dzb, Fx, Fy, hh, Hmean, uumean, vvmean, hhmean, zsmean, Cmean);
+			printf("Writing output, totaltime:%f s, Mean dt=%f\n", totaltime, Param.outputtimestep/nstep);
+			//writestep2nc(tsoutfile, nx, ny,/*npart,*/(float) totaltime, imodel,/*xxp,yyp,*/zb, zs, uu, vv, H, H, thetamean, D, urms, ueu, vev, C, dzb, Fx, Fy, hh, Hmean, uumean, vvmean, hhmean, zsmean, Cmean);
+			writestep2nc(Param,(float)totaltime, zb, zs, uu, vv, H, H, thetamean, D, urms, ueu, vev, C, dzb, Fx, Fy, hh, Hmean, uumean, vvmean, hhmean, zsmean, Cmean);
 
 			//write3dvarnc(nx,ny,ntheta,totaltime,ctheta);
 			//outfile[],nx,ny,npart,totaltime,xxp,yyp,zs,uu, vv, H,Tp,Dp,      D,Urms,ueu,vev)
@@ -516,33 +517,33 @@ void mainloopCPU(XBGPUParam Param)
 	nx = Param.nx;
 	ny = Param.ny;
 
-	while (totaltime <= endtime)
+	while (totaltime <= Param.endtime)
 	{
 
 		nstep++;
-		wdt = dt; // Sometinmes in stationary wave run one can have a larger wdt (wave time step)
-		totaltime = totaltime + dt;	//total run time acheived until now in s
+		wdt = Param.dt; // Sometinmes in stationary wave run one can have a larger wdt (wave time step)
+		totaltime = totaltime + Param.dt;	//total run time acheived until now in s
 
 
 
-		if (imodel == 1 || imodel > 2)
+		if (Param.swave == 1 )
 		{
 			wavebnd(Param); // Calculate the boundary condition for this step
 		}
 
-		if (imodel >= 2)
+		if (Param.flow == 1)
 		{
 			flowbnd(Param);// Calculate the flow boundary for this step
 		}
-		if (imodel == 1 || imodel > 2)
+		if (Param.swave == 1)
 		{
 			wavestepCPU(Param); // Calculate the wave action ballance for this step
 		}
-		if (imodel >= 2)
+		if (Param.flow == 1)
 		{
 			//flowstepCPU();// solve the shallow water and continuity for this step
 		}
-		if (imodel >= 4 && nstep >= sedstart)
+		if (Param.morphology == 1 && totaltime >= Param.sedstart)
 		{
 			//Sediment step
 			//sedimentstepCPU();//solve the sediment dispersion, and morphology
@@ -571,8 +572,8 @@ void mainloopCPU(XBGPUParam Param)
 
 			printf("Writing output, totaltime:%d s\n", totaltime);
 			//printf("test Hs: %f\n",H_g[0+16*nx]);
-			writestep2nc(tsoutfile, nx, ny, (float) totaltime, imodel, zb_g, zs_g, uu_g, vv_g, H_g, xadvec_g, thetamean_g, D_g, urms_g, ueu_g, vev_g, Cc_g, dzb_g, Fx_g, Fy_g, hh_g, Hmean_g, uumean_g, vvmean_g, hhmean_g, zsmean_g, Cmean_g);
-
+			writestep2nc(Param, (float)totaltime, zb_g, zs_g, uu_g, vv_g, H_g, xadvec_g, thetamean_g, D_g, urms_g, ueu_g, vev_g, Cc_g, dzb_g, Fx_g, Fy_g, hh_g, Hmean_g, uumean_g, vvmean_g, hhmean_g, zsmean_g, Cmean_g);
+			
 			//Clear avg vars
 			resetavg_varCPU(nx, ny, Hmean_g);
 			resetavg_varCPU(nx, ny, uumean_g);
@@ -613,7 +614,7 @@ void flowbnd(XBGPUParam Param)
 
 
 
-	if (wavebndtype == 1)
+	if (Param.wavebndtype == 1)
 	{
 		for (int ni = 0; ni < ny; ni++)
 		{
@@ -621,21 +622,21 @@ void flowbnd(XBGPUParam Param)
 		}
 	}
 
-	if (wavebndtype == 2)
+	if (Param.wavebndtype == 2)
 	{
-		if (GPUDEVICE >= 0)
+		if (Param.GPUDEVICE >= 0)
 		{
 			dim3 blockDim(16, 16, 1);
 			dim3 gridDim(ceil((nx*1.0f) / blockDim.x), ceil((ny*1.0f) / blockDim.y), 1);
 			// FLow abs_2d should be here not at the flow step		
 			// Set weakly reflective offshore boundary
-			ubnd1D << <gridDim, blockDim, 0 >> >(nx, ny, Param.dx, dt, g, rho, (float) totaltime, wavbndtime, dtwavbnd, slbndtime, rtsl, zsbndold, zsbndnew, Trep, qbndold_g, qbndnew_g, zs_g, uu_g, vv_g, vu_g, umeanbnd_g, vmeanbnd_g, zb_g, cg_g, hum_g, cfm_g, Fx_g, hh_g);
+			ubnd1D << <gridDim, blockDim, 0 >> >(nx, ny, Param.dx, Param.dt, Param.g, Param.rho, (float)totaltime, wavbndtime, dtwavbnd, slbndtime, rtsl, zsbndold, zsbndnew, Trep, qbndold_g, qbndnew_g, zs_g, uu_g, vv_g, vu_g, umeanbnd_g, vmeanbnd_g, zb_g, cg_g, hum_g, cfm_g, Fx_g, hh_g);
 			//CUT_CHECK_ERROR("ubnd execution failed\n");
 			CUDA_CHECK(cudaThreadSynchronize());
 		}
 		else
 		{
-			ubndCPU(nx, ny, Param.dx, dt, g, rho, (float) totaltime, wavbndtime, dtwavbnd, slbndtime, rtsl, zsbndold, zsbndnew, Trep, qbndold_g, qbndnew_g, zs_g, uu_g, vv_g, vu_g, umeanbnd_g, vmeanbnd_g, zb_g, cg_g, hum_g, cfm_g, Fx_g, hh_g);
+			ubndCPU(nx, ny, Param.dx, Param.dt, Param.g, Param.rho, (float)totaltime, wavbndtime, dtwavbnd, slbndtime, rtsl, zsbndold, zsbndnew, Trep, qbndold_g, qbndnew_g, zs_g, uu_g, vv_g, vu_g, umeanbnd_g, vmeanbnd_g, zb_g, cg_g, hum_g, cfm_g, Fx_g, hh_g);
 
 		}
 	}
@@ -798,7 +799,7 @@ void flowstep(XBGPUParam Param)
 	// Smagorinsky formulation or Normal eddy viscosity
 	//
 	CUDA_CHECK(cudaMalloc((void **)&nuh_g, nx*ny*sizeof(DECNUM)));
-	smago << <gridDim, blockDim, 0 >> >(nx, ny, Param.dx, uu_g, vv_g, nuh, nuh_g, usesmago);
+	smago << <gridDim, blockDim, 0 >> >(nx, ny, Param.dx, uu_g, vv_g, Param.nuh, nuh_g, Param.usesmago);
 	//CUT_CHECK_ERROR("uadvec execution failed\n");
 	CUDA_CHECK(cudaThreadSynchronize());
 
@@ -815,7 +816,7 @@ void flowstep(XBGPUParam Param)
 	// Explicit Euler step momentum u-direction
 	//
 
-	eulerustep << <gridDim, blockDim, 0 >> >(nx, ny, Param.dx, dt, Param.g, Param.rho, cfm_g, fc, windth, windv, Cd, uu_g, urms_g, ududx_g, vdudy_g, viscu_g, dzsdx_g, hu_g, hum_g, Fx_g, vu_g, ueu_g, vmageu_g, wetu_g);
+	eulerustep << <gridDim, blockDim, 0 >> >(nx, ny, Param.dx, Param.dt, Param.g, Param.rho, cfm_g, Param.fc, windth, windv, Param.Cd, uu_g, urms_g, ududx_g, vdudy_g, viscu_g, dzsdx_g, hu_g, hum_g, Fx_g, vu_g, ueu_g, vmageu_g, wetu_g);
 	//CUT_CHECK_ERROR("eulerustep execution failed\n");
 	CUDA_CHECK(cudaThreadSynchronize());
 
@@ -860,7 +861,7 @@ void flowstep(XBGPUParam Param)
 	// Explicit Euler step momentum v-direction
 	//
 
-	eulervstep << <gridDim, blockDim, 0 >> >(nx, ny, Param.dx, dt, Param.g, Param.rho, cfm_g, fc, windth, windv, Cd, vv_g, urms_g, udvdx_g, vdvdy_g, viscv_g, dzsdy_g, hv_g, hvm_g, Fy_g, uv_g, vev_g, vmagev_g, wetv_g);
+	eulervstep << <gridDim, blockDim, 0 >> >(nx, ny, Param.dx, Param.dt, Param.g, Param.rho, cfm_g, Param.fc, windth, windv, Param.Cd, vv_g, urms_g, udvdx_g, vdvdy_g, viscv_g, dzsdy_g, hv_g, hvm_g, Fy_g, uv_g, vev_g, vmagev_g, wetv_g);
 	//CUT_CHECK_ERROR("eulervstep execution failed\n");
 	CUDA_CHECK(cudaThreadSynchronize());
 
@@ -899,7 +900,7 @@ void flowstep(XBGPUParam Param)
 	//
 	//Calculate hu
 	//
-	depthhu << <gridDim, blockDim, 0 >> >(nx, ny, Param.dx, uumin, eps, hh_g, uu_g, hu_g, zs_g, zb_g);
+	depthhu << <gridDim, blockDim, 0 >> >(nx, ny, Param.dx, uumin, Param.eps, hh_g, uu_g, hu_g, zs_g, zb_g);
 	//CUT_CHECK_ERROR("depthhu execution failed\n");
 	CUDA_CHECK(cudaThreadSynchronize());
 
@@ -914,7 +915,7 @@ void flowstep(XBGPUParam Param)
 	//
 	// Update water level using continuity eq.
 	//
-	continuity << <gridDim, blockDim, 0 >> >(nx, ny, Param.dx, dt, Param.eps, uu_g, hu_g, vv_g, hv_g, zs_g, hh_g, zb_g, dzsdt_g);
+	continuity << <gridDim, blockDim, 0 >> >(nx, ny, Param.dx, Param.dt, Param.eps, uu_g, hu_g, vv_g, hv_g, zs_g, hh_g, zb_g, dzsdt_g);
 	//CUT_CHECK_ERROR("continuity execution failed\n");
 	CUDA_CHECK(cudaThreadSynchronize());
 
@@ -996,7 +997,7 @@ void sedimentstep(XBGPUParam Param)
 	//
 	// Compute long wave turbulence due to breaking
 	//
-	longturb << <gridDim, blockDim, 0 >> >(nx, ny, dx, Param.rho, Param.g, dt, Param.beta, c_g, kturb_g, rolthick_g, dzsdt_g, uu_g, vv_g, hu_g, hv_g, wetu_g, wetv_g, hh_g);
+	longturb << <gridDim, blockDim, 0 >> >(nx, ny, dx, Param.rho, Param.g, Param.dt, Param.beta, c_g, kturb_g, rolthick_g, dzsdt_g, uu_g, vv_g, hu_g, hv_g, wetu_g, wetv_g, hh_g);
 	//CUT_CHECK_ERROR("longturb execution failed\n");
 	CUDA_CHECK(cudaThreadSynchronize());
 
@@ -1026,7 +1027,7 @@ void sedimentstep(XBGPUParam Param)
 	// Limit erosion to available sediment on top of hard layer
 	//
 	CUDA_CHECK(cudaMalloc((void **)&facero_g, nx*ny*sizeof(DECNUM)));
-	Erosus << <gridDim, blockDim, 0 >> >(nx, ny, dt, Param.morfac, Param.por, hh_g, ceqsg_g, ceqbg_g, Tsg_g, facero_g, stdep_g);
+	Erosus << <gridDim, blockDim, 0 >> >(nx, ny, Param.dt, Param.morfac, Param.por, hh_g, ceqsg_g, ceqbg_g, Tsg_g, facero_g, stdep_g);
 	//CUT_CHECK_ERROR("Erosus execution failed\n");
 	CUDA_CHECK(cudaThreadSynchronize());
 
@@ -1054,7 +1055,7 @@ void sedimentstep(XBGPUParam Param)
 
 	CUDA_CHECK(cudaMalloc((void **)&ero_g, nx*ny*sizeof(DECNUM)));
 	CUDA_CHECK(cudaMalloc((void **)&depo_g, nx*ny*sizeof(DECNUM)));
-	Conc << <gridDim, blockDim, 0 >> >(nx, ny, dx, dt, Param.eps, hh_g, Cc_g, ceqsg_g, Tsg_g, facero_g, ero_g, depo_g, Sus_g, Svs_g);
+	Conc << <gridDim, blockDim, 0 >> >(nx, ny, dx, Param.dt, Param.eps, hh_g, Cc_g, ceqsg_g, Tsg_g, facero_g, ero_g, depo_g, Sus_g, Svs_g);
 	//CUT_CHECK_ERROR("Conc execution failed\n");
 	CUDA_CHECK(cudaThreadSynchronize());
 
@@ -1067,7 +1068,7 @@ void sedimentstep(XBGPUParam Param)
 	CUDA_CHECK(cudaThreadSynchronize());
 
 
-	if (morfac > 0.0f)// Only if morphology is need i.e. if imodel=4 and morphac >0.0
+	if (Param.morfac > 0.0f)// Only if morphology is need i.e. if also if morphac >0.0
 	{
 		//
 		// Adjust sediment fluxes for rocklayer
@@ -1076,7 +1077,7 @@ void sedimentstep(XBGPUParam Param)
 		CUDA_CHECK(cudaMalloc((void **)&Sout_g, nx*ny*sizeof(DECNUM)));
 		CUDA_CHECK(cudaMalloc((void **)&indSub_g, nx*ny*sizeof(int)));
 		CUDA_CHECK(cudaMalloc((void **)&indSvb_g, nx*ny*sizeof(int)));
-		hardlayer << <gridDim, blockDim, 0 >> >(nx, ny, dx, dt, Sub_g, Svb_g, Sout_g, indSub_g, indSvb_g);
+		hardlayer << <gridDim, blockDim, 0 >> >(nx, ny, dx, Param.dt, Sub_g, Svb_g, Sout_g, indSub_g, indSvb_g);
 		//CUT_CHECK_ERROR("hardlayer execution failed\n");
 		CUDA_CHECK(cudaThreadSynchronize());
 
@@ -1088,7 +1089,7 @@ void sedimentstep(XBGPUParam Param)
 		//
 		// Bed update
 		//
-		bedupdate << <gridDim, blockDim, 0 >> >(nx, ny, Param.eps, dx, dt, Param.morfac, Param.por, hh_g, ero_g, depo_g, Sub_g, Svb_g, Sout_g, indSub_g, indSvb_g, zb_g, dzb_g, stdep_g);
+		bedupdate << <gridDim, blockDim, 0 >> >(nx, ny, Param.eps, dx, Param.dt, Param.morfac, Param.por, hh_g, ero_g, depo_g, Sub_g, Svb_g, Sout_g, indSub_g, indSvb_g, zb_g, dzb_g, stdep_g);
 		//CUT_CHECK_ERROR("bedupdate execution failed\n");
 		CUDA_CHECK(cudaThreadSynchronize());
 
@@ -1111,7 +1112,7 @@ void sedimentstep(XBGPUParam Param)
 		//
 		CUDA_CHECK(cudaMalloc((void **)&ddzb_g, nx*ny*sizeof(DECNUM)));
 		CUDA_CHECK(cudaMemcpy(ddzb_g, zeros, nx*ny*sizeof(DECNUM), cudaMemcpyHostToDevice));
-		avalanching << <gridDim, blockDim, 0 >> >(nx, ny, Param.eps, dx, dt, Param.por, Param.drydzmax, Param.wetdzmax, Param.maxslpchg, hh_g, zb_g, ddzb_g, stdep_g);
+		avalanching << <gridDim, blockDim, 0 >> >(nx, ny, Param.eps, dx, Param.dt, Param.por, Param.drydzmax, Param.wetdzmax, Param.maxslpchg, hh_g, zb_g, ddzb_g, stdep_g);
 		//CUT_CHECK_ERROR("avalanching execution failed\n");
 		CUDA_CHECK(cudaThreadSynchronize());
 
@@ -1119,7 +1120,7 @@ void sedimentstep(XBGPUParam Param)
 		// Update Zb for avalanching
 		//
 
-		updatezb << <gridDim, blockDim, 0 >> >(nx, ny, dx, dt, zb_g, ddzb_g, dzb_g, zs_g, hh_g, stdep_g);
+		updatezb << <gridDim, blockDim, 0 >> >(nx, ny, dx, Param.dt, zb_g, ddzb_g, dzb_g, zs_g, hh_g, stdep_g);
 		//CUT_CHECK_ERROR("avalanching execution failed\n");
 		CUDA_CHECK(cudaThreadSynchronize());
 
@@ -1192,14 +1193,15 @@ int main(int argc, char **argv)
 	int nx, ny;
 	float dx, grdalpha;
 
+	double dt;
 	char opfile[] = "opfile.dat"; // Compulsory input file
 
 	char filename[256];
 
-	char slbnd[256];
-	char windfile[256];
+	//char slbnd[256];
+	//char windfile[256];
 	char zofile[256];
-	char HLfile[256];
+	//char HLfile[256];
 
 	XBGPUParam XParam;
 
@@ -1230,67 +1232,67 @@ int main(int argc, char **argv)
 	std::cout << XParam.Bathymetryfile << std::endl;
 
 	///
-	nstpw = 1;
+	//nstpw = 1;
 	
 
-	FILE * fop;
-	fop = fopen(opfile, "r");
-	fscanf(fop, "%*s");//Dummy string
-	fscanf(fop, "%s\t%*s", &filename);// Bathy file name needs to be md format
-	fscanf(fop, "%d\t%*s", &imodel);// Type of model: 1: wave only; 2: currents only 3: waves+currents 4:waves+currents+sediment(+ morphology if morfac>0)
-	fscanf(fop, "%d\t%*s", &GPUDEVICE);// What GPU device to use 
-	fscanf(fop, "%f\t%*s", &dt);// Model time step in s. //This should be calculated by the model
-	fscanf(fop, "%d\t%*s", &nstpw);// Number of flow and sediment step between wave step needs to be 1 for unsteady runs 
-	fscanf(fop, "%f\t%*s", &eps);//drying height in m
-	fscanf(fop, "%f,%f\t%*s", &cf, &cf2);// bottom friction for flow model cf is for sand and cf2 fro reef area (Reef and sand discrimination is done based on structure file if none is present cf2 should not be used )
+	//FILE * fop;
+	//fop = fopen(opfile, "r");
+	//fscanf(fop, "%*s");//Dummy string
+	//fscanf(fop, "%s\t%*s", &filename);// Bathy file name needs to be md format
+	//fscanf(fop, "%d\t%*s", &imodel);// Type of model: 1: wave only; 2: currents only 3: waves+currents 4:waves+currents+sediment(+ morphology if morfac>0)
+	//fscanf(fop, "%d\t%*s", &GPUDEVICE);// What GPU device to use 
+	//fscanf(fop, "%f\t%*s", &dt);// Model time step in s. //This should be calculated by the model
+	//fscanf(fop, "%d\t%*s", &nstpw);// Number of flow and sediment step between wave step needs to be 1 for unsteady runs 
+	//fscanf(fop, "%f\t%*s", &eps);//drying height in m
+	//fscanf(fop, "%f,%f\t%*s", &cf, &cf2);// bottom friction for flow model cf is for sand and cf2 fro reef area (Reef and sand discrimination is done based on structure file if none is present cf2 should not be used )
 	//fscanf(fop,"%f\t%*s",&cf);
 	//fscanf(fop,"%s\t%*s",&zofile);
-	fscanf(fop, "%f\t%*s", &nuh); // Viscosity coeff or samgo coeff depennding on usesmago
-	fscanf(fop, "%f\t%*s", &nuhfac);//nuhfac=1.0f;//0.001f; //viscosity coefficient for roller induced turbulent horizontal viscosity// it should be small contrary to what XBeach recommend as default
-	fscanf(fop, "%d\t%*s", &usesmago);// Uses smagorynsky formulation to calculate viscosity 0: No 1: Yes
-	fscanf(fop, "%f\t%*s", &lat);// Latitude of the grid use negative for south hemisphere (this implies the grid is small on earth scale)
-	fscanf(fop, "%f\t%*s", &Cd);// Wind drag coeff
-	fscanf(fop, "%f\t%*s", &wci); // Wave current interaction switch (can also be used as a number between 0 and 1 to reduce the interaction if unstable)
-	fscanf(fop, "%f\t%*s", &hwci);// hwci=0.010f;//min depth for wci
-	fscanf(fop, "%d\t%*s", &breakmod); // Wave dissipation model 1: roelvink 2: Baldock. use 1 for unsteady runs (i.e. with wave group) and use 2 for steady runs
-	fscanf(fop, "%f\t%*s", &gammaa);// Wave breaking gamma param 
-	fscanf(fop, "%f\t%*s", &n);// exponential; in Roelving breaking model
-	fscanf(fop, "%f\t%*s", &alpha);// calibration for wave dissipation (should be 1)
-	fscanf(fop, "%f\t%*s", &gammax);//gammax=2.0f; //maximum ratio Hrms/hh
-	fscanf(fop, "%f\t%*s", &beta);// Roller slope dissipation param
-	fscanf(fop, "%f,%f\t%*s", &fw, &fw2);// Wave bottom dissipation parameters fw is for sand fw2 is for reefs. see cf comments
+	//fscanf(fop, "%f\t%*s", &nuh); // Viscosity coeff or samgo coeff depennding on usesmago
+	//fscanf(fop, "%f\t%*s", &nuhfac);//nuhfac=1.0f;//0.001f; //viscosity coefficient for roller induced turbulent horizontal viscosity// it should be small contrary to what XBeach recommend as default
+	//fscanf(fop, "%d\t%*s", &usesmago);// Uses smagorynsky formulation to calculate viscosity 0: No 1: Yes
+	//fscanf(fop, "%f\t%*s", &lat);// Latitude of the grid use negative for south hemisphere (this implies the grid is small on earth scale)
+	//fscanf(fop, "%f\t%*s", &Cd);// Wind drag coeff
+	//fscanf(fop, "%f\t%*s", &wci); // Wave current interaction switch (can also be used as a number between 0 and 1 to reduce the interaction if unstable)
+	//fscanf(fop, "%f\t%*s", &hwci);// hwci=0.010f;//min depth for wci
+	//fscanf(fop, "%d\t%*s", &breakmod); // Wave dissipation model 1: roelvink 2: Baldock. use 1 for unsteady runs (i.e. with wave group) and use 2 for steady runs
+	//fscanf(fop, "%f\t%*s", &gammaa);// Wave breaking gamma param 
+	//fscanf(fop, "%f\t%*s", &n);// exponential; in Roelving breaking model
+	//fscanf(fop, "%f\t%*s", &alpha);// calibration for wave dissipation (should be 1)
+	//fscanf(fop, "%f\t%*s", &gammax);//gammax=2.0f; //maximum ratio Hrms/hh
+	//fscanf(fop, "%f\t%*s", &beta);// Roller slope dissipation param
+	//fscanf(fop, "%f,%f\t%*s", &fw, &fw2);// Wave bottom dissipation parameters fw is for sand fw2 is for reefs. see cf comments
 	//fscanf(fop,"%f\t%*s",&fw);
-	fscanf(fop, "%f,%f\t%*s", &D50, &D90);// sand grain size in m
+	//fscanf(fop, "%f,%f\t%*s", &D50, &D90);// sand grain size in m
 	//fscanf(fop,"%f\t%*s",&D50);
 	//fscanf(fop,"%f\t%*s",&D90);
-	fscanf(fop, "%f\t%*s", &rhosed);// sand density
-	fscanf(fop, "%f\t%*s", &wws);// sand fall velocity (should be calculated)
-	fscanf(fop, "%f,%f\t%*s", &drydzmax, &wetdzmax);// max slope in avalannching model
+	//fscanf(fop, "%f\t%*s", &rhosed);// sand density
+	//fscanf(fop, "%f\t%*s", &wws);// sand fall velocity (should be calculated)
+	//fscanf(fop, "%f,%f\t%*s", &drydzmax, &wetdzmax);// max slope in avalannching model
 	//fscanf(fop,"%f\t%*s",&drydzmax);
 	//fscanf(fop,"%f\t%*s",&wetdzmax);
-	fscanf(fop, "%f\t%*s", &maxslpchg);// max change within a step to avoid avalanching tsunami
-	fscanf(fop, "%f\t%*s", &por);// sand porosity (should not be constant)
-	fscanf(fop, "%f\t%*s", &morfac);// morphological factor 0 no changes in morphology 1 normal changes in morpho >1 accelerated morphological changes (beware this doesn't accelerate the bnd you have to do this manually)
-	fscanf(fop, "%f,%f\t%*s", &sus, &bed);// calibration coeff for suspended load and bed load
+	//fscanf(fop, "%f\t%*s", &maxslpchg);// max change within a step to avoid avalanching tsunami
+	//fscanf(fop, "%f\t%*s", &por);// sand porosity (should not be constant)
+	//fscanf(fop, "%f\t%*s", &morfac);// morphological factor 0 no changes in morphology 1 normal changes in morpho >1 accelerated morphological changes (beware this doesn't accelerate the bnd you have to do this manually)
+	//fscanf(fop, "%f,%f\t%*s", &sus, &bed);// calibration coeff for suspended load and bed load
 	//fscanf(fop,"%f\t%*s",&sus);
 	//fscanf(fop,"%f\t%*s",&bed);
-	fscanf(fop, "%f,%f\t%*s", &facsk, &facas);// calibration factor for wave skewness and Asymetry
+	//fscanf(fop, "%f,%f\t%*s", &facsk, &facas);// calibration factor for wave skewness and Asymetry
 	//fscanf(fop,"%f\t%*s",&facsk);
 	//fscanf(fop,"%f\t%*s",&facas);
-	fscanf(fop, "%s\t%*s", &HLfile);// Structure file write down "none" if none present
-	fscanf(fop, "%d\t%*s", &wavebndtype); // 1 is quasistationary wave spectrum; 2 is for infrgravity and long bound waves Xbeach type
-	fscanf(fop, "%s\t%*s", &wavebndfile);// wave bnd file see wiki for details
-	fscanf(fop, "%s\t%*s", &slbnd); // tide/surge bnd file
-	fscanf(fop, "%s\t%*s", &windfile); // Wind forcing file
+	//fscanf(fop, "%s\t%*s", &HLfile);// Structure file write down "none" if none present
+	//fscanf(fop, "%d\t%*s", &wavebndtype); // 1 is quasistationary wave spectrum; 2 is for infrgravity and long bound waves Xbeach type
+	//fscanf(fop, "%s\t%*s", &wavebndfile);// wave bnd file see wiki for details
+	//fscanf(fop, "%s\t%*s", &slbnd); // tide/surge bnd file
+	//fscanf(fop, "%s\t%*s", &windfile); // Wind forcing file
 	//fscanf(fop,"%d\t%*s",&npart);
-	fscanf(fop, "%f\t%*s", &sedstart);// which step to start sediment transport and morpho
+	//fscanf(fop, "%f\t%*s", &sedstart);// which step to start sediment transport and morpho
 	//fscanf(fop,"%f\t%*s",&Hplotmax);
 	//fscanf(fop,"%d\t%*s",&nstepplot);
-	fscanf(fop, "%lf\t%*s", &outputtimestep); // output step
-	fscanf(fop, "%lf\t%*s", &endtime);// end step
+	//fscanf(fop, "%lf\t%*s", &outputtimestep); // output step
+	//fscanf(fop, "%lf\t%*s", &endtime);// end step
 	//fscanf(fop,"%d\t%d\t%*s",&iout,&jout);
-	fscanf(fop, "%s\t%*s", &tsoutfile);// output file
-	fclose(fop);
+	//fscanf(fop, "%s\t%*s", &tsoutfile);// output file
+	//fclose(fop);
 
 	//printf("bathy file: %s\n", filename);
 	//printf("Imodel: %d\n", imodel);
@@ -1312,7 +1314,7 @@ int main(int argc, char **argv)
 	printf("bathy: %s\n", XParam.Bathymetryfile.c_str());
 
 	fid = fopen(XParam.Bathymetryfile.c_str(), "r");
-	fscanf(fid, "%u\t%u\t%f\t%*f\t%f", &XParam.nx, &XParam.ny, &XParam.dx, &XParam.grdalpha);
+	fscanf(fid, "%u\t%u\t%lf\t%*f\t%lf", &XParam.nx, &XParam.ny, &XParam.dx, &XParam.grdalpha);
 	printf("nx=%d\tny=%d\tdx=%f\talpha=%f\n", XParam.nx, XParam.ny, XParam.dx, XParam.grdalpha);
 
 	printf("output time step=%f\n", XParam.outputtimestep);
@@ -1327,7 +1329,7 @@ int main(int argc, char **argv)
 	
 	//std::vector<SLBnd> readWLfile(std::string WLfilename);
 	
-	fsl = fopen(slbnd, "r");
+	fsl = fopen(XParam.slbnd.c_str(), "r");
 
 	fscanf(fsl, "%f\t%f", &rtsl, &zsbndold);
 
@@ -1382,7 +1384,7 @@ int main(int argc, char **argv)
 			uu[inod + (jread - 1)*nx] = 0.0f;
 			vv[inod + (jread - 1)*nx] = 0.0f;
 			dzb[inod + (jread - 1)*nx] = 0.0f;
-			cfm[inod + (jread - 1)*nx] = cf;
+			cfm[inod + (jread - 1)*nx] = XParam.cf;
 			stdep[inod + (jread - 1)*nx] = 0.0f;
 			zeros[inod + (jread - 1)*nx] = 0.0f;
 			//fscanf(fiz,"%f",&zs[inod+(jreadzs-1)*nx]);
@@ -1391,7 +1393,7 @@ int main(int argc, char **argv)
 			//zs[inod+(jread-1)*nx]=max(zs[inod+(jreadzs-1)*nx],-1*zb[inod+(jread-1)*nx]);
 
 			zs[inod + (jread - 1)*nx] = max(zsbndold, -1 * zb[inod + (jread - 1)*nx]);
-			hh[inod + (jread - 1)*nx] = max(zb[inod + (jread - 1)*nx] + zsbndold, eps);
+			hh[inod + (jread - 1)*nx] = max(zb[inod + (jread - 1)*nx] + zsbndold, XParam.eps);
 
 
 
@@ -1452,11 +1454,11 @@ int main(int argc, char **argv)
 	//// read Hard layer file
 
 
-	int testfrictfile = strcmp(HLfile, nofrictionfile);
-	if (testfrictfile != 0)
+	//int testfrictfile = strcmp(HLfile, nofrictionfile);
+	if (!XParam.SedThkfile.empty())
 	{
 		printf("Hard layer file found\n");
-		fid = fopen(HLfile, "r");
+		fid = fopen(XParam.SedThkfile.c_str(), "r");
 		int jx, jy;
 		fscanf(fid, "%u\t%u\t%*f\t%*f\t%*f", &jx, &jy, &dx, &grdalpha);
 
@@ -1472,13 +1474,13 @@ int main(int argc, char **argv)
 
 	for (int fnod = ny; fnod >= 1; fnod--)
 	{
-		if (testfrictfile != 0)
+		if (!XParam.SedThkfile.empty())
 		{
 			fscanf(fid, "%u", &jread);
 		}
 		for (int inod = 0; inod < nx; inod++)
 		{
-			if (testfrictfile != 0)
+			if (!XParam.SedThkfile.empty())
 			{
 				fscanf(fid, "%f", &stdep[inod + (jread - 1)*nx]);
 			}
@@ -1490,7 +1492,7 @@ int main(int argc, char **argv)
 
 		}
 	}
-	if (testfrictfile != 0)
+	if (!XParam.SedThkfile.empty())
 	{
 		fclose(fid);
 	}
@@ -1501,7 +1503,7 @@ int main(int argc, char **argv)
 
 	// Read Wind forcing
 	printf("Opening wind bnd\n");
-	fwind = fopen(windfile, "r");
+	fwind = fopen(XParam.windfile.c_str(), "r");
 	fscanf(fwind, "%f\t%f\t%f", &rtwind, &windvold, &windthold);
 	fscanf(fwind, "%f\t%f\t%f", &windtime, &windvnew, &windthnew);
 
@@ -1518,9 +1520,9 @@ int main(int argc, char **argv)
 	//cf=zo;//zo;
 	//lat=-35.0;
 	//calculate coriolis force
-	lat = lat*pi / 180.0f;
+	XParam.lat = XParam.lat*pi / 180.0f;
 	DECNUM wearth = pi*(1.0f / 24.0f) / 1800.0f;
-	fc = 2.0f*wearth*sin(lat);
+	XParam.fc = 2.0f*wearth*sin(XParam.lat);
 
 
 	//gammax=2.0f; //maximum ratio Hrms/hh
@@ -1535,7 +1537,7 @@ int main(int argc, char **argv)
 	//nuh=0.05; // Eddy viscosity [m2/s]
 	//nuhfac=1.0f;//0.001f; //viscosity coefficient for roller induced turbulent horizontal viscosity
 
-	t1 = -(pi) / 2;
+	double t1 = -(pi) / 2.0;
 	//thetamin=-60;
 	//thetamax=60;
 
@@ -1631,14 +1633,14 @@ int main(int argc, char **argv)
 	//ONLY FOR GPU BELOW CPU
 
 
-	if (GPUDEVICE >= 0)
+	if (XParam.GPUDEVICE >= 0)
 	{
 		// Init GPU
 
-		CUDA_CHECK(cudaSetDevice(GPUDEVICE));
+		CUDA_CHECK(cudaSetDevice(XParam.GPUDEVICE));
 
 
-		if (imodel == 1 || imodel > 2)
+		if (XParam.swave == 1)
 		{
 			waveinitGPU(XParam);
 		}
@@ -1745,7 +1747,7 @@ int main(int argc, char **argv)
 	{
 		// Waveinit CPU!!
 
-		if (imodel == 1 || imodel > 2)
+		if (XParam.swave == 1 )
 		{
 			waveinitGPU(XParam);
 		}
@@ -1858,7 +1860,7 @@ int main(int argc, char **argv)
 
 	}
 
-	if (GPUDEVICE >= 0)
+	if (XParam.GPUDEVICE >= 0)
 	{
 
 		////////////////////////////////////////////////////////////////////////////////////////////
@@ -2010,9 +2012,9 @@ int main(int argc, char **argv)
 	}
 
 
-	if (GPUDEVICE >= 0)
+	if (XParam.GPUDEVICE >= 0)
 	{
-		if (imodel == 1 || imodel > 2)
+		if (XParam.swave == 1 )
 		{
 
 			CUDA_CHECK(cudaMemcpy(qbndold_g, qbndold, 4 * ny*sizeof(DECNUM), cudaMemcpyHostToDevice));
@@ -2050,7 +2052,7 @@ int main(int argc, char **argv)
 		printf("gridDim=%i,%i,%i\n", gridDimLine.x, gridDimLine.y, gridDimLine.z);
 
 		//Calculate bottomm friction based on initial hard layer file
-		updatezom << <gridDim, blockDim, 0 >> >(nx, ny, cf, cf2, fw, fw2, stdep_g, cfm_g, fwm_g);
+		updatezom << <gridDim, blockDim, 0 >> >(nx, ny, XParam.cfsand, XParam.cfreef, XParam.fwsand, XParam.fwreef, stdep_g, cfm_g, fwm_g);
 		//CUT_CHECK_ERROR("UpdateZom execution failed\n");`
 		CUDA_CHECK(cudaThreadSynchronize());
 
@@ -2091,8 +2093,17 @@ int main(int argc, char **argv)
 		printf("Initial timestep: dt=%f\n", arrmin[0]);
 
 
+		double tiny = 0.00000001;
+
+		if (dt < tiny)
+		{
+			std::cerr << " Error: timestep too small;" << std::endl;
+			exit(EXIT_FAILURE);
+		}
+
+		XParam.dt = dt;
 		
-		if (imodel == 1 || imodel > 2)
+		if (XParam.swave == 1)
 		{
 			set_bnd << <gridDim, blockDim, 0 >> >(nx, ny, Trep, ntheta, theta_g, sigm_g);
 
@@ -2100,7 +2111,7 @@ int main(int argc, char **argv)
 			CUDA_CHECK(cudaThreadSynchronize());
 
 			//also run dispersion relation, cg is needed in the first iteration of the bnd flow
-			dispersion_init << <gridDim, blockDim, 0 >> >(nx, ny, twopi, g, aphi, bphi, sigm_g, hh_g, cg_g);
+			dispersion_init << <gridDim, blockDim, 0 >> >(nx, ny, twopi, XParam.g, aphi, bphi, sigm_g, hh_g, cg_g);
 			//CUT_CHECK_ERROR("dispersion execution failed\n");
 			CUDA_CHECK(cudaThreadSynchronize());
 
@@ -2112,10 +2123,10 @@ int main(int argc, char **argv)
 
 
 		//Calculate bottomm friction based on initial hard layer file
-		updatezomCPU(nx, ny, cf, cf2, fw, fw2, stdep_g, cfm_g, fwm_g);
+		updatezomCPU(nx, ny, XParam.cfsand, XParam.cfreef, XParam.fwsand, XParam.fwreef, stdep_g, cfm_g, fwm_g);
 
 
-		if (imodel == 1 || imodel > 2)
+		if (XParam.swave == 1 )
 		{
 			set_bndCPU(nx, ny, Trep, ntheta, theta_g, sigm_g);
 
@@ -2129,12 +2140,13 @@ int main(int argc, char **argv)
 	}
 	// prepare output file
 	printf("prepare output");
-	creatncfile(tsoutfile, nx, ny, dx, 0.0f, imodel, zb, zs, uu, vv, H, H, thetamean, uu, uu, uu, uu, uu, uu, uu, hh, uu, uu, uu, uu, uu, uu);
+	//creatncfile(tsoutfile, nx, ny, dx, 0.0f, imodel, zb, zs, uu, vv, H, H, thetamean, uu, uu, uu, uu, uu, uu, uu, hh, uu, uu, uu, uu, uu, uu);
+	creatncfile(XParam, 0.0f, zb, zs, uu, vv, H, H, thetamean, uu, uu, uu, uu, uu, uu, uu, hh, uu, uu, uu, uu, uu, uu);
 
 	//create3dnc(nx,ny,ntheta,dx,0.0f,theta,ctheta);
 
 	istepout = istepout + nstepout; // Depreciated
-	nextoutputtime = nextoutputtime + outputtimestep;
+	nextoutputtime = nextoutputtime + XParam.outputtimestep;
 
 	printf("...done\n");
 
@@ -2156,7 +2168,7 @@ int main(int argc, char **argv)
 
 
 	// Run the model
-	if (GPUDEVICE >= 0)
+	if (XParam.GPUDEVICE >= 0)
 	{
 		mainloopGPU(XParam);
 	}

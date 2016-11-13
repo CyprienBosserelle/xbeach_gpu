@@ -15,17 +15,18 @@
 //along with this program.  If not, see <http://www.gnu.org/licenses/>.         //
 //////////////////////////////////////////////////////////////////////////////////
 
-#include <stdio.h>
-#include <math.h>
-#include <algorithm>
-#include <netcdf.h>
+#include "XBeachGPU.h"
 #define pi 3.14159265
 using DECNUM = float;
 
 
-extern "C" void creatncfile(char outfile[], int nx,int ny,/*int npart,*/DECNUM dx,DECNUM totaltime,int imodel,/*DECNUM * xxp,DECNUM * yyp,*/DECNUM *zb,DECNUM *zs,DECNUM * uu, DECNUM * vv, DECNUM * H,DECNUM * Tp,DECNUM * Dp,DECNUM * D,DECNUM * Urms,DECNUM * ueu,DECNUM * vev,DECNUM * C,DECNUM *Fx, DECNUM *Fy,DECNUM * hh,DECNUM *Hmean,DECNUM *uumean,DECNUM *vvmean,DECNUM *hhmean,DECNUM *zsmean,DECNUM *Cmean)
+extern "C" void creatncfile(XBGPUParam XParam, DECNUM totaltime, DECNUM *zb, DECNUM *zs, DECNUM * uu, DECNUM * vv, DECNUM * H, DECNUM * Tp, DECNUM * Dp, DECNUM * D, DECNUM * Urms, DECNUM * ueu, DECNUM * vev, DECNUM * C, DECNUM *Fx, DECNUM *Fy, DECNUM * hh, DECNUM *Hmean, DECNUM *uumean, DECNUM *vvmean, DECNUM *hhmean, DECNUM *zsmean, DECNUM *Cmean)
 {               
 	int status;
+	int nx = XParam.nx;
+	int ny = XParam.ny;
+	double dx = XParam.dx;
+
    	int ncid,xx_dim,yy_dim,time_dim,p_dim;
 	size_t nxx,nyy,nnpart;
 	int  var_dimids[3], var_dimzb[2];
@@ -65,7 +66,7 @@ extern "C" void creatncfile(char outfile[], int nx,int ny,/*int npart,*/DECNUM d
 
 
 	//create the netcdf dataset
-	status = nc_create(outfile, NC_NOCLOBBER, &ncid);
+	status = nc_create(XParam.outfile.c_str(), NC_NOCLOBBER, &ncid);
 	
 	//Define dimensions: Name and length
 	
@@ -91,7 +92,7 @@ extern "C" void creatncfile(char outfile[], int nx,int ny,/*int npart,*/DECNUM d
 	status = nc_def_var (ncid, "y", NC_FLOAT,1,ydim, &yy_id);
 	//status = nc_def_var (ncid, "xxp", NC_FLOAT,2,pdim, &xxp_id);
 	//status = nc_def_var (ncid, "yyp", NC_FLOAT,2,pdim, &yyp_id);
-	if(imodel==4)
+	if(XParam.morphology == 1)
 	{
 		status = nc_def_var (ncid, "zb", NC_FLOAT, 3, var_dimids, &zb_id);
 		status = nc_def_var (ncid, "dzb", NC_FLOAT, 3, var_dimids, &dzb_id);
@@ -135,7 +136,7 @@ extern "C" void creatncfile(char outfile[], int nx,int ny,/*int npart,*/DECNUM d
 	status = nc_put_vara_float(ncid, yy_id,ystart,ycount, yval);
 	//status = nc_put_vara_float(ncid, xxp_id,pstart,pcount, xxp);
 	//status = nc_put_vara_float(ncid, yyp_id,pstart,pcount, yyp);
-	if(imodel==4)
+	if (XParam.morphology == 1)
 	{
 		status = nc_put_vara_float(ncid, zb_id, start, count, zb);
 		status = nc_put_vara_float(ncid, dzb_id, start, count, H);
@@ -171,9 +172,14 @@ extern "C" void creatncfile(char outfile[], int nx,int ny,/*int npart,*/DECNUM d
 	//close and save new file
 	status = nc_close(ncid);  
 }
-extern "C" void writestep2nc(char outfile[], int nx,int ny,/*int npart,*/DECNUM totaltime,int imodel/*,DECNUM *xxp,DECNUM *yyp*/,DECNUM *zb,DECNUM *zs,DECNUM * uu, DECNUM * vv, DECNUM * H,DECNUM * Tp,DECNUM * Dp,DECNUM * D,DECNUM * Urms,DECNUM *ueu,DECNUM * vev,DECNUM * C,DECNUM *dzb, DECNUM *Fx, DECNUM *Fy,DECNUM *hh,DECNUM *Hmean,DECNUM *uumean,DECNUM *vvmean,DECNUM *hhmean,DECNUM *zsmean,DECNUM *Cmean)
+extern "C" void writestep2nc(XBGPUParam XParam, DECNUM totaltime,DECNUM *zb,DECNUM *zs,DECNUM * uu, DECNUM * vv, DECNUM * H,DECNUM * Tp,DECNUM * Dp,DECNUM * D,DECNUM * Urms,DECNUM *ueu,DECNUM * vev,DECNUM * C,DECNUM *dzb, DECNUM *Fx, DECNUM *Fy,DECNUM *hh,DECNUM *Hmean,DECNUM *uumean,DECNUM *vvmean,DECNUM *hhmean,DECNUM *zsmean,DECNUM *Cmean)
 {
 	int status;
+
+	int nx = XParam.nx;
+	int ny = XParam.ny;
+	double dx = XParam.dx;
+
    	int ncid,time_dim,recid;
 	size_t nxx,nyy;
 	int dzb_id,zb_id,zs_id,uu_id,vv_id,H_id,Tp_id,Dp_id,D_id,Urms_id,ueu_id,vev_id,time_id,xxp_id,yyp_id,C_id,Fx_id,Fy_id,hh_id,Hmean_id,uumean_id,vvmean_id,hhmean_id,zsmean_id,Cmean_id;
@@ -188,7 +194,7 @@ extern "C" void writestep2nc(char outfile[], int nx,int ny,/*int npart,*/DECNUM 
 
 	
 	static size_t nrec;
-	status = nc_open(outfile, NC_WRITE, &ncid);
+	status = nc_open(XParam.outfile.c_str(), NC_WRITE, &ncid);
 	
 	//read id from time dimension
 	status = nc_inq_unlimdim(ncid, &recid);
@@ -197,7 +203,7 @@ extern "C" void writestep2nc(char outfile[], int nx,int ny,/*int npart,*/DECNUM 
 
 	//read file for variable ids
 	status = nc_inq_varid(ncid, "time", &time_id);
-	if(imodel==4)
+	if(XParam.morphology == 1)
 	{
 		status = nc_inq_varid(ncid, "zb", &zb_id);
 		status = nc_inq_varid(ncid, "dzb", &dzb_id);
@@ -233,7 +239,7 @@ extern "C" void writestep2nc(char outfile[], int nx,int ny,/*int npart,*/DECNUM 
 
 	//Provide values for variables
 	status = nc_put_var1_float(ncid, time_id,tst,&totaltime);
-	if(imodel==4)
+	if (XParam.morphology == 1)
 	{
 		status = nc_put_vara_float(ncid, zb_id, start, count, zb);
 		status = nc_put_vara_float(ncid, dzb_id, start, count, dzb);

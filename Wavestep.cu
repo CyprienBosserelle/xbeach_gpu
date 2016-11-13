@@ -29,16 +29,16 @@ void waveinitGPU(XBGPUParam Param)
 	//Wave input bnd
 	printf("Opening wave bnd\n");
 
-	if (wavebndtype == 1)
+	if (Param.wavebndtype == 1)
 	{
 
-		readbndhead(wavebndfile, thetamin, thetamax, dtheta, dtwavbnd, nwavbnd);
+		readbndhead(Param.wavebndfile.c_str(), thetamin, thetamax, dtheta, dtwavbnd, nwavbnd);
 
 
 	}
 	else
 	{
-		readXbbndhead(wavebndfile, thetamin, thetamax, dtheta, dtwavbnd, nwavbnd, nwavfile);
+		readXbbndhead(Param.wavebndfile.c_str(), thetamin, thetamax, dtheta, dtwavbnd, nwavbnd, nwavfile);
 
 	}
 
@@ -108,18 +108,18 @@ void waveinitGPU(XBGPUParam Param)
 
 
 	printf("Reading bnd data\n");
-	if (wavebndtype == 1)
+	if (Param.wavebndtype == 1)
 	{
-		readStatbnd(nx, ny, ntheta, Param.rho, Param.g, wavebndfile, Tpfile, Stfile);
+		readStatbnd(nx, ny, ntheta, Param.rho, Param.g, Param.wavebndfile.c_str(), Tpfile, Stfile);
 		Trepold = Tpfile[0];
 		Trepnew = Tpfile[1];
 		rt = dtwavbnd;
 
 	}
 
-	if (wavebndtype == 2)
+	if (Param.wavebndtype == 2)
 	{
-		readXbbndstep(nx, ny, ntheta, wavebndfile, 1, Trepold, qfile, Stfile);
+		readXbbndstep(nx, ny, ntheta, Param.wavebndfile.c_str(), 1, Trepold, qfile, Stfile);
 
 
 		for (int ni = 0; ni < ny; ni++)
@@ -235,9 +235,9 @@ void wavebnd(XBGPUParam Param)
 
 	if (totaltime >= dtwavbnd*(nwavbnd*wxstep - 1))//The -1 here is so that we read the next file before the last step of the previous file runs out
 	{
-		if (wavebndtype == 2)
+		if (Param.wavebndtype == 2)
 		{
-			readXbbndstep(nx, ny, ntheta, wavebndfile, wxstep, Trep, qfile, Stfile);
+			readXbbndstep(nx, ny, ntheta, Param.wavebndfile.c_str(), wxstep, Trep, qfile, Stfile);
 
 		}
 		nwbndstep = 0;
@@ -252,7 +252,7 @@ void wavebnd(XBGPUParam Param)
 				Stold[ni + itheta*ny] = Stfile[ni + itheta*ny + nwbndstep*ny*ntheta];
 				Stnew[ni + itheta*ny] = Stfile[ni + itheta*ny + (nwbndstep + 1)*ny*ntheta];
 			}
-			if (wavebndtype == 2)
+			if (Param.wavebndtype == 2)
 			{
 				for (int xi = 0; xi < 4; xi++)
 				{
@@ -302,14 +302,14 @@ void wavebnd(XBGPUParam Param)
 
 				Stnew[ni + i*ny] = Stfile[ni + i*ny + nwbndstep*ntheta*ny];
 
-				if (wavebndtype == 1)
+				if (Param.wavebndtype == 1)
 				{
 
 					Trep = Tpfile[nwbndstep];
 				}
 			}
 		}
-		if (wavebndtype == 2)
+		if (Param.wavebndtype == 2)
 		{
 			for (int ni = 0; ni < ny; ni++)
 			{
@@ -319,7 +319,7 @@ void wavebnd(XBGPUParam Param)
 					qbndnew[ni + xi*ny] = qfile[ni + xi*ny + nwbndstep*ny * 4];
 				}
 			}
-			if (GPUDEVICE >= 0)
+			if (Param.GPUDEVICE >= 0)
 			{
 				CUDA_CHECK(cudaMemcpy(qbndold_g, qbndold, 4 * ny*sizeof(DECNUM), cudaMemcpyHostToDevice));
 				CUDA_CHECK(cudaMemcpy(qbndnew_g, qbndnew, 4 * ny*sizeof(DECNUM), cudaMemcpyHostToDevice));
@@ -347,7 +347,7 @@ void wavebnd(XBGPUParam Param)
 	//printf("Wave timestep:%f\n",wdt);
 	//Wave model step
 	//wavestep();
-	nwstp = nstep + nstpw;
+	//nwstp = nstep + nstpw;
 	//wdt = dt;
 	//}
 
@@ -359,6 +359,7 @@ void wavestep(XBGPUParam Param)
 	int nx, ny;
 	nx = Param.nx;
 	ny = Param.ny;
+	double dt = Param.dt;
 	//Subroutine runs the wave model
 
 	dim3 blockDim(16, 16, 1);
@@ -572,7 +573,7 @@ void wavestep(XBGPUParam Param)
 	//  Total dissipation from breaking  and bottom friction
 	//
 
-	if (breakmod == 1)
+	if (Param.breakmodel == 1)
 	{
 		roelvink << <gridDim, blockDim, 0 >> >(nx, ny, Param.rho, Param.g, Param.gammaa, Param.alpha, Param.n, Trep, fwm_g, cfm_g, hh_g, H_g, E_g, D_g, k_g);
 		//CUT_CHECK_ERROR("roelvink execution failed\n");
@@ -778,7 +779,7 @@ void wavestepCPU(XBGPUParam Param)
 
 
 	// Wave current interaction	(i.e remove wci in shallow water)
-	calcwciCPU(nx, ny, Param.wci, hwci, hh_g, wci_g);
+	calcwciCPU(nx, ny, Param.wci, Param.hwci, hh_g, wci_g);
 	//printf("%f\t",ee_g[0+16*nx+6*nx*ny]);
 
 	// Slopes of water depth and velocities
@@ -798,14 +799,14 @@ void wavestepCPU(XBGPUParam Param)
 
 
 	// Upwind Euler timestep propagation
-	xadvecupwind2CPU(nx, ny, ntheta, dtheta, Param.dx, dt, wci_g, ee_g, cg_g, cxsth_g, uu_g, xadvec_g);
+	xadvecupwind2CPU(nx, ny, ntheta, dtheta, Param.dx, Param.dt, wci_g, ee_g, cg_g, cxsth_g, uu_g, xadvec_g);
 
-	yadvecupwind2CPU(nx, ny, ntheta, dtheta, Param.dx, dt, wci_g, ee_g, cg_g, sxnth_g, vv_g, yadvec_g);
+	yadvecupwind2CPU(nx, ny, ntheta, dtheta, Param.dx, Param.dt, wci_g, ee_g, cg_g, sxnth_g, vv_g, yadvec_g);
 
-	thetaadvecuw2hoCPU(nx, ny, ntheta, dtheta, Param.dx, dt, Param.wci, ee_g, ctheta_g, thetaadvec_g);
+	thetaadvecuw2hoCPU(nx, ny, ntheta, dtheta, Param.dx, Param.dt, Param.wci, ee_g, ctheta_g, thetaadvec_g);
 
 	//Apply advection
-	eulerupwindCPU(nx, ny, ntheta, dtheta, Param.dx, dt, Param.wci, ee_g, xadvec_g, yadvec_g, thetaadvec_g);
+	eulerupwindCPU(nx, ny, ntheta, dtheta, Param.dx, Param.dt, Param.wci, ee_g, xadvec_g, yadvec_g, thetaadvec_g);
 
 	//Fix lateraL BND
 	rollerlatbndCPU(nx, ny, ntheta, Param.eps, hh_g, ee_g);
@@ -843,20 +844,20 @@ void wavestepCPU(XBGPUParam Param)
 	//  Calculate roller energy balance
 	if (roller == 1)
 	{
-		xadvecupwind2CPU(nx, ny, ntheta, dtheta, Param.dx, dt, wci_g, rr_g, c_g, cxsth_g, uu_g, xadvec_g);
+		xadvecupwind2CPU(nx, ny, ntheta, dtheta, Param.dx, Param.dt, wci_g, rr_g, c_g, cxsth_g, uu_g, xadvec_g);
 
-		yadvecupwind2CPU(nx, ny, ntheta, dtheta, Param.dx, dt, wci_g, rr_g, c_g, sxnth_g, vv_g, yadvec_g);
+		yadvecupwind2CPU(nx, ny, ntheta, dtheta, Param.dx, Param.dt, wci_g, rr_g, c_g, sxnth_g, vv_g, yadvec_g);
 
-		thetaadvecuw2hoCPU(nx, ny, ntheta, dtheta, Param.dx, dt, Param.wci, rr_g, ctheta_g, thetaadvec_g);
+		thetaadvecuw2hoCPU(nx, ny, ntheta, dtheta, Param.dx, Param.dt, Param.wci, rr_g, ctheta_g, thetaadvec_g);
 
-		eulerupwindCPU(nx, ny, ntheta, dtheta, Param.dx, dt, Param.wci, rr_g, xadvec_g, yadvec_g, thetaadvec_g);
+		eulerupwindCPU(nx, ny, ntheta, dtheta, Param.dx, Param.dt, Param.wci, rr_g, xadvec_g, yadvec_g, thetaadvec_g);
 
 		rollerlatbndCPU(nx, ny, ntheta, Param.eps, hh_g, rr_g);
 
 	}
 
 	//  Distribution of dissipation over directions and frequencies
-	dissipationCPU(nx, ny, ntheta, dtheta, Param.eps, dt, Param.g, Param.beta, wci_g, hh_g, ee_g, D_g, E_g, rr_g, c_g, cxsth_g, sxnth_g, uu_g, vv_g, DR_g, R_g);
+	dissipationCPU(nx, ny, ntheta, dtheta, Param.eps, Param.dt, Param.g, Param.beta, wci_g, hh_g, ee_g, D_g, E_g, rr_g, c_g, cxsth_g, sxnth_g, uu_g, vv_g, DR_g, R_g);
 
 	//Fix lateraL BND
 	rollerlatbndCPU(nx, ny, ntheta, Param.eps, hh_g, ee_g);
