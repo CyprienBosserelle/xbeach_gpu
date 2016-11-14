@@ -281,6 +281,13 @@ XBGPUParam readparamstr(std::string line, XBGPUParam param)
 		param.hwci = std::stod(parametervalue);
 	}
 
+	parameterstr = "fc =";
+	parametervalue = findparameter(parameterstr, line);
+	if (!parametervalue.empty())
+	{
+		param.hwci = std::stod(parametervalue);
+	}
+
 	///////////////////////////////////////////////////////
 	// Wave parameters
 	//
@@ -514,6 +521,23 @@ XBGPUParam readparamstr(std::string line, XBGPUParam param)
 		//std::cerr << "Bathymetry file found!" << std::endl;
 	}
 
+	parameterstr = "slbndfile =";
+	parametervalue = findparameter(parameterstr, line);
+	if (!parametervalue.empty())
+	{
+		param.slbnd = parametervalue;
+		//std::cerr << "Bathymetry file found!" << std::endl;
+	}
+
+	parameterstr = "windbndfile =";
+	parametervalue = findparameter(parameterstr, line);
+	if (!parametervalue.empty())
+	{
+		param.windfile = parametervalue;
+		//std::cerr << "Bathymetry file found!" << std::endl;
+	}
+	
+
 	parameterstr = "wavebndtype =";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
@@ -521,18 +545,72 @@ XBGPUParam readparamstr(std::string line, XBGPUParam param)
 		param.wavebndtype = std::stoi(parametervalue);
 	}
 
+	//Other parameters
+	parameterstr = "GPUDEVICE =";
+	parametervalue = findparameter(parameterstr, line);
+	if (!parametervalue.empty())
+	{
+		param.GPUDEVICE= std::stoi(parametervalue);
+	}
+
+	parameterstr = "nx =";
+	parametervalue = findparameter(parameterstr, line);
+	if (!parametervalue.empty())
+	{
+		param.nx = std::stoi(parametervalue);
+	}
+
+	parameterstr = "ny =";
+	parametervalue = findparameter(parameterstr, line);
+	if (!parametervalue.empty())
+	{
+		param.ny = std::stoi(parametervalue);
+	}
+
+	parameterstr = "dx =";
+	parametervalue = findparameter(parameterstr, line);
+	if (!parametervalue.empty())
+	{
+		param.dx = std::stod(parametervalue);
+	}
+
+	parameterstr = "grdalpha =";
+	parametervalue = findparameter(parameterstr, line);
+	if (!parametervalue.empty())
+	{
+		param.grdalpha = std::stod(parametervalue);
+	}
+
+	parameterstr = "g =";
+	parametervalue = findparameter(parameterstr, line);
+	if (!parametervalue.empty())
+	{
+		param.dx = std::stod(parametervalue);
+	}
+
+	parameterstr = "rho =";
+	parametervalue = findparameter(parameterstr, line);
+	if (!parametervalue.empty())
+	{
+		param.dx = std::stod(parametervalue);
+	}
 
 	return param;
 }
 
 XBGPUParam checkparamsanity(XBGPUParam param)
 {
-	//First check that a bathy file was specified
+	//First check that a bathy file was specified otherwise Fatal error
 	if (param.Bathymetryfile.empty())
 	{
 		std::cerr << "No bathymetry file specified. Please specify using 'bathy = Filename.bot'" << std::endl;
 		exit(1);
 	}
+
+	// Other parameters can be used as default but the model is likely to crash??
+
+
+
 
 	return param;
 }

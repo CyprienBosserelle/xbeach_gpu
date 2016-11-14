@@ -1229,7 +1229,7 @@ int main(int argc, char **argv)
 	fs.close();
 
 	XParam = checkparamsanity(XParam);
-	std::cout << XParam.Bathymetryfile << std::endl;
+	//std::cout << XParam.Bathymetryfile << std::endl;
 
 	///
 	//nstpw = 1;

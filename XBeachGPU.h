@@ -34,7 +34,7 @@ class XBGPUParam{
 public:
 	
 	//General parameters 
-	int modeltype;// Type of model: 1: wave only; 2: currents only 3: waves+currents 4:waves+currents+sediment(+ morphology if morfac>0) //Obsolete Need to remove
+	//int modeltype;// Type of model: 1: wave only; 2: currents only 3: waves+currents 4:waves+currents+sediment(+ morphology if morfac>0) //Obsolete Need to remove
 	int swave=1, flow=1, sedtrans=0, morphology=0;
 	int GPUDEVICE=0;// What GPU device to use default is the firt one availabe (i.e. 0) CPU only should be -1 (not operational yet) and 1 for second GPU etc...
 	int nx, ny; // grid size
@@ -46,26 +46,26 @@ public:
 	double rho = 1025.0;
 	double eps=0.01;//drying height in m
 	double cf = 0.01; // bottom friction for flow model cf 
-	double cfsand, cfreef;// bottom friction for sand and for reef area (Reef and sand discrimination is done based on sediment thickness file if none is present cf2 cannot be used )
+	double cfsand = 0.0, cfreef=0.0;// bottom friction for sand and for reef area (Reef and sand discrimination is done based on sediment thickness file if none is present cf2 cannot be used )
 	double nuh = 1.0;// Viscosity coeff ,
-	double nuhfac=1.0;//nuhfac=1.0f;//0.001f; //viscosity coefficient for roller induced turbulent horizontal viscosity// it should be small contrary to what XBeach recommend as default
-	int usesmago=0;// Uses smagorynsky formulation to calculate viscosity 0: No 1: Yes
-	double smag=1.0; // Smagorinsky coeff only used if usesmago = 1
-	double lat=0.0; // Latitude of the grid use negative for south hemisphere (this implies the grid is small on earth scale)
+	double nuhfac = 1.0;//nuhfac=1.0f;//0.001f; //viscosity coefficient for roller induced turbulent horizontal viscosity// it should be small contrary to what XBeach recommend as default
+	int usesmago = 0;// Uses smagorynsky formulation to calculate viscosity 0: No 1: Yes
+	double smag = 0.3; // Smagorinsky coeff only used if usesmago = 1
+	double lat = 0.0; // Latitude of the grid use negative for south hemisphere (this implies the grid is small on earth scale)
 	double fc = 0.0;
-	double Cd=0.002; // Wind drag coeff
+	double Cd = 0.002; // Wind drag coeff
 	double wci = 0;// Wave current interaction switch (can also be used as a number between 0 and 1 to reduce the interaction if unstable) 
-	double hwci=0.1; // hwci=0.010f;//min depth for wci
+	double hwci = 0.1; // hwci=0.010f;//min depth for wci
 
 	//Wave parameters
-	int breakmodel=1;// Wave dissipation model 1: roelvink 2: Baldock. use 1 for unsteady runs (i.e. with wave group) and use 2 for steady runs
-	double gammaa=0.6; // Wave breaking gamma param 
-	double n=8.0; // exponential; in Roelving breaking model
-	double alpha=1.0; // calibration for wave dissipation (should be 1)
-	double gammax=2.0; //gammax=2.0f; //maximum ratio Hrms/hh
-	double beta=0.15; // Roller slope dissipation param
-	double fw=0.001;//Wave bottom dissipation parameters fw 
-	double fwsand, fwreef; //Wave bottom dissipation parameters fw is for sand fw2 is for reefs.see cf comments
+	int breakmodel = 1;// Wave dissipation model 1: roelvink 2: Baldock. use 1 for unsteady runs (i.e. with wave group) and use 2 for steady runs
+	double gammaa = 0.6; // Wave breaking gamma param 
+	double n = 8.0; // exponential; in Roelving breaking model
+	double alpha = 1.0; // calibration for wave dissipation (should be 1)
+	double gammax = 2.0; //gammax=2.0f; //maximum ratio Hrms/hh
+	double beta = 0.15; // Roller slope dissipation param
+	double fw = 0.001;//Wave bottom dissipation parameters fw 
+	double fwsand = 0.0, fwreef = 0.0; //Wave bottom dissipation parameters fw is for sand fw2 is for reefs.see cf comments
 	
 	//Sediment parameters
 	double D50=0.00038, D90=0.00053; // sand grain size in m
@@ -80,25 +80,29 @@ public:
 
 	// File
 	std::string Bathymetryfile;// bathymetry file name
-	std::string SedThkfile; // Structure file write down "none" if none present
+	std::string SedThkfile; // Structure file 
 	std::string wavebndfile;// wave bnd file
 	int wavebndtype = 2; // 1 is quasistationary wave spectrum; 2 is for infrgravity and long bound waves Xbeach type
 	std::string slbnd; // tide/surge bnd file
 	std::string windfile; // Wind forcing file
-	std::string outfile; //outputfile
+	std::string outfile = "XBGPU_output.nc"; //outputfile
 	
 
 	//Timekeeping
-	double dt, CFL=0.7;// Model time step in s. either one should be defined if both then dt is constant
+	double dt=0.0, CFL=0.7;// Model time step in s. either one should be defined if both then dt is constant
 	double sedstart=3600.0;// time to start sediment transport and morpho
 	double outputtimestep=0.0; //number of seconds between output 0.0 for none
 	double endtime=0.0; // Total runtime in s will be calculated based on bnd input as min(length of the shortest time series, user defined)
 	
 };
+
+
 class SLBnd {
 public:
 	double time, wlev;
 };
+
+
 class WindBnd{
 public:
 	double U, V, spd, dir;
