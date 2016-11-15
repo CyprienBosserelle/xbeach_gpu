@@ -2049,7 +2049,7 @@ int main(int argc, char **argv)
 		
 
 		printf("gridDim=%i,%i,%i\n", gridDim.x, gridDim.y, gridDim.z);
-		printf("gridDim=%i,%i,%i\n", gridDimLine.x, gridDimLine.y, gridDimLine.z);
+		//printf("gridDim=%i,%i,%i\n", gridDimLine.x, gridDimLine.y, gridDimLine.z);
 
 		//Calculate bottomm friction based on initial hard layer file
 		updatezom << <gridDim, blockDim, 0 >> >(nx, ny, XParam.cfsand, XParam.cfreef, XParam.fwsand, XParam.fwreef, stdep_g, cfm_g, fwm_g);

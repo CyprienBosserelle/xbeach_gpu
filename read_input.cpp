@@ -129,6 +129,40 @@ extern "C" void readStatbnd(int nx, int ny, int ntheta, DECNUM rho, DECNUM g, co
 
 }
 
+std::vector<SLBnd> readWLfile(std::string WLfilename)
+{
+	std::vector<SLBnd> slbnd;
+
+	std::ifstream fs(WLfilename);
+
+	if (fs.fail()){
+		std::cerr << WLfilename << " Water level bnd file could not be opened" << std::endl;
+		exit(1);
+	}
+
+	std::string line;
+	SLBnd slbndline;
+	while (std::getline(fs, line))
+	{
+		//std::cout << line << std::endl;
+
+		// skip empty lines
+		if (!line.empty())
+		{
+			//Data should be in teh format :
+			//BASIN,CY,YYYYMMDDHH,TECHNUM/MIN,TECH,TAU,LatN/S,LonE/W,VMAX,MSLP,TY,RAD,WINDCODE,RAD1,RAD2,RAD3,RAD4,RADP,RRP,MRD,GUSTS,EYE,SUBREGION,MAXSEAS,INITIALS,DIR,SPEED,STORMNAME,DEPTH,SEAS,SEASCODE,SEAS1,SEAS2,SEAS3,SEAS4,USERDEFINED,userdata
+
+			slbndline = readBSHline(line);
+			slbnd.push_back(slbndline);
+			//std::cout << line << std::endl;
+		}
+
+	}
+	fs.close();
+
+	return slbnd;
+}
+
 XBGPUParam readparamstr(std::string line, XBGPUParam param)
 {
 
