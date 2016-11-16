@@ -105,7 +105,10 @@ public:
 
 class WindBnd{
 public:
-	double time,U, V, spd, dir;
+	double time; // time in s
+	double U, V; // U and V wind in m/s relative to the grid
+	double spd, dir; //speed in m/s and dir in deg relative to true North
+	double theta; // wind direction in rad relative to the grid y axis
 };
 
 
@@ -177,6 +180,7 @@ std::vector<std::string> split(const std::string &s, char delim);
 std::string trim(const std::string& str, const std::string& whitespace);
 XBGPUParam checkparamsanity(XBGPUParam param);
 std::vector<SLBnd> readWLfile(std::string WLfilename);
+std::vector<WindBnd> readWNDfile(std::string WNDfilename, double grdalpha);
 double interptime(double next, double prev, double timenext, double time);
 
 
@@ -193,7 +197,7 @@ template <class T> const T& max (const T& a, const T& b);
 extern "C"
 void waveinitGPU(XBGPUParam Param);
 void wavebnd(XBGPUParam Param);
-void flowbnd(XBGPUParam Param, std::vector<SLBnd> slbnd);
+void flowbnd(XBGPUParam Param, std::vector<SLBnd> slbnd, std::vector<WindBnd> wndbnd);
 void wavestep(XBGPUParam Param);
 void flowstep(XBGPUParam Param);
 void sedimentstep(XBGPUParam Param);

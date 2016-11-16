@@ -1107,7 +1107,7 @@ __global__ void viscovbnd(int nx, int ny, DECNUM * viscv)
 
 
 
-__global__ void eulerustep(int nx, int ny, DECNUM dx, DECNUM dt, DECNUM g, DECNUM rho, DECNUM * zo, DECNUM fc, DECNUM windth, DECNUM windv, DECNUM Cd, DECNUM *uu, DECNUM * urms, DECNUM *ududx, DECNUM *vdudy, DECNUM *viscu, DECNUM *dzsdx, DECNUM *hu, DECNUM *hum, DECNUM *Fx, DECNUM *vu, DECNUM * ueu_g, DECNUM * vmageu, int *wetu)
+__global__ void eulerustep(int nx, int ny, DECNUM dx, DECNUM dt, DECNUM g, DECNUM rho, DECNUM * zo, DECNUM fc, DECNUM windv, DECNUM Cd, DECNUM *uu, DECNUM * urms, DECNUM *ududx, DECNUM *vdudy, DECNUM *viscu, DECNUM *dzsdx, DECNUM *hu, DECNUM *hum, DECNUM *Fx, DECNUM *vu, DECNUM * ueu_g, DECNUM * vmageu, int *wetu)
 {
 	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
 	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
@@ -1143,7 +1143,7 @@ __global__ void eulerustep(int nx, int ny, DECNUM dx, DECNUM dt, DECNUM g, DECNU
 		{
 			taubx = zo[i] * rho*ueu*sqrtf(1.3456f*urms[i] * urms[i] + vmageu[i] * vmageu[i]);
 
-			uui[tx][ty] = uui[tx][ty] - dt*(ududx[i] + vdudy[i] - viscu[i] + g*dzsdx[i] + taubx / (rho*hu[i]) - Fx[i] / (rho*max(hum[i], hmin)) - 1.25f*Cd*cosf(windth)*windv*windv / (rho*hum[i]) - fc*vu[i]);
+			uui[tx][ty] = uui[tx][ty] - dt*(ududx[i] + vdudy[i] - viscu[i] + g*dzsdx[i] + taubx / (rho*hu[i]) - Fx[i] / (rho*max(hum[i], hmin)) - 1.25f*Cd*windv/abs(windv)*windv*windv / (rho*hum[i]) - fc*vu[i]);
 
 			//viscu[i]=taubx;
 
@@ -1163,7 +1163,7 @@ __global__ void eulerustep(int nx, int ny, DECNUM dx, DECNUM dt, DECNUM g, DECNU
 
 }
 
-__global__ void eulervstep(int nx, int ny, DECNUM dx, DECNUM dt, DECNUM g, DECNUM rho, DECNUM * zo, DECNUM fc, DECNUM windth, DECNUM windv, DECNUM Cd, DECNUM *vv, DECNUM * urms, DECNUM *udvdx, DECNUM *vdvdy, DECNUM *viscv, DECNUM *dzsdy, DECNUM *hv, DECNUM *hvm, DECNUM *Fy, DECNUM *uv, DECNUM * vev_g, DECNUM * vmagev, int *wetv)
+__global__ void eulervstep(int nx, int ny, DECNUM dx, DECNUM dt, DECNUM g, DECNUM rho, DECNUM * zo, DECNUM fc, DECNUM windv, DECNUM Cd, DECNUM *vv, DECNUM * urms, DECNUM *udvdx, DECNUM *vdvdy, DECNUM *viscv, DECNUM *dzsdy, DECNUM *hv, DECNUM *hvm, DECNUM *Fy, DECNUM *uv, DECNUM * vev_g, DECNUM * vmagev, int *wetv)
 {
 	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
 	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
@@ -1200,7 +1200,7 @@ __global__ void eulervstep(int nx, int ny, DECNUM dx, DECNUM dt, DECNUM g, DECNU
 			vev = vev_g[i];
 
 			tauby = zo[i] * rho*vev*sqrtf(1.3456f*urmsi[tx][ty] * urmsi[tx][ty] + vmagvi[tx][ty] * vmagvi[tx][ty]);
-			vvi[tx][ty] = vvi[tx][ty] - dt*(udvdx[i] + vdvdy[i] - viscv[i] + g*dzsdy[i] + tauby / (rho*hv[i]) - Fy[i] / (rho*max(hvmi[tx][ty], hmin)) + fc*uv[i] - 1.25f*Cd*sinf(windth)*windv*windv / (rho*hvmi[tx][ty]));
+			vvi[tx][ty] = vvi[tx][ty] - dt*(udvdx[i] + vdvdy[i] - viscv[i] + g*dzsdy[i] + tauby / (rho*hv[i]) - Fy[i] / (rho*max(hvmi[tx][ty], hmin)) + fc*uv[i] - 1.25f*Cd * windv / abs(windv) * windv * windv / (rho*hvmi[tx][ty]));
 
 			//viscv[i]=tauby;
 

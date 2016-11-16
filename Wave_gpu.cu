@@ -74,7 +74,7 @@ DECNUM wavbndtime;
 DECNUM slbndtime;
 DECNUM windtime;
 
-int SLstepinbnd;
+int SLstepinbnd, WNDstepinbnd;
 //DECNUM Cd; //Wind drag
 DECNUM fp, hm0gew, mainang, rt, scoeff, gam;
 int nwavbnd, nwavfile;
@@ -163,10 +163,11 @@ DECNUM * zsbnd;
 DECNUM rtsl;
 DECNUM zsbndnew, zsbndold;
 
-DECNUM windth, windthold, windv, windvold, windvnew, windthnew, rtwind;
-FILE * fsl;
+
+DECNUM windu, windv;
+
 FILE * fwav;
-FILE * fwind;
+
 
 FILE * Tsout;
 //FILE * fXq,* fXE;
@@ -269,7 +270,7 @@ exit(EXIT_FAILURE);
 
 
 // Main loop that actually runs the model
-void mainloopGPU(XBGPUParam Param, std::vector<SLBnd> slbnd)
+void mainloopGPU(XBGPUParam Param, std::vector<SLBnd> slbnd, std::vector<WindBnd> wndbnd)
 {
 	double dt = Param.dt;
 	int nx, ny;
@@ -359,7 +360,7 @@ void mainloopGPU(XBGPUParam Param, std::vector<SLBnd> slbnd)
 
 		if (Param.flow == 1)
 		{
-			flowbnd(Param,slbnd);// Calculate the flow boundary for this step
+			flowbnd(Param, slbnd, wndbnd);// Calculate the flow boundary for this step
 		}
 
 		if (Param.swave == 1 )
@@ -511,7 +512,7 @@ void mainloopGPU(XBGPUParam Param, std::vector<SLBnd> slbnd)
 }
 
 
-void mainloopCPU(XBGPUParam Param,std::vector<SLBnd> slbnd)
+void mainloopCPU(XBGPUParam Param,std::vector<SLBnd> slbnd, std::vector<WindBnd> wndbnd)
 {
 	printf("Computing CPU mode\n");
 
@@ -535,7 +536,7 @@ void mainloopCPU(XBGPUParam Param,std::vector<SLBnd> slbnd)
 
 		if (Param.flow == 1)
 		{
-			flowbnd(Param,slbnd);// Calculate the flow boundary for this step
+			flowbnd(Param,slbnd,wndbnd);// Calculate the flow boundary for this step
 		}
 		if (Param.swave == 1)
 		{
@@ -592,7 +593,7 @@ void mainloopCPU(XBGPUParam Param,std::vector<SLBnd> slbnd)
 
 
 
-void flowbnd(XBGPUParam Param,std::vector<SLBnd> slbnd)
+void flowbnd(XBGPUParam Param,std::vector<SLBnd> slbnd, std::vector<WindBnd> wndbnd)
 {
 	
 	double zsbndi;
@@ -659,30 +660,14 @@ void flowbnd(XBGPUParam Param,std::vector<SLBnd> slbnd)
 		}
 	}
 
-
-
-
-	if (totaltime >= windtime)
+	
+	difft = wndbnd[SLstepinbnd].time - totaltime;
+	if (difft < 0.0)
 	{
-		windthold = windthnew;
-		windvold = windvnew;
-		rtwind = windtime;
-		fscanf(fwind, "%f\t%f\t%f", &windtime, &windvnew, &windthnew);
-		//windtime=windtime+rtwind;
-		//printf("windthold=%f\n",windthold);
-		//printf("windthnew=%f\n",windthnew);
+		WNDstepinbnd++;
 	}
-	//This stuff below is crap! 
-	windth = windthold + (totaltime - rtwind)*(windthnew - windthold) / (windtime - rtwind);
-	windv = windvold + (totaltime - rtwind)*(windvnew - windvold) / (windtime - rtwind);
-	//printf("windv=%f\n",windv);
-
-	windth = (1.5*pi - Param.grdalpha) - windth*pi / 180;
-	//printf("windv=%f\twindth=%f\n",windv,windth);
-
-
-
-
+	windu = interptime(wndbnd[WNDstepinbnd].U, wndbnd[WNDstepinbnd - 1].U, wndbnd[WNDstepinbnd].time - wndbnd[WNDstepinbnd - 1].time, totaltime - wndbnd[WNDstepinbnd - 1].time);
+	windv = interptime(wndbnd[WNDstepinbnd].V, wndbnd[WNDstepinbnd - 1].V, wndbnd[WNDstepinbnd].time - wndbnd[WNDstepinbnd - 1].time, totaltime - wndbnd[WNDstepinbnd - 1].time);
 
 }
 
@@ -835,7 +820,7 @@ void flowstep(XBGPUParam Param)
 	// Explicit Euler step momentum u-direction
 	//
 
-	eulerustep << <gridDim, blockDim, 0 >> >(nx, ny, Param.dx, Param.dt, Param.g, Param.rho, cfm_g, Param.fc, windth, windv, Param.Cd, uu_g, urms_g, ududx_g, vdudy_g, viscu_g, dzsdx_g, hu_g, hum_g, Fx_g, vu_g, ueu_g, vmageu_g, wetu_g);
+	eulerustep << <gridDim, blockDim, 0 >> >(nx, ny, Param.dx, Param.dt, Param.g, Param.rho, cfm_g, Param.fc, windu, Param.Cd, uu_g, urms_g, ududx_g, vdudy_g, viscu_g, dzsdx_g, hu_g, hum_g, Fx_g, vu_g, ueu_g, vmageu_g, wetu_g);
 	//CUT_CHECK_ERROR("eulerustep execution failed\n");
 	CUDA_CHECK(cudaThreadSynchronize());
 
@@ -880,7 +865,7 @@ void flowstep(XBGPUParam Param)
 	// Explicit Euler step momentum v-direction
 	//
 
-	eulervstep << <gridDim, blockDim, 0 >> >(nx, ny, Param.dx, Param.dt, Param.g, Param.rho, cfm_g, Param.fc, windth, windv, Param.Cd, vv_g, urms_g, udvdx_g, vdvdy_g, viscv_g, dzsdy_g, hv_g, hvm_g, Fy_g, uv_g, vev_g, vmagev_g, wetv_g);
+	eulervstep << <gridDim, blockDim, 0 >> >(nx, ny, Param.dx, Param.dt, Param.g, Param.rho, cfm_g, Param.fc, windv, Param.Cd, vv_g, urms_g, udvdx_g, vdvdy_g, viscv_g, dzsdy_g, hv_g, hvm_g, Fy_g, uv_g, vev_g, vmagev_g, wetv_g);
 	//CUT_CHECK_ERROR("eulervstep execution failed\n");
 	CUDA_CHECK(cudaThreadSynchronize());
 
@@ -1225,6 +1210,7 @@ int main(int argc, char **argv)
 	XBGPUParam XParam;
 
 	std::vector<SLBnd> slbnd;
+	std::vector<WindBnd> wndbnd;
 
 	std::ifstream fs("XBG_param.txt");
 
@@ -1280,9 +1266,6 @@ int main(int argc, char **argv)
 	
 	slbnd = readWLfile(XParam.slbnd);
 	
-
-
-
 	//Note: the first rtsl should be 0 
 	
 	SLstepinbnd = 1;
@@ -1384,12 +1367,14 @@ int main(int argc, char **argv)
 	
 	// Read Wind forcing
 	printf("Opening wind bnd\n");
-	fwind = fopen(XParam.windfile.c_str(), "r");
-	fscanf(fwind, "%f\t%f\t%f", &rtwind, &windvold, &windthold);
-	fscanf(fwind, "%f\t%f\t%f", &windtime, &windvnew, &windthnew);
+	wndbnd = readWNDfile(XParam.windfile, XParam.grdalpha);
+	WNDstepinbnd = 1;
+	//fwind = fopen(XParam.windfile.c_str(), "r");
+	//fscanf(fwind, "%f\t%f\t%f", &rtwind, &windvold, &windthold);
+	//fscanf(fwind, "%f\t%f\t%f", &windtime, &windvnew, &windthnew);
 
-	windv = windvold;
-	windth = (1.5f*pi - XParam.grdalpha) - windthold*pi / 180.0f;
+	//windv = windvold;
+	//windth = (1.5f*pi - XParam.grdalpha) - windthold*pi / 180.0f;
 
 
 
@@ -2047,11 +2032,11 @@ int main(int argc, char **argv)
 	// Run the model
 	if (XParam.GPUDEVICE >= 0)
 	{
-		mainloopGPU(XParam, slbnd);
+		mainloopGPU(XParam, slbnd,wndbnd);
 	}
 	else
 	{
-		mainloopCPU(XParam, slbnd);
+		mainloopCPU(XParam, slbnd,wndbnd);
 	}
 
 
@@ -2059,7 +2044,7 @@ int main(int argc, char **argv)
 
 	//close the bnd files and clean up a bit
 	//fclose(fsl);
-	fclose(fwind);
+	//fclose(fwind);
 
 	endcputime = clock();
 

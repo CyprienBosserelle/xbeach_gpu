@@ -172,7 +172,7 @@ std::vector<SLBnd> readWLfile(std::string WLfilename)
 	return slbnd;
 }
 
-std::vector<WindBnd> readWNDfile(std::string WNDfilename)
+std::vector<WindBnd> readWNDfile(std::string WNDfilename, double grdalpha)
 {
 	std::vector<WindBnd> windbnd;
 
@@ -200,12 +200,16 @@ std::vector<WindBnd> readWNDfile(std::string WNDfilename)
 			lineelements = split(line, '\t');
 			wndbndline.time = std::stod(lineelements[0]);
 			wndbndline.spd = std::stod(lineelements[1]);
-			wndbndline.dir = std::stod(lineelements[1]);
+			wndbndline.dir = std::stod(lineelements[2]);
+			
+			//MAKE IT RELATIVE TO THE GRID X axis
+			// warning this imnplies that grdalpha is in rad
+			wndbndline.theta = (1.5*pi - grdalpha) - wndbndline.dir*pi / 180;
 
+			wndbndline.U = wndbndline.spd*cos(wndbndline.theta);
+			wndbndline.V = wndbndline.spd*sin(wndbndline.theta);
 
-
-
-			//slbndline = readBSHline(line);
+			
 			windbnd.push_back(wndbndline);
 			//std::cout << line << std::endl;
 		}
@@ -216,7 +220,7 @@ std::vector<WindBnd> readWNDfile(std::string WNDfilename)
 	//std::cout << slbnd[0].wlev << std::endl;
 
 
-	return slbnd;
+	return windbnd;
 }
 
 XBGPUParam readparamstr(std::string line, XBGPUParam param)
