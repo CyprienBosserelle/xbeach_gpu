@@ -141,6 +141,7 @@ std::vector<SLBnd> readWLfile(std::string WLfilename)
 	}
 
 	std::string line;
+	std::vector<std::string> lineelements;
 	SLBnd slbndline;
 	while (std::getline(fs, line))
 	{
@@ -152,13 +153,21 @@ std::vector<SLBnd> readWLfile(std::string WLfilename)
 			//Data should be in teh format :
 			//BASIN,CY,YYYYMMDDHH,TECHNUM/MIN,TECH,TAU,LatN/S,LonE/W,VMAX,MSLP,TY,RAD,WINDCODE,RAD1,RAD2,RAD3,RAD4,RADP,RRP,MRD,GUSTS,EYE,SUBREGION,MAXSEAS,INITIALS,DIR,SPEED,STORMNAME,DEPTH,SEAS,SEASCODE,SEAS1,SEAS2,SEAS3,SEAS4,USERDEFINED,userdata
 
-			slbndline = readBSHline(line);
+			//by default we expect tab delimitation
+			lineelements = split(line, '\t');
+			slbndline.time = std::stod(lineelements[0]);
+			slbndline.wlev = std::stod(lineelements[1]);
+			
+			//slbndline = readBSHline(line);
 			slbnd.push_back(slbndline);
 			//std::cout << line << std::endl;
 		}
 
 	}
 	fs.close();
+
+	//std::cout << slbnd[0].wlev << std::endl;
+
 
 	return slbnd;
 }
@@ -539,6 +548,15 @@ XBGPUParam readparamstr(std::string line, XBGPUParam param)
 	///////////////////////////////////////////////////////
 	// Input and output files
 	//
+	
+	parameterstr = "outfile =";
+	parametervalue = findparameter(parameterstr, line);
+	if (!parametervalue.empty())
+	{
+		param.outfile = parametervalue;
+		//std::cerr << "Bathymetry file found!" << std::endl;
+	}
+
 	parameterstr = "SedThkfile =";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
@@ -700,6 +718,11 @@ std::string trim(const std::string& str, const std::string& whitespace)
 	const auto strRange = strEnd - strBegin + 1;
 
 	return str.substr(strBegin, strRange);
+}
+
+double interptime(double next, double prev, double timenext, double time)
+{
+	return prev + (time) / (timenext)*(next - prev);
 }
 /*
 extern "C" void readbathy(int &nx, int &ny, float &dx, float &grdalpha, float *&zb)

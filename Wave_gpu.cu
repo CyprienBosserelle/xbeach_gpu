@@ -267,7 +267,7 @@ exit(EXIT_FAILURE);
 
 
 // Main loop that actually runs the model
-void mainloopGPU(XBGPUParam Param)
+void mainloopGPU(XBGPUParam Param, std::vector<SLBnd> slbnd)
 {
 	double dt = Param.dt;
 	int nx, ny;
@@ -286,7 +286,7 @@ void mainloopGPU(XBGPUParam Param)
 		wdt = dt; // previous timestep
 
 		//Calculate timestep
-		FLOWDT << <gridDim, blockDim, 0 >> >(nx, ny, Param.dx, 0.8f, dtflow_g, hh_g);
+		FLOWDT << <gridDim, blockDim, 0 >> >(nx, ny, Param.dx, Param.CFL, dtflow_g, hh_g);
 		CUDA_CHECK(cudaThreadSynchronize());
 
 
@@ -300,15 +300,15 @@ void mainloopGPU(XBGPUParam Param)
 		//CUDA_CHECK(cudaMemcpy(arrmax, arrmax_g, nx*ny*sizeof(DECNUM), cudaMemcpyDeviceToHost));
 		CUDA_CHECK(cudaMemcpy(arrmin, arrmin_g, nx*ny*sizeof(DECNUM), cudaMemcpyDeviceToHost));
 
-		dt = arrmin[0] * 0.5f;
+		dt = arrmin[0] * 0.5; // Not sure why this is but it is in the original XBeach!!
 
 		
 		
 		if ((Param.swave == 1 ) && totaltime>0.0)
 		{
-			float dtwave;
+			double dtwave;
 			// Make sure the CFL condition for flow do not violate CFL condition for Waves
-			WAVEDT << <gridDim, blockDim, 0 >> >(nx, ny, ntheta, 0.8f, dtheta, dtflow_g, ctheta_g);
+			WAVEDT << <gridDim, blockDim, 0 >> >(nx, ny, ntheta, Param.CFL, dtheta, dtflow_g, ctheta_g);
 			CUDA_CHECK(cudaThreadSynchronize());
 
 
@@ -322,7 +322,7 @@ void mainloopGPU(XBGPUParam Param)
 			//CUDA_CHECK(cudaMemcpy(arrmax, arrmax_g, nx*ny*sizeof(DECNUM), cudaMemcpyDeviceToHost));
 			CUDA_CHECK(cudaMemcpy(arrmin, arrmin_g, nx*ny*sizeof(DECNUM), cudaMemcpyDeviceToHost));
 
-			dtwave = arrmin[0]*0.5f;
+			dtwave = arrmin[0]*0.5;
 
 			dt = min(dt, dtwave);
 		}
@@ -357,7 +357,7 @@ void mainloopGPU(XBGPUParam Param)
 
 		if (Param.flow == 1)
 		{
-			flowbnd(Param);// Calculate the flow boundary for this step
+			flowbnd(Param,slbnd);// Calculate the flow boundary for this step
 		}
 
 		if (Param.swave == 1 )
@@ -509,7 +509,7 @@ void mainloopGPU(XBGPUParam Param)
 }
 
 
-void mainloopCPU(XBGPUParam Param)
+void mainloopCPU(XBGPUParam Param,std::vector<SLBnd> slbnd)
 {
 	printf("Computing CPU mode\n");
 
@@ -533,7 +533,7 @@ void mainloopCPU(XBGPUParam Param)
 
 		if (Param.flow == 1)
 		{
-			flowbnd(Param);// Calculate the flow boundary for this step
+			flowbnd(Param,slbnd);// Calculate the flow boundary for this step
 		}
 		if (Param.swave == 1)
 		{
@@ -590,25 +590,42 @@ void mainloopCPU(XBGPUParam Param)
 
 
 
-void flowbnd(XBGPUParam Param)
+void flowbnd(XBGPUParam Param,std::vector<SLBnd> slbnd)
 {
 	
+	double zsbndi;
+	int stepinbnd;
 	int nx, ny;
 	
 	nx = Param.nx;
 	ny = Param.ny;
 	//update sl bnd
 	
-
-	if (totaltime >= slbndtime)
+	for (int i = 1; i++; i < slbnd.size())
 	{
+		// find next timestep
+		stepinbnd = i;
+		double difft = slbnd[i].time - totaltime;
+		if (difft >= 0.0)
+		{
+			zsbndi = interptime(slbnd[i].wlev, slbnd[i - 1].wlev, slbnd[i].time - slbnd[i - 1].time, totaltime - slbnd[i - 1].time);
+			break;
+		}
+	}
 
-		zsbndold = zsbndnew;
-		rtsl = slbndtime;
-		fscanf(fsl, "%f\t%f", &slbndtime, &zsbndnew);
+	//std::cout << "i= " << stepinbnd << "; " << zsbndi << "\n" << std::endl;
+
+
+
+	//if (totaltime >= slbndtime)
+	//{
+
+	//	zsbndold = zsbndnew;
+	//	rtsl = slbndtime;
+	//	fscanf(fsl, "%f\t%f", &slbndtime, &zsbndnew);
 		//slbndtime=+rtsl;
 		//zsbnd=zsbndold+(t-slbndtime+rtsl)*(zsbndnew-zsbndold)/rtsl;
-	}
+	//}
 
 
 
@@ -618,7 +635,7 @@ void flowbnd(XBGPUParam Param)
 	{
 		for (int ni = 0; ni < ny; ni++)
 		{
-			zsbnd[ni] = zsbndold + ((float) totaltime - rtsl)*(zsbndnew - zsbndold) / (slbndtime - rtsl);
+			zsbnd[ni] = zsbndi;//zsbndold + ((float) totaltime - rtsl)*(zsbndnew - zsbndold) / (slbndtime - rtsl);
 		}
 	}
 
@@ -630,13 +647,13 @@ void flowbnd(XBGPUParam Param)
 			dim3 gridDim(ceil((nx*1.0f) / blockDim.x), ceil((ny*1.0f) / blockDim.y), 1);
 			// FLow abs_2d should be here not at the flow step		
 			// Set weakly reflective offshore boundary
-			ubnd1D << <gridDim, blockDim, 0 >> >(nx, ny, Param.dx, Param.dt, Param.g, Param.rho, (float)totaltime, wavbndtime, dtwavbnd, slbndtime, rtsl, zsbndold, zsbndnew, Trep, qbndold_g, qbndnew_g, zs_g, uu_g, vv_g, vu_g, umeanbnd_g, vmeanbnd_g, zb_g, cg_g, hum_g, cfm_g, Fx_g, hh_g);
+			ubnd1D << <gridDim, blockDim, 0 >> >(nx, ny, Param.dx, Param.dt, Param.g, Param.rho, (float)totaltime, wavbndtime, dtwavbnd, zsbndi, Trep, qbndold_g, qbndnew_g, zs_g, uu_g, vv_g, vu_g, umeanbnd_g, vmeanbnd_g, zb_g, cg_g, hum_g, cfm_g, Fx_g, hh_g);
 			//CUT_CHECK_ERROR("ubnd execution failed\n");
 			CUDA_CHECK(cudaThreadSynchronize());
 		}
 		else
 		{
-			ubndCPU(nx, ny, Param.dx, Param.dt, Param.g, Param.rho, (float)totaltime, wavbndtime, dtwavbnd, slbndtime, rtsl, zsbndold, zsbndnew, Trep, qbndold_g, qbndnew_g, zs_g, uu_g, vv_g, vu_g, umeanbnd_g, vmeanbnd_g, zb_g, cg_g, hum_g, cfm_g, Fx_g, hh_g);
+			ubndCPU(nx, ny, Param.dx, Param.dt, Param.g, Param.rho, (float)totaltime, wavbndtime, dtwavbnd, zsbndi, Trep, qbndold_g, qbndnew_g, zs_g, uu_g, vv_g, vu_g, umeanbnd_g, vmeanbnd_g, zb_g, cg_g, hum_g, cfm_g, Fx_g, hh_g);
 
 		}
 	}
@@ -1205,6 +1222,8 @@ int main(int argc, char **argv)
 
 	XBGPUParam XParam;
 
+	std::vector<SLBnd> slbnd;
+
 	std::ifstream fs("XBG_param.txt");
 
 	if (fs.fail()){
@@ -1327,14 +1346,20 @@ int main(int argc, char **argv)
 
 	printf("Opening sea level bnd...");
 	
-	//std::vector<SLBnd> readWLfile(std::string WLfilename);
+	slbnd = readWLfile(XParam.slbnd);
 	
-	fsl = fopen(XParam.slbnd.c_str(), "r");
 
-	fscanf(fsl, "%f\t%f", &rtsl, &zsbndold);
+	//fsl = fopen(XParam.slbnd.c_str(), "r");
+
+	//fscanf(fsl, "%f\t%f", &rtsl, &zsbndold);
+	rtsl = slbnd[0].time;
+	zsbndold = slbnd[0].wlev;
 
 	//Note: the first rtsl should be 0 
-	fscanf(fsl, "%f\t%f", &slbndtime, &zsbndnew);
+	//fscanf(fsl, "%f\t%f", &slbndtime, &zsbndnew);
+	slbndtime = slbnd[1].time;
+	zsbndnew = slbnd[1].wlev;
+
 	printf("done\n");
 
 	//zsbnd sea level in bnd file
@@ -2060,7 +2085,7 @@ int main(int argc, char **argv)
 		// Calculate initial maximum timestep
 
 
-		FLOWDT << <gridDim, blockDim, 0 >> >(nx, ny, dx, 0.25f, dtflow_g, hh_g);
+		FLOWDT << <gridDim, blockDim, 0 >> >(nx, ny, dx, 0.5*XParam.CFL, dtflow_g, hh_g);
 		CUDA_CHECK(cudaThreadSynchronize());
 
 
@@ -2088,9 +2113,9 @@ int main(int argc, char **argv)
 
 
 
-		dt = arrmin[0];
+		dt = arrmin[0]*0.5;
 
-		printf("Initial timestep: dt=%f\n", arrmin[0]);
+		printf("Initial timestep: dt=%f\n", dt);
 
 
 		double tiny = 0.00000001;
@@ -2170,18 +2195,18 @@ int main(int argc, char **argv)
 	// Run the model
 	if (XParam.GPUDEVICE >= 0)
 	{
-		mainloopGPU(XParam);
+		mainloopGPU(XParam, slbnd);
 	}
 	else
 	{
-		mainloopCPU(XParam);
+		mainloopCPU(XParam, slbnd);
 	}
 
 
 
 
 	//close the bnd files and clean up a bit
-	fclose(fsl);
+	//fclose(fsl);
 	fclose(fwind);
 
 	endcputime = clock();
