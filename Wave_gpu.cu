@@ -1235,7 +1235,8 @@ int main(int argc, char **argv)
 	}
 	fs.close();
 
-	XParam = checkparamsanity(XParam);
+	// This is done after reading the boundaries to better constrain endtine when it is not specified
+	//XParam = checkparamsanity(XParam);
 	//std::cout << XParam.Bathymetryfile << std::endl;
 
 	
@@ -1247,14 +1248,23 @@ int main(int argc, char **argv)
 	FILE * fiz;
 
 
-	//read input data:
-	printf("bathy: %s\n", XParam.Bathymetryfile.c_str());
-	readbathyHead(XParam.Bathymetryfile, XParam.nx, XParam.ny, XParam.dx, XParam.grdalpha);
-	//fid = fopen(XParam.Bathymetryfile.c_str(), "r");
-	//fscanf(fid, "%u\t%u\t%lf\t%*f\t%lf", &XParam.nx, &XParam.ny, &XParam.dx, &XParam.grdalpha);
-	printf("nx=%d\tny=%d\tdx=%f\talpha=%f\n", XParam.nx, XParam.ny, XParam.dx, XParam.grdalpha);
+	//read bathy input data:
+	if (!XParam.Bathymetryfile.empty())
+	{
+		printf("bathy: %s\n", XParam.Bathymetryfile.c_str());
+		readbathyHead(XParam.Bathymetryfile, XParam.nx, XParam.ny, XParam.dx, XParam.grdalpha);
+		//fid = fopen(XParam.Bathymetryfile.c_str(), "r");
+		//fscanf(fid, "%u\t%u\t%lf\t%*f\t%lf", &XParam.nx, &XParam.ny, &XParam.dx, &XParam.grdalpha);
+		printf("nx=%d\tny=%d\tdx=%f\talpha=%f\n", XParam.nx, XParam.ny, XParam.dx, XParam.grdalpha);
+	}
+	else
+	{
+		std::cerr << "No bathymetry file specified. Please specify using 'bathy = Filename.bot'" << std::endl;
+		exit(1);
+	}
+	
 
-	printf("output time step=%f\n", XParam.outputtimestep);
+	//printf("output time step=%f\n", XParam.outputtimestep);
 
 	//READ INITIAL ZS CONDITION
 	//fiz=fopen("zsinit.md","r");
@@ -1264,13 +1274,69 @@ int main(int argc, char **argv)
 
 	printf("Opening sea level bnd...");
 	
-	slbnd = readWLfile(XParam.slbnd);
+
+	if (!XParam.slbnd.empty())
+	{
+		slbnd = readWLfile(XParam.slbnd);
+	}
+	else
+	{
+		printf("No file was specified. Setting Offshore water level boundary to zero...");
+		SLBnd slbndline;
+
+		slbndline.time = 0.0;
+		slbndline.wlev = 0.0;
+		slbnd.push_back(slbndline);
+
+		slbndline.time = XParam.endtime;
+		slbndline.wlev = 0.0;
+		slbnd.push_back(slbndline);
+	}
+	
 	
 	//Note: the first rtsl should be 0 
 	
 	SLstepinbnd = 1;
 
 	printf("done\n");
+
+
+	// Read Wind forcing
+	printf("Opening wind forcing...");
+	if (!XParam.windfile.empty())
+	{
+		wndbnd = readWNDfile(XParam.windfile, XParam.grdalpha);
+	}
+	else
+	{
+		printf("No wind file was specified. Setting wind forcing to zero...");
+		WindBnd wndbndline;
+
+		wndbndline.time = 0.0;
+		wndbndline.spd = 0.0;
+		wndbndline.dir = 0.0;
+		wndbndline.theta = 0.0;
+		wndbndline.U = 0.0;
+		wndbndline.V = 0.0;
+		wndbnd.push_back(wndbndline);
+
+		wndbndline.time = XParam.endtime;
+		wndbndline.spd = 0.0;
+		wndbndline.dir = 0.0;
+		wndbndline.theta = 0.0;
+		wndbndline.U = 0.0;
+		wndbndline.V = 0.0;
+		wndbnd.push_back(wndbndline);
+		
+	}
+	WNDstepinbnd = 1;
+
+	printf("done\n");
+
+	XParam = checkparamsanity(XParam, slbnd,wndbnd);
+	//std::cout << XParam.Bathymetryfile << std::endl;
+
+
 
 	nx = XParam.nx;
 	ny = XParam.ny;
@@ -1365,10 +1431,7 @@ int main(int argc, char **argv)
 	}
 
 	
-	// Read Wind forcing
-	printf("Opening wind bnd\n");
-	wndbnd = readWNDfile(XParam.windfile, XParam.grdalpha);
-	WNDstepinbnd = 1;
+	
 	//fwind = fopen(XParam.windfile.c_str(), "r");
 	//fscanf(fwind, "%f\t%f\t%f", &rtwind, &windvold, &windthold);
 	//fscanf(fwind, "%f\t%f\t%f", &windtime, &windvnew, &windthnew);
@@ -1385,26 +1448,12 @@ int main(int argc, char **argv)
 	XParam.lat = XParam.lat*pi / 180.0f;
 	DECNUM wearth = pi*(1.0f / 24.0f) / 1800.0f;
 	XParam.fc = 2.0f*wearth*sin(XParam.lat);
-
-
-	//gammax=2.0f; //maximum ratio Hrms/hh
-	//wci=1.0f; //switch for wave/current interaction.
-	//hwci=0.010f;//min depth for wci
-	//gammaa = 0.55; //breaker parameter in Baldock or Roelvink formulation
-	//n=10.0;// power in roelvink dissipation model
-	//alpha = 1.;//! wave dissipation coefficient
-	//beta=0.15f;//! breaker slope coefficient in roller model
+	
 	roller = 1; // option to turn off/on roller model (0/1)
 
-	//nuh=0.05; // Eddy viscosity [m2/s]
-	//nuhfac=1.0f;//0.001f; //viscosity coefficient for roller induced turbulent horizontal viscosity
-
+	
 	double t1 = -(pi) / 2.0;
-	//thetamin=-60;
-	//thetamax=60;
-
-	//dtheta=10;
-
+	
 	//Allocate More array on CPU
 
 	Fx = (DECNUM *)malloc(nx*ny*sizeof(DECNUM));
@@ -1419,13 +1468,6 @@ int main(int argc, char **argv)
 
 
 
-
-
-
-
-	//Sxx=(DECNUM *)malloc(nx*ny*sizeof(DECNUM));
-	//Syy=(DECNUM *)malloc(nx*ny*sizeof(DECNUM));
-	//Sxy=(DECNUM *)malloc(nx*ny*sizeof(DECNUM));
 	usd = (DECNUM *)malloc(nx*ny*sizeof(DECNUM));
 	D = (DECNUM *)malloc(nx*ny*sizeof(DECNUM));
 	E = (DECNUM *)malloc(nx*ny*sizeof(DECNUM));
@@ -1447,20 +1489,6 @@ int main(int argc, char **argv)
 
 
 
-	// Set initial water level on offshore bnd
-	//Unnecessary
-	//for (int ii = 0; ii < nx; ii++)
-	//{
-	//	for (int jj = 0; jj < ny; jj++)
-	//	{
-	//		zs[ii + jj*nx] = max(zsbndold, -1.0f*zb[ii + jj*nx]+eps);
-	//		hh[ii + jj*nx] = zb[ii + jj*nx] + zs[ii + jj*nx];
-	//	}
-//
-	//}
-	// Allocate more CPU memory
-
-
 	omega = 2 * pi / Trep;
 
 	sigm = (DECNUM *)malloc(nx*ny*sizeof(DECNUM));
@@ -1468,8 +1496,6 @@ int main(int argc, char **argv)
 	thet = (DECNUM *)malloc(nx*ny*ntheta*sizeof(DECNUM));
 	//costhet=(DECNUM *)malloc(nx*ny*ntheta*sizeof(DECNUM));
 	//sinthet=(DECNUM *)malloc(nx*ny*ntheta*sizeof(DECNUM));
-
-
 
 
 

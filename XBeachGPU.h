@@ -128,7 +128,7 @@ extern "C" void readXbbndstep(int nx, int ny,int ntheta,const char * wavebndfile
 extern "C" void readStatbnd(int nx, int ny,int ntheta,DECNUM rho,DECNUM g,const char * wavebndfile,double *&Tpfile,double *&Stfile );
 extern "C" void readbndhead(const char * wavebndfile,DECNUM &thetamin,DECNUM &thetamax,DECNUM &dtheta,DECNUM &dtwavbnd,int &nwavbnd);
 
-//Below is for teh new CPU routine
+//Below is for the new CPU routine
 extern "C" int mminusC(int ix,int nx);
 extern "C" int pplusC(int ix, int nx);
 extern "C" int mminus2C(int ix,int nx);
@@ -178,7 +178,7 @@ std::string findparameter(std::string parameterstr, std::string line);
 void split(const std::string &s, char delim, std::vector<std::string> &elems);
 std::vector<std::string> split(const std::string &s, char delim);
 std::string trim(const std::string& str, const std::string& whitespace);
-XBGPUParam checkparamsanity(XBGPUParam param);
+XBGPUParam checkparamsanity(XBGPUParam XParam, std::vector<SLBnd> slbnd, std::vector<WindBnd> wndbnd);
 std::vector<SLBnd> readWLfile(std::string WLfilename);
 std::vector<WindBnd> readWNDfile(std::string WNDfilename, double grdalpha);
 double interptime(double next, double prev, double timenext, double time);

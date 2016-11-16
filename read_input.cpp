@@ -701,21 +701,23 @@ XBGPUParam readparamstr(std::string line, XBGPUParam param)
 	return param;
 }
 
-XBGPUParam checkparamsanity(XBGPUParam param)
+XBGPUParam checkparamsanity(XBGPUParam XParam, std::vector<SLBnd> slbnd, std::vector<WindBnd> wndbnd)
 {
-	//First check that a bathy file was specified otherwise Fatal error
-	if (param.Bathymetryfile.empty())
+	XBGPUParam DefaultParams;
+
+	double tiny = 0.00001;
+
+	// Check endtime
+	if (abs(XParam.endtime - DefaultParams.endtime) <= tiny)
 	{
-		std::cerr << "No bathymetry file specified. Please specify using 'bathy = Filename.bot'" << std::endl;
-		exit(1);
+		//endtimne =0.0
+		XParam.endtime = min(slbnd[slbnd.size()].time, wndbnd[wndbnd.size()].time);
 	}
 
-	// Other parameters can be used as default but the model is likely to crash??
 
 
 
-
-	return param;
+	return XParam;
 }
 
 std::string findparameter(std::string parameterstr, std::string line)
