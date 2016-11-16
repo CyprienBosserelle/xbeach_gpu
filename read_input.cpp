@@ -711,7 +711,8 @@ XBGPUParam checkparamsanity(XBGPUParam XParam, std::vector<SLBnd> slbnd, std::ve
 	if (abs(XParam.endtime - DefaultParams.endtime) <= tiny)
 	{
 		//endtimne =0.0
-		XParam.endtime = min(slbnd[slbnd.size()].time, wndbnd[wndbnd.size()].time);
+
+		XParam.endtime = min(slbnd[slbnd.size()-1].time, wndbnd[wndbnd.size()-1].time);
 	}
 
 
