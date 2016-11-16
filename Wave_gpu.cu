@@ -1355,58 +1355,38 @@ int main(int argc, char **argv)
 	if (!XParam.SedThkfile.empty())
 	{
 		printf("Hard layer file found\n");
-		fid = fopen(XParam.SedThkfile.c_str(), "r");
-		int jx, jy;
-		fscanf(fid, "%u\t%u\t%*f\t%*f\t%*f", &jx, &jy, &dx, &grdalpha);
+		int STnx, STny;
+		double STdx, STgrdalpha;
 
-		if (jx != nx || jy != ny)
+		readbathyHead(XParam.SedThkfile, STnx, STny, STdx, STgrdalpha);
+		readbathy(XParam.SedThkfile, stdep);
+		if (STnx != nx || STny != ny)
 		{
-			printf("Error Hard layer file dimension mismatch. Model will run with constant friction.\n");
+			printf("Error Sediment thickness file (Hard layer file) dimension mismatch. Model will run with constant sediment thickness.\n");
 		}
+
+		
+		
+		
 	}
 	else
 	{
-		printf("No hard layer file found\n");
-	}
-
-	for (int fnod = ny; fnod >= 1; fnod--)
-	{
-		if (!XParam.SedThkfile.empty())
+		printf("No hard layer file found, Model will run with constant sediment thickness\n");
+		for (int j = 0; j < ny; j++)
 		{
-			fscanf(fid, "%u", &jread);
-		}
-		for (int inod = 0; inod < nx; inod++)
-		{
-			if (!XParam.SedThkfile.empty())
+			for (int i = 0; i < nx; i++)
 			{
-				fscanf(fid, "%f", &stdep[inod + (jread - 1)*nx]);
+				stdep[i + j*nx] = 5.0f;
 			}
-			else
-			{
-				stdep[inod + (fnod - 1)*nx] = 5.0f;
-
-			}
-
 		}
 	}
-	if (!XParam.SedThkfile.empty())
-	{
-		fclose(fid);
-	}
 
-
-
-
-
+	
 	// Read Wind forcing
 	printf("Opening wind bnd\n");
 	fwind = fopen(XParam.windfile.c_str(), "r");
 	fscanf(fwind, "%f\t%f\t%f", &rtwind, &windvold, &windthold);
 	fscanf(fwind, "%f\t%f\t%f", &windtime, &windvnew, &windthnew);
-
-
-
-
 
 	windv = windvold;
 	windth = (1.5f*pi - XParam.grdalpha) - windthold*pi / 180.0f;
