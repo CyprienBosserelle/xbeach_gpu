@@ -172,6 +172,53 @@ std::vector<SLBnd> readWLfile(std::string WLfilename)
 	return slbnd;
 }
 
+std::vector<WindBnd> readWNDfile(std::string WNDfilename)
+{
+	std::vector<WindBnd> windbnd;
+
+	std::ifstream fs(WNDfilename);
+
+	if (fs.fail()){
+		std::cerr << WNDfilename << " Wind bnd file could not be opened" << std::endl;
+		exit(1);
+	}
+
+	std::string line;
+	std::vector<std::string> lineelements;
+	WindBnd wndbndline;
+	while (std::getline(fs, line))
+	{
+		//std::cout << line << std::endl;
+
+		// skip empty lines
+		if (!line.empty())
+		{
+			//Data should be in teh format :
+			//BASIN,CY,YYYYMMDDHH,TECHNUM/MIN,TECH,TAU,LatN/S,LonE/W,VMAX,MSLP,TY,RAD,WINDCODE,RAD1,RAD2,RAD3,RAD4,RADP,RRP,MRD,GUSTS,EYE,SUBREGION,MAXSEAS,INITIALS,DIR,SPEED,STORMNAME,DEPTH,SEAS,SEASCODE,SEAS1,SEAS2,SEAS3,SEAS4,USERDEFINED,userdata
+
+			//by default we expect tab delimitation
+			lineelements = split(line, '\t');
+			wndbndline.time = std::stod(lineelements[0]);
+			wndbndline.spd = std::stod(lineelements[1]);
+			wndbndline.dir = std::stod(lineelements[1]);
+
+
+
+
+			//slbndline = readBSHline(line);
+			windbnd.push_back(wndbndline);
+			//std::cout << line << std::endl;
+		}
+
+	}
+	fs.close();
+
+	//std::cout << slbnd[0].wlev << std::endl;
+
+
+	return slbnd;
+}
+
 XBGPUParam readparamstr(std::string line, XBGPUParam param)
 {
 
@@ -724,16 +771,34 @@ double interptime(double next, double prev, double timenext, double time)
 {
 	return prev + (time) / (timenext)*(next - prev);
 }
-/*
-extern "C" void readbathy(int &nx, int &ny, float &dx, float &grdalpha, float *&zb)
+
+extern "C" void readbathyHead(std::string filename, int &nx, int &ny, double &dx, double &grdalpha )
 {
 	//read input data:
-	printf("bathy: %s\n", filename);
-
-
+	//printf("bathy: %s\n", filename);
+	FILE *fid;
+	//int nx, ny;
+	//double dx, grdalpha;
 	//read md file
-	fid = fopen(filename, "r");
-	fscanf(fid, "%u\t%u\t%f\t%*f\t%f", &nx, &ny, &dx, &grdalpha);
+	fid = fopen(filename.c_str(), "r");
+	fscanf(fid, "%u\t%u\t%lf\t%*f\t%lf", &nx, &ny, &dx, &grdalpha);
+	grdalpha = grdalpha*pi / 180; // grid rotation
+	fclose(fid);
+}
+
+
+
+
+extern "C" void readbathy(std::string filename, float *&zb)
+{
+	//read input data:
+	//printf("bathy: %s\n", filename);
+	FILE *fid;
+	int nx, ny;
+	double dx, grdalpha;
+	//read md file
+	fid = fopen(filename.c_str(), "r");
+	fscanf(fid, "%u\t%u\t%lf\t%*f\t%lf", &nx, &ny, &dx, &grdalpha);
 	grdalpha = grdalpha*pi / 180; // grid rotation
 
 	int jread;
@@ -752,5 +817,5 @@ extern "C" void readbathy(int &nx, int &ny, float &dx, float &grdalpha, float *&
 
 	fclose(fid);
 }
-*/
+
 

@@ -105,7 +105,7 @@ public:
 
 class WindBnd{
 public:
-	double U, V, spd, dir;
+	double time,U, V, spd, dir;
 };
 
 
@@ -179,6 +179,9 @@ XBGPUParam checkparamsanity(XBGPUParam param);
 std::vector<SLBnd> readWLfile(std::string WLfilename);
 double interptime(double next, double prev, double timenext, double time);
 
+
+extern "C" void readbathyHead(std::string filename, int &nx, int &ny, double &dx, double &grdalpha);
+extern "C" void readbathy(std::string filename, float *&zb);
 // General functions
 //void CUDA_CHECK(cudaError CUDerr);
 

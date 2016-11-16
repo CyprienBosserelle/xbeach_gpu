@@ -73,6 +73,8 @@ DECNUM wdt;// wave model time step
 DECNUM wavbndtime;
 DECNUM slbndtime;
 DECNUM windtime;
+
+int SLstepinbnd;
 //DECNUM Cd; //Wind drag
 DECNUM fp, hm0gew, mainang, rt, scoeff, gam;
 int nwavbnd, nwavfile;
@@ -601,17 +603,16 @@ void flowbnd(XBGPUParam Param,std::vector<SLBnd> slbnd)
 	ny = Param.ny;
 	//update sl bnd
 	
-	for (int i = 1; i++; i < slbnd.size())
+	// find next timestep
+	
+	double difft = slbnd[SLstepinbnd].time - totaltime;
+	
+	if (difft < 0.0)
 	{
-		// find next timestep
-		stepinbnd = i;
-		double difft = slbnd[i].time - totaltime;
-		if (difft >= 0.0)
-		{
-			zsbndi = interptime(slbnd[i].wlev, slbnd[i - 1].wlev, slbnd[i].time - slbnd[i - 1].time, totaltime - slbnd[i - 1].time);
-			break;
-		}
+		SLstepinbnd++;
 	}
+	zsbndi = interptime(slbnd[SLstepinbnd].wlev, slbnd[SLstepinbnd - 1].wlev, slbnd[SLstepinbnd].time - slbnd[SLstepinbnd - 1].time, totaltime - slbnd[SLstepinbnd - 1].time);
+
 
 	//std::cout << "i= " << stepinbnd << "; " << zsbndi << "\n" << std::endl;
 
@@ -671,6 +672,7 @@ void flowbnd(XBGPUParam Param,std::vector<SLBnd> slbnd)
 		//printf("windthold=%f\n",windthold);
 		//printf("windthnew=%f\n",windthnew);
 	}
+	//This stuff below is crap! 
 	windth = windthold + (totaltime - rtwind)*(windthnew - windthold) / (windtime - rtwind);
 	windv = windvold + (totaltime - rtwind)*(windvnew - windvold) / (windtime - rtwind);
 	//printf("windv=%f\n",windv);
@@ -1250,77 +1252,7 @@ int main(int argc, char **argv)
 	XParam = checkparamsanity(XParam);
 	//std::cout << XParam.Bathymetryfile << std::endl;
 
-	///
-	//nstpw = 1;
 	
-
-	//FILE * fop;
-	//fop = fopen(opfile, "r");
-	//fscanf(fop, "%*s");//Dummy string
-	//fscanf(fop, "%s\t%*s", &filename);// Bathy file name needs to be md format
-	//fscanf(fop, "%d\t%*s", &imodel);// Type of model: 1: wave only; 2: currents only 3: waves+currents 4:waves+currents+sediment(+ morphology if morfac>0)
-	//fscanf(fop, "%d\t%*s", &GPUDEVICE);// What GPU device to use 
-	//fscanf(fop, "%f\t%*s", &dt);// Model time step in s. //This should be calculated by the model
-	//fscanf(fop, "%d\t%*s", &nstpw);// Number of flow and sediment step between wave step needs to be 1 for unsteady runs 
-	//fscanf(fop, "%f\t%*s", &eps);//drying height in m
-	//fscanf(fop, "%f,%f\t%*s", &cf, &cf2);// bottom friction for flow model cf is for sand and cf2 fro reef area (Reef and sand discrimination is done based on structure file if none is present cf2 should not be used )
-	//fscanf(fop,"%f\t%*s",&cf);
-	//fscanf(fop,"%s\t%*s",&zofile);
-	//fscanf(fop, "%f\t%*s", &nuh); // Viscosity coeff or samgo coeff depennding on usesmago
-	//fscanf(fop, "%f\t%*s", &nuhfac);//nuhfac=1.0f;//0.001f; //viscosity coefficient for roller induced turbulent horizontal viscosity// it should be small contrary to what XBeach recommend as default
-	//fscanf(fop, "%d\t%*s", &usesmago);// Uses smagorynsky formulation to calculate viscosity 0: No 1: Yes
-	//fscanf(fop, "%f\t%*s", &lat);// Latitude of the grid use negative for south hemisphere (this implies the grid is small on earth scale)
-	//fscanf(fop, "%f\t%*s", &Cd);// Wind drag coeff
-	//fscanf(fop, "%f\t%*s", &wci); // Wave current interaction switch (can also be used as a number between 0 and 1 to reduce the interaction if unstable)
-	//fscanf(fop, "%f\t%*s", &hwci);// hwci=0.010f;//min depth for wci
-	//fscanf(fop, "%d\t%*s", &breakmod); // Wave dissipation model 1: roelvink 2: Baldock. use 1 for unsteady runs (i.e. with wave group) and use 2 for steady runs
-	//fscanf(fop, "%f\t%*s", &gammaa);// Wave breaking gamma param 
-	//fscanf(fop, "%f\t%*s", &n);// exponential; in Roelving breaking model
-	//fscanf(fop, "%f\t%*s", &alpha);// calibration for wave dissipation (should be 1)
-	//fscanf(fop, "%f\t%*s", &gammax);//gammax=2.0f; //maximum ratio Hrms/hh
-	//fscanf(fop, "%f\t%*s", &beta);// Roller slope dissipation param
-	//fscanf(fop, "%f,%f\t%*s", &fw, &fw2);// Wave bottom dissipation parameters fw is for sand fw2 is for reefs. see cf comments
-	//fscanf(fop,"%f\t%*s",&fw);
-	//fscanf(fop, "%f,%f\t%*s", &D50, &D90);// sand grain size in m
-	//fscanf(fop,"%f\t%*s",&D50);
-	//fscanf(fop,"%f\t%*s",&D90);
-	//fscanf(fop, "%f\t%*s", &rhosed);// sand density
-	//fscanf(fop, "%f\t%*s", &wws);// sand fall velocity (should be calculated)
-	//fscanf(fop, "%f,%f\t%*s", &drydzmax, &wetdzmax);// max slope in avalannching model
-	//fscanf(fop,"%f\t%*s",&drydzmax);
-	//fscanf(fop,"%f\t%*s",&wetdzmax);
-	//fscanf(fop, "%f\t%*s", &maxslpchg);// max change within a step to avoid avalanching tsunami
-	//fscanf(fop, "%f\t%*s", &por);// sand porosity (should not be constant)
-	//fscanf(fop, "%f\t%*s", &morfac);// morphological factor 0 no changes in morphology 1 normal changes in morpho >1 accelerated morphological changes (beware this doesn't accelerate the bnd you have to do this manually)
-	//fscanf(fop, "%f,%f\t%*s", &sus, &bed);// calibration coeff for suspended load and bed load
-	//fscanf(fop,"%f\t%*s",&sus);
-	//fscanf(fop,"%f\t%*s",&bed);
-	//fscanf(fop, "%f,%f\t%*s", &facsk, &facas);// calibration factor for wave skewness and Asymetry
-	//fscanf(fop,"%f\t%*s",&facsk);
-	//fscanf(fop,"%f\t%*s",&facas);
-	//fscanf(fop, "%s\t%*s", &HLfile);// Structure file write down "none" if none present
-	//fscanf(fop, "%d\t%*s", &wavebndtype); // 1 is quasistationary wave spectrum; 2 is for infrgravity and long bound waves Xbeach type
-	//fscanf(fop, "%s\t%*s", &wavebndfile);// wave bnd file see wiki for details
-	//fscanf(fop, "%s\t%*s", &slbnd); // tide/surge bnd file
-	//fscanf(fop, "%s\t%*s", &windfile); // Wind forcing file
-	//fscanf(fop,"%d\t%*s",&npart);
-	//fscanf(fop, "%f\t%*s", &sedstart);// which step to start sediment transport and morpho
-	//fscanf(fop,"%f\t%*s",&Hplotmax);
-	//fscanf(fop,"%d\t%*s",&nstepplot);
-	//fscanf(fop, "%lf\t%*s", &outputtimestep); // output step
-	//fscanf(fop, "%lf\t%*s", &endtime);// end step
-	//fscanf(fop,"%d\t%d\t%*s",&iout,&jout);
-	//fscanf(fop, "%s\t%*s", &tsoutfile);// output file
-	//fclose(fop);
-
-	//printf("bathy file: %s\n", filename);
-	//printf("Imodel: %d\n", imodel);
-	//printf("nstepplot: %d\n",nstepplot);
-	//printf("smago?: %d\n", usesmago);
-	//printf("bed: %f\n", bed);
-
-	//printf("facsk=%f facas=%f\n", facsk, facsk);
-
 	//filename = XParam.Bathymetryfile.c_str();
 
 	wdt = 0.0;
@@ -1331,9 +1263,9 @@ int main(int argc, char **argv)
 
 	//read input data:
 	printf("bathy: %s\n", XParam.Bathymetryfile.c_str());
-
-	fid = fopen(XParam.Bathymetryfile.c_str(), "r");
-	fscanf(fid, "%u\t%u\t%lf\t%*f\t%lf", &XParam.nx, &XParam.ny, &XParam.dx, &XParam.grdalpha);
+	readbathyHead(XParam.Bathymetryfile, XParam.nx, XParam.ny, XParam.dx, XParam.grdalpha);
+	//fid = fopen(XParam.Bathymetryfile.c_str(), "r");
+	//fscanf(fid, "%u\t%u\t%lf\t%*f\t%lf", &XParam.nx, &XParam.ny, &XParam.dx, &XParam.grdalpha);
 	printf("nx=%d\tny=%d\tdx=%f\talpha=%f\n", XParam.nx, XParam.ny, XParam.dx, XParam.grdalpha);
 
 	printf("output time step=%f\n", XParam.outputtimestep);
@@ -1349,28 +1281,13 @@ int main(int argc, char **argv)
 	slbnd = readWLfile(XParam.slbnd);
 	
 
-	//fsl = fopen(XParam.slbnd.c_str(), "r");
 
-	//fscanf(fsl, "%f\t%f", &rtsl, &zsbndold);
-	rtsl = slbnd[0].time;
-	zsbndold = slbnd[0].wlev;
 
 	//Note: the first rtsl should be 0 
-	//fscanf(fsl, "%f\t%f", &slbndtime, &zsbndnew);
-	slbndtime = slbnd[1].time;
-	zsbndnew = slbnd[1].wlev;
+	
+	SLstepinbnd = 1;
 
 	printf("done\n");
-
-	//zsbnd sea level in bnd file
-	//rtsl bnd time
-	//slbndtime=rtsl;
-	//}
-	//else
-	//{
-	//	zsbndold=0;
-	//	zsbndnew=0;
-	//}
 
 	nx = XParam.nx;
 	ny = XParam.ny;
@@ -1394,92 +1311,47 @@ int main(int argc, char **argv)
 
 	// set initital condition and read bathy file
 	printf("Set initial condition...");
+	readbathy(XParam.Bathymetryfile, zb);
+
 
 	int jread;
 	//int jreadzs;
 	for (int fnod = ny; fnod >= 1; fnod--)
 	{
 
-		fscanf(fid, "%u", &jread);
+		//fscanf(fid, "%u", &jread);
 		//fscanf(fiz,"%u",&jreadzs);
-		umeanbnd[(jread - 1)] = 0.0f;
+		umeanbnd[(fnod - 1)] = 0.0f;
 		for (int inod = 0; inod < nx; inod++)
 		{
-			fscanf(fid, "%f", &zb[inod + (jread - 1)*nx]);
-			uu[inod + (jread - 1)*nx] = 0.0f;
-			vv[inod + (jread - 1)*nx] = 0.0f;
-			dzb[inod + (jread - 1)*nx] = 0.0f;
-			cfm[inod + (jread - 1)*nx] = XParam.cf;
-			stdep[inod + (jread - 1)*nx] = 0.0f;
-			zeros[inod + (jread - 1)*nx] = 0.0f;
+			//fscanf(fid, "%f", &zb[inod + (jread - 1)*nx]);
+			uu[inod + (fnod - 1)*nx] = 0.0f;
+			vv[inod + (fnod - 1)*nx] = 0.0f;
+			dzb[inod + (fnod - 1)*nx] = 0.0f;
+			cfm[inod + (fnod - 1)*nx] = XParam.cf;
+			stdep[inod + (fnod - 1)*nx] = 0.0f;
+			zeros[inod + (fnod - 1)*nx] = 0.0f;
 			//fscanf(fiz,"%f",&zs[inod+(jreadzs-1)*nx]);
 
 			//hh[inod+(jread-1)*nx]=max(zb[inod+(jread-1)*nx]+zs[inod+(jreadzs-1)*nx],eps);
 			//zs[inod+(jread-1)*nx]=max(zs[inod+(jreadzs-1)*nx],-1*zb[inod+(jread-1)*nx]);
 
-			zs[inod + (jread - 1)*nx] = max(zsbndold, -1 * zb[inod + (jread - 1)*nx]);
-			hh[inod + (jread - 1)*nx] = max(zb[inod + (jread - 1)*nx] + zsbndold, XParam.eps);
+			zs[inod + (fnod - 1)*nx] = max(slbnd[0].wlev, -1 * zb[inod + (fnod - 1)*nx]);
+			hh[inod + (fnod - 1)*nx] = max(zb[inod + (fnod - 1)*nx] + slbnd[0].wlev, XParam.eps);
 
 
 
 		}
 	}
 
-	fclose(fid);
+	//fclose(fid);
 	printf("...done\n");
 	//fclose(fiz);
 	char nofrictionfile[] = "none";
 
-	// Friction file is now obsolete but may be needed agin in the future 
-	/*	////Friction file
 
-
-		int testfrictfile=strcmp(zofile,nofrictionfile);
-		if (testfrictfile!=0)
-		{
-		printf("Friction file found\n");
-		fid=fopen(zofile,"r");
-		int jx,jy;
-		fscanf(fid,"%u\t%u\t%*f\t%*f\t%*f",&jx,&jy);
-
-		if (jx!=nx || jy!=ny)
-		{
-		printf("Error friction file dimension mismatch. Model will run with constant friction.\n");
-		}
-		}
-		else
-		{
-		printf("No friction file found\n");
-		}
-
-		for (int fnod=ny; fnod>=1;fnod--)
-		{
-		if(testfrictfile!=0)
-		{fscanf(fid,"%u",&jread);}
-		for(int inod=0; inod<nx; inod++)
-		{
-		if(testfrictfile!=0)
-		{
-		//fscanf(fid,"%f",&zom[inod+(jread-1)*nx]);
-		cfm[inod+(fnod-1)*nx]=zo;
-		}
-		else
-		{
-		cfm[inod+(fnod-1)*nx]=zo;
-		}
-
-		}
-		}
-		if(testfrictfile!=0)
-		{
-		fclose(fid);
-		}
-
-		*/
 	//// read Hard layer file
 
-
-	//int testfrictfile = strcmp(HLfile, nofrictionfile);
 	if (!XParam.SedThkfile.empty())
 	{
 		printf("Hard layer file found\n");
