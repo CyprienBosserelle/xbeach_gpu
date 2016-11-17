@@ -276,9 +276,15 @@ void mainloopGPU(XBGPUParam Param, std::vector<SLBnd> slbnd, std::vector<WindBnd
 	int nx, ny;
 	nx = Param.nx;
 	ny = Param.ny;
+	
 
-	while (totaltime <= Param.endtime)
+	
+	//< or <= ? crashes with <= if the boundary limit is == to endtime
+	while (totaltime < Param.endtime)
 	{
+
+		//std::cout << totaltime << " "<< Param.endtime << std::endl;
+		
 		dim3 blockDim(16, 16, 1);// This means that the grid has to be a factor of 16 on both x and y
 		dim3 gridDim(ceil((nx*1.0f) / blockDim.x), ceil((ny*1.0f) / blockDim.y), 1);
 
@@ -344,13 +350,17 @@ void mainloopGPU(XBGPUParam Param, std::vector<SLBnd> slbnd, std::vector<WindBnd
 
 		
 		//need to limit timestep so that it matches the exact output time
-		dt = (nextoutputtime - totaltime) / ceil((nextoutputtime - totaltime) / dt);
+		if (ceil((nextoutputtime - totaltime) / dt)> 0.0)
+		{
+			dt = (nextoutputtime - totaltime) / ceil((nextoutputtime - totaltime) / dt);
+		}
+
 
 		//printf("Timestep: %f\n", dt);
 		Param.dt = dt;
 
 		totaltime = totaltime + dt;	//total run time acheived until now in s
-
+		//std::cout << totaltime << std::endl;
 		
 
 		if (Param.swave == 1 )
@@ -375,7 +385,7 @@ void mainloopGPU(XBGPUParam Param, std::vector<SLBnd> slbnd, std::vector<WindBnd
 		{
 			flowstep(Param);// solve the shallow water and continuity for this step
 		}
-		if (Param.morphology >= 4 && totaltime >= Param.sedstart)
+		if (Param.morphology == 1 && totaltime >= Param.sedstart)
 		{
 			//Sediment step
 			sedimentstep(Param);//solve the sediment dispersion, and morphology
@@ -695,57 +705,7 @@ void flowstep(XBGPUParam Param)
 	//read2Dnc(nx,ny,"Fxfile.nc",uu);
 	//CUDA_CHECK( cudaMemcpy(Fx_g, uu, nx*ny*sizeof(DECNUM ), cudaMemcpyHostToDevice) );
 
-	//read2Dnc(nx,ny,"Fyfile.nc",uu);
-	//CUDA_CHECK( cudaMemcpy(Fy_g, uu, nx*ny*sizeof(DECNUM ), cudaMemcpyHostToDevice) );
-
-	//read2Dnc(nx,ny,"urmsfile.nc",uu);
-	//CUDA_CHECK( cudaMemcpy(urms_g, uu, nx*ny*sizeof(DECNUM ), cudaMemcpyHostToDevice) );
-
-	//read2Dnc(nx,ny,"ustfile.nc",uu);
-	//CUDA_CHECK( cudaMemcpy(ust_g, uu, nx*ny*sizeof(DECNUM ), cudaMemcpyHostToDevice) );
-
-	//read2Dnc(nx,ny,"thetameanfile.nc",uu);
-	//CUDA_CHECK( cudaMemcpy(thetamean_g, uu, nx*ny*sizeof(DECNUM ), cudaMemcpyHostToDevice) );
-
-	//read2Dnc(nx,ny,"uufile.nc",uu);
-	//CUDA_CHECK( cudaMemcpy(uu_g, uu, nx*ny*sizeof(DECNUM ), cudaMemcpyHostToDevice) );
-
-	//read2Dnc(nx,ny,"vvfile.nc",uu);
-	//CUDA_CHECK( cudaMemcpy(vv_g, uu, nx*ny*sizeof(DECNUM ), cudaMemcpyHostToDevice) );
-
-	//read2Dnc(nx,ny,"zsfile.nc",uu);
-	//CUDA_CHECK( cudaMemcpy(zs_g, uu, nx*ny*sizeof(DECNUM ), cudaMemcpyHostToDevice) );
-
-	//read2Dnc(nx,ny,"hhfile.nc",uu);
-	//CUDA_CHECK( cudaMemcpy(hh_g, uu, nx*ny*sizeof(DECNUM ), cudaMemcpyHostToDevice) );
-
-	//read2Dnc(nx,ny,"ueufile.nc",uu);
-	//CUDA_CHECK( cudaMemcpy(ueu_g, uu, nx*ny*sizeof(DECNUM ), cudaMemcpyHostToDevice) );
-
-	//read2Dnc(nx,ny,"vevfile.nc",uu);
-	//CUDA_CHECK( cudaMemcpy(vev_g, uu, nx*ny*sizeof(DECNUM ), cudaMemcpyHostToDevice) );
-
-
-
-	//read2Dnc(nx,ny,"hufile.nc",uu);
-	//CUDA_CHECK( cudaMemcpy(hu_g, uu, nx*ny*sizeof(DECNUM ), cudaMemcpyHostToDevice) );
-
-	//read2Dnc(nx,ny,"humfile.nc",uu);
-	//CUDA_CHECK( cudaMemcpy(hum_g, uu, nx*ny*sizeof(DECNUM ), cudaMemcpyHostToDevice) );
-
-	//read2Dnc(nx,ny,"hvfile.nc",uu);
-	//CUDA_CHECK( cudaMemcpy(hv_g, uu, nx*ny*sizeof(DECNUM ), cudaMemcpyHostToDevice) );
-
-	//read2Dnc(nx,ny,"hvmfile.nc",uu);
-	//CUDA_CHECK( cudaMemcpy(hvm_g, uu, nx*ny*sizeof(DECNUM ), cudaMemcpyHostToDevice) );
-
-	//read2Dnc(nx,ny,"vmageufile.nc",uu);
-	//CUDA_CHECK( cudaMemcpy(vmageu_g, uu, nx*ny*sizeof(DECNUM ), cudaMemcpyHostToDevice) );
-
-	//read2Dnc(nx,ny,"vmagevfile.nc",uu);
-	//CUDA_CHECK( cudaMemcpy(vmagev_g, uu, nx*ny*sizeof(DECNUM ), cudaMemcpyHostToDevice) );
-
-
+	
 	// Set weakly reflective offshore boundary ! MOVED TO FLOW BND SUBROUTINE!!
 	//ubnd<<<gridDim, blockDim, 0>>>(nx,ny,dx,dt,g,rho,totaltime,wavbndtime,dtwavbnd,slbndtime,rtsl,zsbndold,zsbndnew,Trep,qbndold_g,qbndnew_g,zs_g,uu_g,vv_g,vu_g,umeanbnd_g,vmeanbnd_g,zb_g,cg_g,hum_g,cfm_g,Fx_g,hh_g);
 	//CUT_CHECK_ERROR("ubnd execution failed\n");
@@ -1259,7 +1219,7 @@ int main(int argc, char **argv)
 	}
 	else
 	{
-		std::cerr << "No bathymetry file specified. Please specify using 'bathy = Filename.bot'" << std::endl;
+		std::cerr << "Fatal error:No bathymetry file specified. Please specify using 'bathy = Filename.bot'" << std::endl;
 		exit(1);
 	}
 	
@@ -1334,7 +1294,7 @@ int main(int argc, char **argv)
 	printf("done\n");
 
 	XParam = checkparamsanity(XParam, slbnd,wndbnd);
-	//std::cout << XParam.Bathymetryfile << std::endl;
+	
 
 
 
@@ -1385,7 +1345,7 @@ int main(int argc, char **argv)
 			//hh[inod+(jread-1)*nx]=max(zb[inod+(jread-1)*nx]+zs[inod+(jreadzs-1)*nx],eps);
 			//zs[inod+(jread-1)*nx]=max(zs[inod+(jreadzs-1)*nx],-1*zb[inod+(jread-1)*nx]);
 
-			zs[inod + (fnod - 1)*nx] = max(slbnd[0].wlev, -1 * zb[inod + (fnod - 1)*nx]);
+			zs[inod + (fnod - 1)*nx] = max(slbnd[0].wlev*1.0f, -1 * zb[inod + (fnod - 1)*nx]);
 			hh[inod + (fnod - 1)*nx] = max(zb[inod + (fnod - 1)*nx] + slbnd[0].wlev, XParam.eps);
 
 

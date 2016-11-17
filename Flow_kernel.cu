@@ -1138,12 +1138,15 @@ __global__ void eulerustep(int nx, int ny, DECNUM dx, DECNUM dt, DECNUM g, DECNU
 
 		__syncthreads;
 
+		int signwind = windv < 0.0;
+
+
 		//&& ix>0
 		if (wetu[i] == 1)
 		{
 			taubx = zo[i] * rho*ueu*sqrtf(1.3456f*urms[i] * urms[i] + vmageu[i] * vmageu[i]);
 
-			uui[tx][ty] = uui[tx][ty] - dt*(ududx[i] + vdudy[i] - viscu[i] + g*dzsdx[i] + taubx / (rho*hu[i]) - Fx[i] / (rho*max(hum[i], hmin)) - 1.25f*Cd*windv/abs(windv)*windv*windv / (rho*hum[i]) - fc*vu[i]);
+			uui[tx][ty] = uui[tx][ty] - dt*(ududx[i] + vdudy[i] - viscu[i] + g*dzsdx[i] + taubx / (rho*hu[i]) - Fx[i] / (rho*max(hum[i], hmin)) - 1.25f*Cd* -1.0f*signwind *windv*windv / (rho*hum[i]) - fc*vu[i]);
 
 			//viscu[i]=taubx;
 
@@ -1193,14 +1196,14 @@ __global__ void eulervstep(int nx, int ny, DECNUM dx, DECNUM dt, DECNUM g, DECNU
 		urmsi[tx][ty] = urms[i];
 		vmagvi[tx][ty] = vmagev[i];
 		hvmi[tx][ty] = hvm[i];
-
+		int signwind = windv < 0.0;
 		// && ix>0
 		if (wetv[i] == 1)
 		{
 			vev = vev_g[i];
 
 			tauby = zo[i] * rho*vev*sqrtf(1.3456f*urmsi[tx][ty] * urmsi[tx][ty] + vmagvi[tx][ty] * vmagvi[tx][ty]);
-			vvi[tx][ty] = vvi[tx][ty] - dt*(udvdx[i] + vdvdy[i] - viscv[i] + g*dzsdy[i] + tauby / (rho*hv[i]) - Fy[i] / (rho*max(hvmi[tx][ty], hmin)) + fc*uv[i] - 1.25f*Cd * windv / abs(windv) * windv * windv / (rho*hvmi[tx][ty]));
+			vvi[tx][ty] = vvi[tx][ty] - dt*(udvdx[i] + vdvdy[i] - viscv[i] + g*dzsdy[i] + tauby / (rho*hv[i]) - Fy[i] / (rho*max(hvmi[tx][ty], hmin)) + fc*uv[i] - 1.25f*Cd * -1.0f*signwind * windv * windv / (rho*hvmi[tx][ty]));
 
 			//viscv[i]=tauby;
 

@@ -705,18 +705,68 @@ XBGPUParam checkparamsanity(XBGPUParam XParam, std::vector<SLBnd> slbnd, std::ve
 {
 	XBGPUParam DefaultParams;
 
-	double tiny = 0.00001;
+	double tiny = 0.0000001;
 
-	// Check endtime
+	// Check whether endtime was specified by the user
 	if (abs(XParam.endtime - DefaultParams.endtime) <= tiny)
 	{
-		//endtimne =0.0
+		//No; i.e. endtimne =0.0
 
 		XParam.endtime = min(slbnd[slbnd.size()-1].time, wndbnd[wndbnd.size()-1].time);
 	}
+	else
+	{
+		//Check that endtime is no longer than the shortest boundary
+		double endbnd = min(slbnd[slbnd.size() - 1].time, wndbnd[wndbnd.size() - 1].time);
+
+		XParam.endtime = min(XParam.endtime, endbnd);
+	}
 
 
+	// Check that a wave bnd file was specified otherwise kill the app
+	// This is temporary until the wave boundary scheme is improved
+	if (XParam.wavebndfile.empty())
+	{
+		std::cerr << "Fatal error: No wave boundary file specified. Please specify using 'wavebndfile = wave_boundary.bnd;'" << std::endl;
+		exit(1);
+	}
 
+	// Check that outputtimestep is not zero, so at least the first and final time step are saved
+	// If only the model stepup is needed than just run with endtime=0.0
+	if (abs(XParam.outputtimestep - DefaultParams.outputtimestep) <= tiny)
+	{
+		XParam.outputtimestep = XParam.endtime;
+		//otherwise there is really no point running the model
+	}
+
+	//Check that sand and reef friction is not zero (Default) if it is the case then use the default cf
+	if (abs(XParam.cfsand - DefaultParams.cfsand) < tiny)
+	{
+		if (XParam.cf < tiny)
+		{
+			XParam.cf = tiny;
+		}
+		XParam.cfsand = XParam.cf;
+	}
+
+	if (abs(XParam.cfreef - DefaultParams.cfreef) < tiny)
+	{
+		
+		XParam.cfreef = XParam.cfsand;
+	}
+
+	// Check that if smagorinsky formulation is used then nuh == samgo otherwise use the specified value for smago
+	if (XParam.usesmago == 1)
+	{
+		//print a warning message if nuh was user specified
+		if (abs(XParam.nuh - DefaultParams.nuh) > tiny)
+		{
+			std::cout << "WARNING: Using Smagorinsky formulation. User specified value for 'nuh' will be ignored. Use 'smag = 0.3' to control the smagorinsky parameter" << std::endl;
+		}
+
+		//force nuh to be == to smago
+		XParam.nuh = XParam.smag;
+	}
 
 	return XParam;
 }

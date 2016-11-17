@@ -49,7 +49,7 @@ public:
 	double cfsand = 0.0, cfreef=0.0;// bottom friction for sand and for reef area (Reef and sand discrimination is done based on sediment thickness file if none is present cf2 cannot be used )
 	double nuh = 1.0;// Viscosity coeff ,
 	double nuhfac = 1.0;//nuhfac=1.0f;//0.001f; //viscosity coefficient for roller induced turbulent horizontal viscosity// it should be small contrary to what XBeach recommend as default
-	int usesmago = 0;// Uses smagorynsky formulation to calculate viscosity 0: No 1: Yes
+	int usesmago = 1;// Uses smagorynsky formulation to calculate viscosity 0: No 1: Yes
 	double smag = 0.3; // Smagorinsky coeff only used if usesmago = 1
 	double lat = 0.0; // Latitude of the grid use negative for south hemisphere (this implies the grid is small on earth scale)
 	double fc = 0.0;
