@@ -1237,7 +1237,7 @@ int main(int argc, char **argv)
 	float dx, grdalpha;
 
 	double dt;
-	char opfile[] = "opfile.dat"; // Compulsory input file
+	
 
 	char filename[256];
 
@@ -1278,7 +1278,9 @@ int main(int argc, char **argv)
 	//XParam = checkparamsanity(XParam);
 	//std::cout << XParam.Bathymetryfile << std::endl;
 
-	
+	//write_text_to_log_file("something");
+
+
 	//filename = XParam.Bathymetryfile.c_str();
 
 	wdt = 0.0;
@@ -2076,6 +2078,9 @@ int main(int argc, char **argv)
 	nextoutputtime = nextoutputtime + XParam.outputtimestep;
 
 	printf("...done\n");
+
+
+
 
 
 	printf("Starting Computation \n");
