@@ -47,6 +47,8 @@ DECNUM  *vv;
 DECNUM *zs;
 DECNUM *dummy;
 
+
+
 DECNUM *xadvec_g, *yadvec_g, *thetaadvec_g;
 
 DECNUM *hum_g, *hu_g;
@@ -277,8 +279,39 @@ void mainloopGPU(XBGPUParam Param, std::vector<SLBnd> slbnd, std::vector<WindBnd
 	nx = Param.nx;
 	ny = Param.ny;
 	
-
 	
+	//Warning hard wired stuff here
+	
+	std::vector<SLBnd> zsout;
+	
+	std::vector< std::vector< SLBnd > > zsAllout;
+	
+	
+
+
+
+	SLBnd stepread;
+	
+
+
+
+
+	FILE * fsSLTS;
+	if (!Param.TSoutfile.empty())
+	{
+		for (int o=0; o < Param.TSoutfile.size(); o++)
+		{
+			//Overwrite existing files
+			fsSLTS = fopen(Param.TSoutfile[o].c_str(), "w");
+			fclose(fsSLTS);
+
+			// Add empty row for each output point
+			zsAllout.push_back(std::vector<SLBnd>());
+		}
+	}
+	
+	
+
 	//< or <= ? crashes with <= if the boundary limit is == to endtime
 	while (totaltime < Param.endtime)
 	{
@@ -296,15 +329,15 @@ void mainloopGPU(XBGPUParam Param, std::vector<SLBnd> slbnd, std::vector<WindBnd
 
 		//Calculate timestep
 		FLOWDT << <gridDim, blockDim, 0 >> >(nx, ny, Param.dx, Param.CFL, dtflow_g, hh_g);
-		CUDA_CHECK(cudaThreadSynchronize());
+		CUDA_CHECK(cudaDeviceSynchronize());
 
 
 		minmaxKernel << <gridDimLine, blockDimLine, 0 >> >(nx*ny, arrmax_g, arrmin_g, dtflow_g);
 		//CUT_CHECK_ERROR("UpdateZom execution failed\n");
-		CUDA_CHECK(cudaThreadSynchronize());
+		CUDA_CHECK(cudaDeviceSynchronize());
 
 		finalminmaxKernel << <1, blockDimLine, 0 >> >(arrmax_g, arrmin_g);
-		CUDA_CHECK(cudaThreadSynchronize());
+		CUDA_CHECK(cudaDeviceSynchronize());
 
 		//CUDA_CHECK(cudaMemcpy(arrmax, arrmax_g, nx*ny*sizeof(DECNUM), cudaMemcpyDeviceToHost));
 		CUDA_CHECK(cudaMemcpy(arrmin, arrmin_g, nx*ny*sizeof(DECNUM), cudaMemcpyDeviceToHost));
@@ -318,15 +351,15 @@ void mainloopGPU(XBGPUParam Param, std::vector<SLBnd> slbnd, std::vector<WindBnd
 			double dtwave;
 			// Make sure the CFL condition for flow do not violate CFL condition for Waves
 			WAVEDT << <gridDim, blockDim, 0 >> >(nx, ny, ntheta, Param.CFL, dtheta, dtflow_g, ctheta_g);
-			CUDA_CHECK(cudaThreadSynchronize());
+			CUDA_CHECK(cudaDeviceSynchronize());
 
 
 			minmaxKernel << <gridDimLine, blockDimLine, 0 >> >(nx*ny, arrmax_g, arrmin_g, dtflow_g);
 			//CUT_CHECK_ERROR("UpdateZom execution failed\n");
-			CUDA_CHECK(cudaThreadSynchronize());
+			CUDA_CHECK(cudaDeviceSynchronize());
 
 			finalminmaxKernel << <1, blockDimLine, 0 >> >(arrmax_g, arrmin_g);
-			CUDA_CHECK(cudaThreadSynchronize());
+			CUDA_CHECK(cudaDeviceSynchronize());
 
 			//CUDA_CHECK(cudaMemcpy(arrmax, arrmax_g, nx*ny*sizeof(DECNUM), cudaMemcpyDeviceToHost));
 			CUDA_CHECK(cudaMemcpy(arrmin, arrmin_g, nx*ny*sizeof(DECNUM), cudaMemcpyDeviceToHost));
@@ -394,27 +427,48 @@ void mainloopGPU(XBGPUParam Param, std::vector<SLBnd> slbnd, std::vector<WindBnd
 		//add last value for avg calc
 		addavg_var << <gridDim, blockDim, 0 >> >(nx, ny, Hmean_g, H_g);
 		//CUT_CHECK_ERROR("Add avg execution failed\n");
-		CUDA_CHECK(cudaThreadSynchronize());
+		CUDA_CHECK(cudaDeviceSynchronize());
 
 		addavg_var << <gridDim, blockDim, 0 >> >(nx, ny, uumean_g, uu_g);
 		//CUT_CHECK_ERROR("Add avg execution failed\n");
-		CUDA_CHECK(cudaThreadSynchronize());
+		CUDA_CHECK(cudaDeviceSynchronize());
 
 		addavg_var << <gridDim, blockDim, 0 >> >(nx, ny, vvmean_g, vv_g);
 		//CUT_CHECK_ERROR("Add avg execution failed\n");
-		CUDA_CHECK(cudaThreadSynchronize());
+		CUDA_CHECK(cudaDeviceSynchronize());
 
 		addavg_var << <gridDim, blockDim, 0 >> >(nx, ny, hhmean_g, hh_g);
 		//CUT_CHECK_ERROR("Add avg execution failed\n");
-		CUDA_CHECK(cudaThreadSynchronize());
+		CUDA_CHECK(cudaDeviceSynchronize());
 
 		addavg_var << <gridDim, blockDim, 0 >> >(nx, ny, zsmean_g, zs_g);
 		//CUT_CHECK_ERROR("Add avg execution failed\n");
-		CUDA_CHECK(cudaThreadSynchronize());
+		CUDA_CHECK(cudaDeviceSynchronize());
 
 		addavg_var << <gridDim, blockDim, 0 >> >(nx, ny, Cmean_g, Cc_g);
 		//CUT_CHECK_ERROR("Add avg execution failed\n");
-		CUDA_CHECK(cudaThreadSynchronize());
+		CUDA_CHECK(cudaDeviceSynchronize());
+
+
+		//////////////////////////////////////////
+		//BIG
+		//WARNING HERE -- NEED TO MAKE ASYNC
+		/////////////////////////////////////////
+
+		CUDA_CHECK(cudaMemcpy(zs, zs_g, nx*ny*sizeof(DECNUM), cudaMemcpyDeviceToHost));
+
+		//after the transfert
+
+
+		if (!Param.TSnodesout.empty())
+		{
+			for (int o=0; o < Param.TSnodesout.size(); o++)
+			{
+				stepread.time = totaltime;
+				stepread.wlev = zs[Param.TSnodesout[o].i + Param.TSnodesout[o].j*nx];
+				zsAllout[o].push_back(stepread);
+			}
+		}
 
 
 		if (nextoutputtime-totaltime <= dt*0.001  && Param.outputtimestep > 0)
@@ -428,27 +482,27 @@ void mainloopGPU(XBGPUParam Param, std::vector<SLBnd> slbnd, std::vector<WindBnd
 
 			divavg_var << <gridDim, blockDim, 0 >> >(nx, ny, nstep, Hmean_g);
 			//CUT_CHECK_ERROR("Div avg execution failed\n");
-			CUDA_CHECK(cudaThreadSynchronize());
+			CUDA_CHECK(cudaDeviceSynchronize());
 
 			divavg_var << <gridDim, blockDim, 0 >> >(nx, ny, nstep, uumean_g);
 			//CUT_CHECK_ERROR("Div avg execution failed\n");
-			CUDA_CHECK(cudaThreadSynchronize());
+			CUDA_CHECK(cudaDeviceSynchronize());
 
 			divavg_var << <gridDim, blockDim, 0 >> >(nx, ny, nstep, vvmean_g);
 			//CUT_CHECK_ERROR("Div avg execution failed\n");
-			CUDA_CHECK(cudaThreadSynchronize());
+			CUDA_CHECK(cudaDeviceSynchronize());
 
 			divavg_var << <gridDim, blockDim, 0 >> >(nx, ny, nstep, hhmean_g);
 			//CUT_CHECK_ERROR("Div avg execution failed\n");
-			CUDA_CHECK(cudaThreadSynchronize());
+			CUDA_CHECK(cudaDeviceSynchronize());
 
 			divavg_var << <gridDim, blockDim, 0 >> >(nx, ny, nstep, zsmean_g);
 			//CUT_CHECK_ERROR("Div avg execution failed\n");
-			CUDA_CHECK(cudaThreadSynchronize());
+			CUDA_CHECK(cudaDeviceSynchronize());
 
 			divavg_var << <gridDim, blockDim, 0 >> >(nx, ny, nstep, Cmean_g);
 			//CUT_CHECK_ERROR("Div avg execution failed\n");
-			CUDA_CHECK(cudaThreadSynchronize());
+			CUDA_CHECK(cudaDeviceSynchronize());
 
 			// Download mean vars
 			CUDA_CHECK(cudaMemcpy(Hmean, Hmean_g, nx*ny*sizeof(DECNUM), cudaMemcpyDeviceToHost));
@@ -462,7 +516,7 @@ void mainloopGPU(XBGPUParam Param, std::vector<SLBnd> slbnd, std::vector<WindBnd
 			CUDA_CHECK(cudaMemcpy(H, H_g, nx*ny*sizeof(DECNUM), cudaMemcpyDeviceToHost));
 			CUDA_CHECK(cudaMemcpy(uu, uu_g, nx*ny*sizeof(DECNUM), cudaMemcpyDeviceToHost));
 			CUDA_CHECK(cudaMemcpy(vv, vv_g, nx*ny*sizeof(DECNUM), cudaMemcpyDeviceToHost));
-			CUDA_CHECK(cudaMemcpy(zs, zs_g, nx*ny*sizeof(DECNUM), cudaMemcpyDeviceToHost));
+			//CUDA_CHECK(cudaMemcpy(zs, zs_g, nx*ny*sizeof(DECNUM), cudaMemcpyDeviceToHost));
 			CUDA_CHECK(cudaMemcpy(Fx, Fx_g, nx*ny*sizeof(DECNUM), cudaMemcpyDeviceToHost));
 			CUDA_CHECK(cudaMemcpy(Fy, Fy_g, nx*ny*sizeof(DECNUM), cudaMemcpyDeviceToHost));
 			CUDA_CHECK(cudaMemcpy(thetamean, thetamean_g, nx*ny*sizeof(DECNUM), cudaMemcpyDeviceToHost));
@@ -485,7 +539,28 @@ void mainloopGPU(XBGPUParam Param, std::vector<SLBnd> slbnd, std::vector<WindBnd
 			printf("Writing output, totaltime:%f s, Mean dt=%f\n", totaltime, Param.outputtimestep/nstep);
 			//writestep2nc(tsoutfile, nx, ny,/*npart,*/(float) totaltime, imodel,/*xxp,yyp,*/zb, zs, uu, vv, H, H, thetamean, D, urms, ueu, vev, C, dzb, Fx, Fy, hh, Hmean, uumean, vvmean, hhmean, zsmean, Cmean);
 			writestep2nc(Param,(float)totaltime, zb, zs, uu, vv, H, H, thetamean, D, urms, ueu, vev, C, dzb, Fx, Fy, hh, Hmean, uumean, vvmean, hhmean, zsmean, Cmean);
-
+			
+			// Write a sigle timeseries in the file
+			if (!Param.TSoutfile.empty())
+			{
+				for (int o=0; o < Param.TSoutfile.size(); o++)
+				{
+					//Overwrite existing files
+					fsSLTS = fopen(Param.TSoutfile[o].c_str(), "a");
+					for (int n = 0; n < zsAllout[o].size(); n++)
+					{
+						fprintf(fsSLTS, "%f\t%.4f\n", zsAllout[o][n].time, zsAllout[o][n].wlev);
+					}
+					fclose(fsSLTS);
+					//reset zsout
+					zsAllout[o].clear();
+					//zsAllout.push_back(std::vector<SLBnd>());
+				}
+			}
+			
+			
+			
+			
 			//write3dvarnc(nx,ny,ntheta,totaltime,ctheta);
 			//outfile[],nx,ny,npart,totaltime,xxp,yyp,zs,uu, vv, H,Tp,Dp,      D,Urms,ueu,vev)
 			//fprintf(Tsout,"%f\t%f\t%f\t%f\t%f\t%f\n",totaltime,hh[iout+jout*nx],zs[iout+jout*nx],uu[iout+jout*nx],vv[iout+jout*nx],H[iout+jout*nx]);
@@ -494,31 +569,35 @@ void mainloopGPU(XBGPUParam Param, std::vector<SLBnd> slbnd, std::vector<WindBnd
 			//Clear avg vars
 			resetavg_var << <gridDim, blockDim, 0 >> >(nx, ny, Hmean_g);
 			//CUT_CHECK_ERROR("Reset avg execution failed\n");
-			CUDA_CHECK(cudaThreadSynchronize());
+			CUDA_CHECK(cudaDeviceSynchronize());
 
 			resetavg_var << <gridDim, blockDim, 0 >> >(nx, ny, uumean_g);
 			//CUT_CHECK_ERROR("Reset avg execution failed\n");
-			CUDA_CHECK(cudaThreadSynchronize());
+			CUDA_CHECK(cudaDeviceSynchronize());
 
 			resetavg_var << <gridDim, blockDim, 0 >> >(nx, ny, vvmean_g);
 			//CUT_CHECK_ERROR("Reset avg execution failed\n");
-			CUDA_CHECK(cudaThreadSynchronize());
+			CUDA_CHECK(cudaDeviceSynchronize());
 
 			resetavg_var << <gridDim, blockDim, 0 >> >(nx, ny, hhmean_g);
 			//CUT_CHECK_ERROR("Reset avg execution failed\n");
-			CUDA_CHECK(cudaThreadSynchronize());
+			CUDA_CHECK(cudaDeviceSynchronize());
 
 			resetavg_var << <gridDim, blockDim, 0 >> >(nx, ny, zsmean_g);
 			//CUT_CHECK_ERROR("Reset avg execution failed\n");
-			CUDA_CHECK(cudaThreadSynchronize());
+			CUDA_CHECK(cudaDeviceSynchronize());
 
 			resetavg_var << <gridDim, blockDim, 0 >> >(nx, ny, Cmean_g);
 			//CUT_CHECK_ERROR("Reset avg execution failed\n");
-			CUDA_CHECK(cudaThreadSynchronize());
+			CUDA_CHECK(cudaDeviceSynchronize());
 
 			nstep = 0;
 		}
 	}
+	
+
+	
+	
 }
 
 
@@ -661,7 +740,7 @@ void flowbnd(XBGPUParam Param,std::vector<SLBnd> slbnd, std::vector<WindBnd> wnd
 			// Set weakly reflective offshore boundary
 			ubnd1D << <gridDim, blockDim, 0 >> >(nx, ny, Param.dx, Param.dt, Param.g, Param.rho, (float)totaltime, wavbndtime, dtwavbnd, zsbndi, Trep, qbndold_g, qbndnew_g, zs_g, uu_g, vv_g, vu_g, umeanbnd_g, vmeanbnd_g, zb_g, cg_g, hum_g, cfm_g, Fx_g, hh_g);
 			//CUT_CHECK_ERROR("ubnd execution failed\n");
-			CUDA_CHECK(cudaThreadSynchronize());
+			CUDA_CHECK(cudaDeviceSynchronize());
 		}
 		else
 		{
@@ -709,7 +788,7 @@ void flowstep(XBGPUParam Param)
 	// Set weakly reflective offshore boundary ! MOVED TO FLOW BND SUBROUTINE!!
 	//ubnd<<<gridDim, blockDim, 0>>>(nx,ny,dx,dt,g,rho,totaltime,wavbndtime,dtwavbnd,slbndtime,rtsl,zsbndold,zsbndnew,Trep,qbndold_g,qbndnew_g,zs_g,uu_g,vv_g,vu_g,umeanbnd_g,vmeanbnd_g,zb_g,cg_g,hum_g,cfm_g,Fx_g,hh_g);
 	//CUT_CHECK_ERROR("ubnd execution failed\n");
-	//CUDA_CHECK( cudaThreadSynchronize() );
+	//CUDA_CHECK( cudaDeviceSynchronize() );
 
 
 	//
@@ -717,7 +796,7 @@ void flowstep(XBGPUParam Param)
 	//
 	wlevslopes << <gridDim, blockDim, 0 >> >(nx, ny, Param.dx, Param.eps, zs_g, dzsdx_g, dzsdy_g, hh_g);
 	//CUT_CHECK_ERROR("wlevslopes execution failed\n");
-	CUDA_CHECK(cudaThreadSynchronize());
+	CUDA_CHECK(cudaDeviceSynchronize());
 
 
 
@@ -727,7 +806,7 @@ void flowstep(XBGPUParam Param)
 
 	udepthmomcont << <gridDim, blockDim, 0 >> >(nx, ny, Param.dx, Param.eps, uumin, wetu_g, zs_g, uu_g, hh_g, hum_g, hu_g, zb_g);
 	//CUT_CHECK_ERROR("udepthmomcont execution failed\n");
-	CUDA_CHECK(cudaThreadSynchronize());
+	CUDA_CHECK(cudaDeviceSynchronize());
 
 	//
 	// Water depth at v pts for momentum and continuity eq (hvm hv)
@@ -735,7 +814,7 @@ void flowstep(XBGPUParam Param)
 
 	vdepthmomcont << <gridDim, blockDim, 0 >> >(nx, ny, Param.dx, Param.eps, uumin, wetv_g, zs_g, vv_g, hh_g, hvm_g, hv_g, zb_g);
 	//CUT_CHECK_ERROR("vdepthmomcont execution failed\n");
-	CUDA_CHECK(cudaThreadSynchronize());
+	CUDA_CHECK(cudaDeviceSynchronize());
 
 
 
@@ -748,13 +827,13 @@ void flowstep(XBGPUParam Param)
 
 	ududx_adv2 << <gridDim, blockDim, 0 >> >(nx, ny, Param.dx, hu_g, hum_g, uu_g, ududx_g);
 	//CUT_CHECK_ERROR("uadvec execution failed\n");
-	CUDA_CHECK(cudaThreadSynchronize());
+	CUDA_CHECK(cudaDeviceSynchronize());
 
 
 	//vdudy
 	vdudy_adv2 << <gridDim, blockDim, 0 >> >(nx, ny, Param.dx, hv_g, hum_g, uu_g, vv_g, vdudy_g);
 	//CUT_CHECK_ERROR("uadvec execution failed\n");
-	CUDA_CHECK(cudaThreadSynchronize());
+	CUDA_CHECK(cudaDeviceSynchronize());
 
 
 
@@ -765,7 +844,7 @@ void flowstep(XBGPUParam Param)
 	CUDA_CHECK(cudaMalloc((void **)&nuh_g, nx*ny*sizeof(DECNUM)));
 	smago << <gridDim, blockDim, 0 >> >(nx, ny, Param.dx, uu_g, vv_g, Param.nuh, nuh_g, Param.usesmago);
 	//CUT_CHECK_ERROR("uadvec execution failed\n");
-	CUDA_CHECK(cudaThreadSynchronize());
+	CUDA_CHECK(cudaDeviceSynchronize());
 
 	//
 	// increase eddy viscosity by wave induced breaking as in Reniers 2004 & Set viscu = 0.0 near water line
@@ -773,7 +852,7 @@ void flowstep(XBGPUParam Param)
 	CUDA_CHECK(cudaMalloc((void **)&viscu_g, nx*ny*sizeof(DECNUM)));
 	viscou << <gridDim, blockDim, 0 >> >(nx, ny, Param.dx, Param.rho, Param.eps, Param.nuhfac, nuh_g, hh_g, hum_g, hvm_g, DR_g, uu_g, wetu_g, viscu_g);
 	//CUT_CHECK_ERROR("visco execution failed\n");
-	CUDA_CHECK(cudaThreadSynchronize());
+	CUDA_CHECK(cudaDeviceSynchronize());
 
 
 	//
@@ -782,7 +861,7 @@ void flowstep(XBGPUParam Param)
 
 	eulerustep << <gridDim, blockDim, 0 >> >(nx, ny, Param.dx, Param.dt, Param.g, Param.rho, cfm_g, Param.fc, windu, Param.Cd, uu_g, urms_g, ududx_g, vdudy_g, viscu_g, dzsdx_g, hu_g, hum_g, Fx_g, vu_g, ueu_g, vmageu_g, wetu_g);
 	//CUT_CHECK_ERROR("eulerustep execution failed\n");
-	CUDA_CHECK(cudaThreadSynchronize());
+	CUDA_CHECK(cudaDeviceSynchronize());
 
 
 	//
@@ -790,7 +869,7 @@ void flowstep(XBGPUParam Param)
 	//
 	uuvvzslatbnd << <gridDim, blockDim, 0 >> >(nx, ny, uu_g, vv_g, zs_g);
 	//CUT_CHECK_ERROR("uu vv zs lateral bnd execution failed\n");
-	CUDA_CHECK(cudaThreadSynchronize());
+	CUDA_CHECK(cudaDeviceSynchronize());
 
 
 	//
@@ -799,12 +878,12 @@ void flowstep(XBGPUParam Param)
 	//vdvdy
 	vdvdy_adv2 << <gridDim, blockDim, 0 >> >(nx, ny, Param.dx, hv_g, hvm_g, vv_g, vdvdy_g);
 	//CUT_CHECK_ERROR("vadvec for v execution failed\n");
-	CUDA_CHECK(cudaThreadSynchronize());
+	CUDA_CHECK(cudaDeviceSynchronize());
 	//udvdx
 
 	udvdx_adv2 << <gridDim, blockDim, 0 >> >(nx, ny, Param.dx, hu_g, hvm_g, uu_g, vv_g, udvdx_g);
 	//CUT_CHECK_ERROR("vadvec for v execution failed\n");
-	CUDA_CHECK(cudaThreadSynchronize());
+	CUDA_CHECK(cudaDeviceSynchronize());
 
 	//
 	// increase eddy viscosity by wave induced breaking as in Reniers 2004 & Set viscv = 0.0 near water line
@@ -812,13 +891,13 @@ void flowstep(XBGPUParam Param)
 	CUDA_CHECK(cudaMalloc((void **)&viscv_g, nx*ny*sizeof(DECNUM)));
 	viscov << <gridDim, blockDim, 0 >> >(nx, ny, Param.dx, Param.rho, Param.eps, Param.nuhfac, nuh_g, hh_g, hum_g, hvm_g, DR_g, vv_g, wetv_g, viscv_g);
 	//CUT_CHECK_ERROR("visco v execution failed\n");
-	CUDA_CHECK(cudaThreadSynchronize());
+	CUDA_CHECK(cudaDeviceSynchronize());
 	CUDA_CHECK(cudaFree(nuh_g));
 
 
 	viscovbnd << <gridDim, blockDim, 0 >> >(nx, ny, viscv_g);
 	//CUT_CHECK_ERROR("visco v execution failed\n");
-	CUDA_CHECK(cudaThreadSynchronize());
+	CUDA_CHECK(cudaDeviceSynchronize());
 
 
 	//
@@ -827,14 +906,14 @@ void flowstep(XBGPUParam Param)
 
 	eulervstep << <gridDim, blockDim, 0 >> >(nx, ny, Param.dx, Param.dt, Param.g, Param.rho, cfm_g, Param.fc, windv, Param.Cd, vv_g, urms_g, udvdx_g, vdvdy_g, viscv_g, dzsdy_g, hv_g, hvm_g, Fy_g, uv_g, vev_g, vmagev_g, wetv_g);
 	//CUT_CHECK_ERROR("eulervstep execution failed\n");
-	CUDA_CHECK(cudaThreadSynchronize());
+	CUDA_CHECK(cudaDeviceSynchronize());
 
 	//
 	// Adjust lateral bnds
 	//
 	uuvvzslatbnd << <gridDim, blockDim, 0 >> >(nx, ny, uu_g, vv_g, zs_g);
 	//CUT_CHECK_ERROR("uu vv zs lateral bnd execution failed\n");
-	CUDA_CHECK(cudaThreadSynchronize());
+	CUDA_CHECK(cudaDeviceSynchronize());
 
 
 
@@ -844,14 +923,14 @@ void flowstep(XBGPUParam Param)
 
 	calcuvvu << <gridDim, blockDim, 0 >> >(nx, ny, Param.dx, uu_g, vv_g, vu_g, uv_g, ust_g, thetamean_g, ueu_g, vev_g, vmageu_g, vmagev_g, wetu_g, wetv_g);
 	//CUT_CHECK_ERROR("calcuvvu execution failed\n");
-	CUDA_CHECK(cudaThreadSynchronize());
+	CUDA_CHECK(cudaDeviceSynchronize());
 
 
 	uvlatbnd << <gridDim, blockDim, 0 >> >(nx, ny, vu_g, uv_g, ueu_g, vev_g, vmageu_g, vmagev_g);
 	//fix side bnd for vu
 	//twodimbndnoix<<<gridDim, blockDim, 0>>>(nx,ny,eps,hh_g,vu_g);
 	//CUT_CHECK_ERROR("wave force X bnd execution failed\n");
-	CUDA_CHECK(cudaThreadSynchronize());
+	CUDA_CHECK(cudaDeviceSynchronize());
 
 
 
@@ -866,14 +945,14 @@ void flowstep(XBGPUParam Param)
 	//
 	depthhu << <gridDim, blockDim, 0 >> >(nx, ny, Param.dx, uumin, Param.eps, hh_g, uu_g, hu_g, zs_g, zb_g);
 	//CUT_CHECK_ERROR("depthhu execution failed\n");
-	CUDA_CHECK(cudaThreadSynchronize());
+	CUDA_CHECK(cudaDeviceSynchronize());
 
 	//
 	//Calculate hv
 	//
 	depthhv << <gridDim, blockDim, 0 >> >(nx, ny, Param.dx, uumin, Param.eps, hh_g, vv_g, hv_g, zs_g, zb_g);
 	//CUT_CHECK_ERROR("depthhv execution failed\n");
-	CUDA_CHECK(cudaThreadSynchronize());
+	CUDA_CHECK(cudaDeviceSynchronize());
 
 
 	//
@@ -881,7 +960,7 @@ void flowstep(XBGPUParam Param)
 	//
 	continuity << <gridDim, blockDim, 0 >> >(nx, ny, Param.dx, Param.dt, Param.eps, uu_g, hu_g, vv_g, hv_g, zs_g, hh_g, zb_g, dzsdt_g);
 	//CUT_CHECK_ERROR("continuity execution failed\n");
-	CUDA_CHECK(cudaThreadSynchronize());
+	CUDA_CHECK(cudaDeviceSynchronize());
 
 
 	//
@@ -889,12 +968,12 @@ void flowstep(XBGPUParam Param)
 	//
 	uuvvzslatbnd << <gridDim, blockDim, 0 >> >(nx, ny, uu_g, vv_g, zs_g);
 	//CUT_CHECK_ERROR("uu vv zs lateral bnd execution failed\n");
-	CUDA_CHECK(cudaThreadSynchronize());
+	CUDA_CHECK(cudaDeviceSynchronize());
 
 
 	hsbnd << <gridDim, blockDim, 0 >> >(nx, ny, Param.eps, hh_g, zb_g, zs_g);
 	//CUT_CHECK_ERROR("hh lateral bnd execution failed\n");
-	CUDA_CHECK(cudaThreadSynchronize());
+	CUDA_CHECK(cudaDeviceSynchronize());
 
 
 
@@ -963,7 +1042,7 @@ void sedimentstep(XBGPUParam Param)
 	//
 	longturb << <gridDim, blockDim, 0 >> >(nx, ny, dx, Param.rho, Param.g, Param.dt, Param.beta, c_g, kturb_g, rolthick_g, dzsdt_g, uu_g, vv_g, hu_g, hv_g, wetu_g, wetv_g, hh_g);
 	//CUT_CHECK_ERROR("longturb execution failed\n");
-	CUDA_CHECK(cudaThreadSynchronize());
+	CUDA_CHECK(cudaDeviceSynchronize());
 
 	//
 	// Calculate Equilibrium concentration Ceq
@@ -976,11 +1055,11 @@ void sedimentstep(XBGPUParam Param)
 	//Sbvr or Sednew
 	Sbvr << <gridDim, blockDim, 0 >> >(nx, ny, Param.rho, Param.g, Param.eps, Trep, Param.D50, Param.D90, Param.rhosed, Param.wws, Param.nuhfac, ueu_g, vev_g, H_g, DR_g, R_g, c_g, hh_g, urms_g, ceqsg_g, ceqbg_g, Tsg_g, cfm_g, kturb_g);
 	//CUT_CHECK_ERROR("CalcCeq execution failed\n");
-	CUDA_CHECK(cudaThreadSynchronize());
+	CUDA_CHECK(cudaDeviceSynchronize());
 
 	Rvr << <gridDim, blockDim, 0 >> >(nx, ny, Trep, Param.facsk, Param.facas, H_g, hh_g, urms_g, c_g, ua_g);
 	//CUT_CHECK_ERROR("Rvr execution failed\n");
-	CUDA_CHECK(cudaThreadSynchronize());
+	CUDA_CHECK(cudaDeviceSynchronize());
 
 	// CUDA_CHECK( cudaMemcpy(uumean, ua_g, nx*ny*sizeof(DECNUM ), cudaMemcpyDeviceToHost) );
 
@@ -993,7 +1072,7 @@ void sedimentstep(XBGPUParam Param)
 	CUDA_CHECK(cudaMalloc((void **)&facero_g, nx*ny*sizeof(DECNUM)));
 	Erosus << <gridDim, blockDim, 0 >> >(nx, ny, Param.dt, Param.morfac, Param.por, hh_g, ceqsg_g, ceqbg_g, Tsg_g, facero_g, stdep_g);
 	//CUT_CHECK_ERROR("Erosus execution failed\n");
-	CUDA_CHECK(cudaThreadSynchronize());
+	CUDA_CHECK(cudaDeviceSynchronize());
 
 
 
@@ -1010,7 +1089,7 @@ void sedimentstep(XBGPUParam Param)
 	CUDA_CHECK(cudaMalloc((void **)&Svb_g, nx*ny*sizeof(DECNUM)));
 	Susp << <gridDim, blockDim, 0 >> >(nx, ny, dx, Param.eps, Param.nuh, Param.nuhfac, Param.rho, Param.sus, Param.bed, ueu_g, vev_g, uu_g, uv_g, hu_g, vv_g, vu_g, hv_g, zb_g, hh_g, DR_g, Cc_g, ceqbg_g, Sus_g, Svs_g, Sub_g, Svb_g, thetamean_g, ua_g);
 	//CUT_CHECK_ERROR("Susp execution failed\n");
-	CUDA_CHECK(cudaThreadSynchronize());
+	CUDA_CHECK(cudaDeviceSynchronize());
 
 
 	//
@@ -1021,7 +1100,7 @@ void sedimentstep(XBGPUParam Param)
 	CUDA_CHECK(cudaMalloc((void **)&depo_g, nx*ny*sizeof(DECNUM)));
 	Conc << <gridDim, blockDim, 0 >> >(nx, ny, dx, Param.dt, Param.eps, hh_g, Cc_g, ceqsg_g, Tsg_g, facero_g, ero_g, depo_g, Sus_g, Svs_g);
 	//CUT_CHECK_ERROR("Conc execution failed\n");
-	CUDA_CHECK(cudaThreadSynchronize());
+	CUDA_CHECK(cudaDeviceSynchronize());
 
 
 	//
@@ -1029,7 +1108,7 @@ void sedimentstep(XBGPUParam Param)
 	//
 	CClatbnd << <gridDim, blockDim, 0 >> >(nx, ny, Param.eps, hh_g, Cc_g);
 	//CUT_CHECK_ERROR("CClatbnd execution failed\n");
-	CUDA_CHECK(cudaThreadSynchronize());
+	CUDA_CHECK(cudaDeviceSynchronize());
 
 
 	if (Param.morfac > 0.0f)// Only if morphology is need i.e. if also if morphac >0.0
@@ -1043,11 +1122,11 @@ void sedimentstep(XBGPUParam Param)
 		CUDA_CHECK(cudaMalloc((void **)&indSvb_g, nx*ny*sizeof(int)));
 		hardlayer << <gridDim, blockDim, 0 >> >(nx, ny, dx, Param.dt, Sub_g, Svb_g, Sout_g, indSub_g, indSvb_g);
 		//CUT_CHECK_ERROR("hardlayer execution failed\n");
-		CUDA_CHECK(cudaThreadSynchronize());
+		CUDA_CHECK(cudaDeviceSynchronize());
 
 		zblatbnd << <gridDim, blockDim, 0 >> >(nx, ny, Sout_g);
 		//CUT_CHECK_ERROR("Sout twodimbnd execution failed\n");
-		CUDA_CHECK(cudaThreadSynchronize());
+		CUDA_CHECK(cudaDeviceSynchronize());
 
 
 		//
@@ -1055,7 +1134,7 @@ void sedimentstep(XBGPUParam Param)
 		//
 		bedupdate << <gridDim, blockDim, 0 >> >(nx, ny, Param.eps, dx, Param.dt, Param.morfac, Param.por, hh_g, ero_g, depo_g, Sub_g, Svb_g, Sout_g, indSub_g, indSvb_g, zb_g, dzb_g, stdep_g);
 		//CUT_CHECK_ERROR("bedupdate execution failed\n");
-		CUDA_CHECK(cudaThreadSynchronize());
+		CUDA_CHECK(cudaDeviceSynchronize());
 
 
 		//
@@ -1063,12 +1142,12 @@ void sedimentstep(XBGPUParam Param)
 		//	
 		zblatbnd << <gridDim, blockDim, 0 >> >(nx, ny, zb_g);
 		//CUT_CHECK_ERROR("Zb twodimbnd execution failed\n");
-		CUDA_CHECK(cudaThreadSynchronize());
+		CUDA_CHECK(cudaDeviceSynchronize());
 
 
 		zblatbnd << <gridDim, blockDim, 0 >> >(nx, ny, stdep_g);
 		//CUT_CHECK_ERROR("Zb twodimbnd execution failed\n");
-		CUDA_CHECK(cudaThreadSynchronize());
+		CUDA_CHECK(cudaDeviceSynchronize());
 
 
 		//
@@ -1078,7 +1157,7 @@ void sedimentstep(XBGPUParam Param)
 		CUDA_CHECK(cudaMemcpy(ddzb_g, zeros, nx*ny*sizeof(DECNUM), cudaMemcpyHostToDevice));
 		avalanching << <gridDim, blockDim, 0 >> >(nx, ny, Param.eps, dx, Param.dt, Param.por, Param.drydzmax, Param.wetdzmax, Param.maxslpchg, hh_g, zb_g, ddzb_g, stdep_g);
 		//CUT_CHECK_ERROR("avalanching execution failed\n");
-		CUDA_CHECK(cudaThreadSynchronize());
+		CUDA_CHECK(cudaDeviceSynchronize());
 
 		//
 		// Update Zb for avalanching
@@ -1086,26 +1165,26 @@ void sedimentstep(XBGPUParam Param)
 
 		updatezb << <gridDim, blockDim, 0 >> >(nx, ny, dx, Param.dt, zb_g, ddzb_g, dzb_g, zs_g, hh_g, stdep_g);
 		//CUT_CHECK_ERROR("avalanching execution failed\n");
-		CUDA_CHECK(cudaThreadSynchronize());
+		CUDA_CHECK(cudaDeviceSynchronize());
 
 		//
 		// Update lateral bnd	
 		//	
 		zblatbnd << <gridDim, blockDim, 0 >> >(nx, ny, zb_g);
 		//CUT_CHECK_ERROR("Zb twodimbnd execution failed\n");
-		CUDA_CHECK(cudaThreadSynchronize());
+		CUDA_CHECK(cudaDeviceSynchronize());
 
 		//zblatbnd<<<gridDim, blockDim, 0>>>(nx,ny,dzb_g);
 		////CUT_CHECK_ERROR("Zb twodimbnd execution failed\n");
-		//CUDA_CHECK( cudaThreadSynchronize() );
+		//CUDA_CHECK( cudaDeviceSynchronize() );
 
 		zblatbnd << <gridDim, blockDim, 0 >> >(nx, ny, stdep_g);
 		//CUT_CHECK_ERROR("Zb twodimbnd execution failed\n");
-		CUDA_CHECK(cudaThreadSynchronize());
+		CUDA_CHECK(cudaDeviceSynchronize());
 
 		updatezom << <gridDim, blockDim, 0 >> >(nx, ny, Param.cfsand, Param.cfreef, Param.fwsand, Param.fwreef, stdep_g, cfm_g, fwm_g);
 		//CUT_CHECK_ERROR("UpdateZom execution failed\n");
-		CUDA_CHECK(cudaThreadSynchronize());
+		CUDA_CHECK(cudaDeviceSynchronize());
 	}
 
 
@@ -1902,22 +1981,22 @@ int main(int argc, char **argv)
 		//Calculate bottomm friction based on initial hard layer file
 		updatezom << <gridDim, blockDim, 0 >> >(nx, ny, XParam.cfsand, XParam.cfreef, XParam.fwsand, XParam.fwreef, stdep_g, cfm_g, fwm_g);
 		//CUT_CHECK_ERROR("UpdateZom execution failed\n");`
-		CUDA_CHECK(cudaThreadSynchronize());
+		CUDA_CHECK(cudaDeviceSynchronize());
 
 
 		// Calculate initial maximum timestep
 
 
 		FLOWDT << <gridDim, blockDim, 0 >> >(nx, ny, dx, 0.5*XParam.CFL, dtflow_g, hh_g);
-		CUDA_CHECK(cudaThreadSynchronize());
+		CUDA_CHECK(cudaDeviceSynchronize());
 
 
 		minmaxKernel << <gridDimLine, blockDimLine, 0 >> >(nx*ny, arrmax_g, arrmin_g, dtflow_g);
 		//CUT_CHECK_ERROR("UpdateZom execution failed\n");
-		CUDA_CHECK(cudaThreadSynchronize());
+		CUDA_CHECK(cudaDeviceSynchronize());
 
 		finalminmaxKernel << <1, blockDimLine, 0 >> >(arrmax_g, arrmin_g);
-		CUDA_CHECK(cudaThreadSynchronize());
+		CUDA_CHECK(cudaDeviceSynchronize());
 
 		//CUDA_CHECK(cudaMemcpy(arrmax, arrmax_g, nx*ny*sizeof(DECNUM), cudaMemcpyDeviceToHost));
 		CUDA_CHECK(cudaMemcpy(arrmin, arrmin_g, nx*ny*sizeof(DECNUM), cudaMemcpyDeviceToHost));
@@ -1956,12 +2035,12 @@ int main(int argc, char **argv)
 			set_bnd << <gridDim, blockDim, 0 >> >(nx, ny, Trep, ntheta, theta_g, sigm_g);
 
 			//CUT_CHECK_ERROR("set_bnd() execution failed\n");
-			CUDA_CHECK(cudaThreadSynchronize());
+			CUDA_CHECK(cudaDeviceSynchronize());
 
 			//also run dispersion relation, cg is needed in the first iteration of the bnd flow
 			dispersion_init << <gridDim, blockDim, 0 >> >(nx, ny, twopi, XParam.g, aphi, bphi, sigm_g, hh_g, cg_g);
 			//CUT_CHECK_ERROR("dispersion execution failed\n");
-			CUDA_CHECK(cudaThreadSynchronize());
+			CUDA_CHECK(cudaDeviceSynchronize());
 
 		}
 		

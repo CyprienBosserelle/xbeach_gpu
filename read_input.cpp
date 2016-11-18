@@ -639,7 +639,30 @@ XBGPUParam readparamstr(std::string line, XBGPUParam param)
 		param.windfile = parametervalue;
 		//std::cerr << "Bathymetry file found!" << std::endl;
 	}
+
 	
+
+	// Below is a bit more complex than usual because more than 1 node can be outputed as a timeseries
+	parameterstr = "TSOfile =";
+	parametervalue = findparameter(parameterstr, line);
+	if (!parametervalue.empty())
+	{
+		param.TSoutfile.push_back(parametervalue);
+		//std::cerr << "Bathymetry file found!" << std::endl;
+	}
+
+	parameterstr = "TSnode =";
+	parametervalue = findparameter(parameterstr, line);
+	if (!parametervalue.empty())
+	{
+		std::vector<std::string> nodes = split(parametervalue, ',');
+		TSnode node;
+		node.i = std::stoi(nodes[0]);
+		node.j = std::stoi(nodes[1]);
+		param.TSnodesout.push_back(node);
+
+		//std::cerr << "Bathymetry file found!" << std::endl;
+	}
 
 	parameterstr = "wavebndtype =";
 	parametervalue = findparameter(parameterstr, line);

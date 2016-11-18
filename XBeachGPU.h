@@ -30,6 +30,14 @@
 
 using DECNUM = float;
 
+
+//class template to create vecotr ofg output locations fro the model
+class TSnode{
+public:
+	int i, j;
+};
+
+
 class XBGPUParam{
 public:
 	
@@ -94,6 +102,10 @@ public:
 	double outputtimestep=0.0; //number of seconds between output 0.0 for none
 	double endtime=0.0; // Total runtime in s will be calculated based on bnd input as min(length of the shortest time series, user defined)
 	
+	//Timeseries output
+	std::vector<std::string> TSoutfile; //filename of output time series (Only save time, H U,V and zs)
+	std::vector<TSnode> TSnodesout; // vector containing i and j of each variables
+
 };
 
 
@@ -110,6 +122,8 @@ public:
 	double spd, dir; //speed in m/s and dir in deg relative to true North
 	double theta; // wind direction in rad relative to the grid y axis
 };
+
+
 
 
 // additional functions
