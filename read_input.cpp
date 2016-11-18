@@ -986,10 +986,87 @@ void SaveParamtolog(XBGPUParam XParam)
 	write_text_to_log_file("#################################");
 	write_text_to_log_file("# Bathymetry file");
 	write_text_to_log_file("bathy = " + XParam.Bathymetryfile + ";");
+	write_text_to_log_file("nx = " + std::to_string(XParam.nx) + ";");
+	write_text_to_log_file("ny = " + std::to_string(XParam.ny) + ";");
+	write_text_to_log_file("dx = " + std::to_string(XParam.dx) + ";");
+	write_text_to_log_file("grdalpha = " + std::to_string(XParam.grdalpha) + ";");
+	write_text_to_log_file("\n");
 	write_text_to_log_file("# Model controls");
 	write_text_to_log_file("swave = " + std::to_string(XParam.swave) + ";");
 	write_text_to_log_file("flow = " + std::to_string(XParam.flow) + ";");
-
+	write_text_to_log_file("sedtrans = " + std::to_string(XParam.sedtrans) + ";");
+	write_text_to_log_file("morphology = " + std::to_string(XParam.morphology) + ";");
+	write_text_to_log_file("gpudevice = " + std::to_string(XParam.GPUDEVICE) + ";");
+	write_text_to_log_file("\n");
+	write_text_to_log_file("# Flow parameters");
+	write_text_to_log_file("eps = " + std::to_string(XParam.eps) + ";");
+	write_text_to_log_file("cfsand = " + std::to_string(XParam.cfsand) + ";");
+	write_text_to_log_file("cfreef = " + std::to_string(XParam.cfreef) + ";");
+	write_text_to_log_file("usesmago = " + std::to_string(XParam.usesmago) + ";");
+	if (XParam.usesmago == 0)
+	{
+		write_text_to_log_file("nuh = " + std::to_string(XParam.sedtrans) + ";");
+	}
+	else
+	{
+		write_text_to_log_file("smag = " + std::to_string(XParam.smag) + ";");
+	}
+	write_text_to_log_file("nuhfac = " + std::to_string(XParam.nuhfac) + ";");
+	write_text_to_log_file("lat = " + std::to_string(XParam.lat) + ";");
+	write_text_to_log_file("fc = " + std::to_string(XParam.fc) + ";");
+	write_text_to_log_file("Cd = " + std::to_string(XParam.Cd) + ";");
+	write_text_to_log_file("wci = " + std::to_string(XParam.wci) + ";");
+	write_text_to_log_file("hwci = " + std::to_string(XParam.hwci) + ";");
+	write_text_to_log_file("\n");
+	write_text_to_log_file("# Waves parameters");
+	write_text_to_log_file("breakmodel = " + std::to_string(XParam.breakmodel) + ";");
+	write_text_to_log_file("gamma = " + std::to_string(XParam.gammaa) + ";");
+	write_text_to_log_file("n = " + std::to_string(XParam.n) + ";");
+	write_text_to_log_file("alpha = " + std::to_string(XParam.alpha) + ";");
+	write_text_to_log_file("gammax = " + std::to_string(XParam.gammax) + ";");
+	write_text_to_log_file("beta = " + std::to_string(XParam.beta) + ";");
+	write_text_to_log_file("fwsand = " + std::to_string(XParam.fwsand) + ";");
+	write_text_to_log_file("fwreef = " + std::to_string(XParam.fwreef) + ";");
+	write_text_to_log_file("\n");
+	write_text_to_log_file("# Sediment parameters");
+	write_text_to_log_file("D50 = " + std::to_string(XParam.D50) + ";");
+	write_text_to_log_file("D90 = " + std::to_string(XParam.D90) + ";");
+	write_text_to_log_file("rhosed = " + std::to_string(XParam.rhosed) + ";");
+	write_text_to_log_file("wws = " + std::to_string(XParam.wws) + ";");
+	write_text_to_log_file("drydzmax = " + std::to_string(XParam.drydzmax) + ";");
+	write_text_to_log_file("wetdzmax = " + std::to_string(XParam.wetdzmax) + ";");
+	write_text_to_log_file("maxslpchg = " + std::to_string(XParam.maxslpchg) + ";");
+	write_text_to_log_file("por = " + std::to_string(XParam.por) + ";");
+	write_text_to_log_file("morfac = " + std::to_string(XParam.morfac) + ";");
+	write_text_to_log_file("sus = " + std::to_string(XParam.sus) + ";");
+	write_text_to_log_file("bed = " + std::to_string(XParam.bed) + ";");
+	write_text_to_log_file("facsk = " + std::to_string(XParam.facsk) + ";");
+	write_text_to_log_file("facas = " + std::to_string(XParam.facas) + ";");
+	write_text_to_log_file("\n");
+	write_text_to_log_file("# Timekeeping parameters");
+	write_text_to_log_file("CFL = " + std::to_string(XParam.CFL) + ";");
+	write_text_to_log_file("sedstart = " + std::to_string(XParam.sedstart) + ";");
+	write_text_to_log_file("outputtimestep = " + std::to_string(XParam.outputtimestep) + ";");
+	write_text_to_log_file("endtime = " + std::to_string(XParam.endtime) + ";");
+	write_text_to_log_file("\n");
+	write_text_to_log_file("# Files");
+	write_text_to_log_file("outfile = " + XParam.outfile + ";");
+	write_text_to_log_file("SedThkfile = " + XParam.SedThkfile + ";");
+	write_text_to_log_file("wavebndfile = " + XParam.wavebndfile + ";");
+	write_text_to_log_file("slbndfile = " + XParam.slbnd + ";");
+	write_text_to_log_file("windbndfile = " + XParam.windfile + ";");
+	if (!XParam.TSoutfile.empty())
+	{
+		for (int o = 0; o < XParam.TSoutfile.size(); o++)
+		{
+			write_text_to_log_file("TSOfile = " + XParam.TSoutfile[o] + ";");
+			write_text_to_log_file("TSnode = " + std::to_string(XParam.TSnodesout[o].i) + "," + std::to_string(XParam.TSnodesout[o].j) + ";");
+		}
+	}
+	write_text_to_log_file("\n");
+	write_text_to_log_file("# Others");
+	write_text_to_log_file("g = " + std::to_string(XParam.g) + ";");
+	write_text_to_log_file("rho = " + std::to_string(XParam.rho) + ";");
 }
 
 
