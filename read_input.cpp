@@ -791,6 +791,52 @@ XBGPUParam checkparamsanity(XBGPUParam XParam, std::vector<SLBnd> slbnd, std::ve
 		XParam.nuh = XParam.smag;
 	}
 
+	//Check that there are as many file specified for Time series output as there are vectors of nodes
+	if (XParam.TSoutfile.size() != XParam.TSnodesout.size())
+	{
+		// Issue a Warning
+		std::cout << "WARNING: the number of timeseries output files is not equal to the number of nodes specified" << std::endl;
+		std::cout << "for each location where timeseries output file is required, the XBG_param.txt file shoud contain 2 lines see example felow to extract in 2 locations:" << std::endl;
+		std::cout << "TSOfile = Reef_Crest.txt" << std::endl;
+		std::cout << "TSnode = 124,239;" << std::endl;
+		std::cout << "TSOfile = shore.txt" << std::endl;
+		std::cout << "TSnode = 233,256;" << std::endl;
+
+		int minsize = min(XParam.TSoutfile.size(), XParam.TSnodesout.size());
+		XParam.TSoutfile.resize(minsize);
+		XParam.TSnodesout.resize(minsize);
+	}
+
+	//Chaeck that if timeseries output nodes are specified that they are within nx and ny
+	if (XParam.TSnodesout.size() > 0)
+	{
+		for (int o = 0; o < XParam.TSnodesout.size(); o++)
+		{
+			if (XParam.TSnodesout[o].i < 0)
+			{
+				//An idiot is in charge
+				XParam.TSnodesout[o].i = 0;
+			}
+
+			if (XParam.TSnodesout[o].i > XParam.nx-1)
+			{
+				XParam.TSnodesout[o].i = XParam.nx - 1;
+			}
+
+			if (XParam.TSnodesout[o].j < 0)
+			{
+				//An idiot is in charge
+				XParam.TSnodesout[o].j = 0;
+			}
+
+			if (XParam.TSnodesout[o].j > XParam.ny - 1)
+			{
+				XParam.TSnodesout[o].j = XParam.ny - 1;
+			}
+		}
+
+	}
+
 	return XParam;
 }
 
