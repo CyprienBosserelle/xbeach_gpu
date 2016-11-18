@@ -33,7 +33,7 @@ extern "C" void readbndhead(const char * wavebnd, DECNUM &thetamin, DECNUM &thet
 	FILE * fwav;
 	fwav = fopen(wavebnd, "r");
 	fscanf(fwav, "%f\t%f\t%f\t%f\t%d", &thetamin, &thetamax, &dtheta, &dtwavbnd, &nwavbnd);
-	printf("rtwavbnd=%f\tnwavbnd=%d\n", dtwavbnd, nwavbnd);
+	//printf("rtwavbnd=%f\tnwavbnd=%d\n", dtwavbnd, nwavbnd);
 
 	fclose(fwav);
 }
@@ -50,6 +50,8 @@ extern "C" void readXbbndstep(int nx, int ny, int ntheta, const char * wavebnd, 
 	int nwavbnd, nwavfile;
 
 	printf("Reading next bnd file... ");
+	write_text_to_log_file("Reading next bnd file... ");
+
 	fwav = fopen(wavebnd, "r");
 	fscanf(fwav, "%f\t%f\t%f\t%f\t%d\t%d", &thetamin, &thetamax, &dtheta, &dtwavbnd, &nwavbnd, &nwavfile);
 	for (int n = 0; n < step; n++)
@@ -65,6 +67,7 @@ extern "C" void readXbbndstep(int nx, int ny, int ntheta, const char * wavebnd, 
 	if (!fXq)
 	{
 		printf("Unable to open file %s\t", Xbqfile);
+		write_text_to_log_file("Unable to open file :"+ (std::string)Xbqfile);
 		return;
 	}
 	else
@@ -92,6 +95,7 @@ extern "C" void readXbbndstep(int nx, int ny, int ntheta, const char * wavebnd, 
 	fclose(fXE);
 
 	printf("done \n");
+	write_text_to_log_file("done");
 
 }
 
@@ -106,6 +110,8 @@ extern "C" void readStatbnd(int nx, int ny, int ntheta, DECNUM rho, DECNUM g, co
 	int nwavbnd;
 
 	printf("Reading bnd file... ");
+	write_text_to_log_file("Reading bnd file... ");
+
 	fwav = fopen(wavebnd, "r");
 	fscanf(fwav, "%f\t%f\t%f\t%f\t%d", &thetamin, &thetamax, &dtheta, &dtwavbnd, &nwavbnd);
 	//printf("rtwavbnd=%f\n ",rtwavbnd);
@@ -126,6 +132,7 @@ extern "C" void readStatbnd(int nx, int ny, int ntheta, DECNUM rho, DECNUM g, co
 	}
 	fclose(fwav);
 	printf("done \n");
+	write_text_to_log_file("done");
 
 }
 
@@ -137,6 +144,7 @@ std::vector<SLBnd> readWLfile(std::string WLfilename)
 
 	if (fs.fail()){
 		std::cerr << WLfilename << " Water level bnd file could not be opened" << std::endl;
+		write_text_to_log_file("ERROR: Water level bnd file could not be opened ");
 		exit(1);
 	}
 
@@ -180,6 +188,7 @@ std::vector<WindBnd> readWNDfile(std::string WNDfilename, double grdalpha)
 
 	if (fs.fail()){
 		std::cerr << WNDfilename << " Wind bnd file could not be opened" << std::endl;
+		write_text_to_log_file("ERROR: Wind bnd file could not be opened ");
 		exit(1);
 	}
 
@@ -751,6 +760,7 @@ XBGPUParam checkparamsanity(XBGPUParam XParam, std::vector<SLBnd> slbnd, std::ve
 	if (XParam.wavebndfile.empty())
 	{
 		std::cerr << "Fatal error: No wave boundary file specified. Please specify using 'wavebndfile = wave_boundary.bnd;'" << std::endl;
+		write_text_to_log_file("ERROR: No wave boundary file specified. Please specify using 'wavebndfile = wave_boundary.bnd;");
 		exit(1);
 	}
 
@@ -785,6 +795,7 @@ XBGPUParam checkparamsanity(XBGPUParam XParam, std::vector<SLBnd> slbnd, std::ve
 		if (abs(XParam.nuh - DefaultParams.nuh) > tiny)
 		{
 			std::cout << "WARNING: Using Smagorinsky formulation. User specified value for 'nuh' will be ignored. Use 'smag = 0.3' to control the smagorinsky parameter" << std::endl;
+			write_text_to_log_file("WARNING: Using Smagorinsky formulation. User specified value for 'nuh' will be ignored. Use 'smag = 0.3' to control the smagorinsky parameter");
 		}
 
 		//force nuh to be == to smago
@@ -802,7 +813,25 @@ XBGPUParam checkparamsanity(XBGPUParam XParam, std::vector<SLBnd> slbnd, std::ve
 		std::cout << "TSOfile = shore.txt" << std::endl;
 		std::cout << "TSnode = 233,256;" << std::endl;
 
-		int minsize = min(XParam.TSoutfile.size(), XParam.TSnodesout.size());
+		write_text_to_log_file("WARNING: the number of timeseries output files is not equal to the number of nodes specified");
+		write_text_to_log_file("for each location where timeseries output file is required, the XBG_param.txt file shoud contain 2 lines see example felow to extract in 2 locations:");
+		write_text_to_log_file("TSOfile = Reef_Crest.txt");
+		write_text_to_log_file("TSnode = 124,239;");
+		write_text_to_log_file("TSOfile = Shore.txt");
+		write_text_to_log_file("TSnode = 233,256;");
+		//min not defined for const so use this convoluted statement below
+		int minsize;
+		if (XParam.TSoutfile.size() > XParam.TSnodesout.size())
+		{
+			minsize = XParam.TSnodesout.size();
+		}
+
+		if (XParam.TSoutfile.size() < XParam.TSnodesout.size())
+		{
+			minsize = XParam.TSoutfile.size();
+		}
+
+				
 		XParam.TSoutfile.resize(minsize);
 		XParam.TSnodesout.resize(minsize);
 	}
@@ -943,5 +972,25 @@ extern "C" void readbathy(std::string filename, float *&zb)
 
 	fclose(fid);
 }
+
+void write_text_to_log_file(std::string text)
+{
+	std::ofstream log_file(
+		"XBG_log.txt", std::ios_base::out | std::ios_base::app);
+	log_file << text << std::endl;
+	log_file.close(); //destructoir implicitly does it
+}
+
+void SaveParamtolog(XBGPUParam XParam)
+{
+	write_text_to_log_file("#################################");
+	write_text_to_log_file("# Bathymetry file");
+	write_text_to_log_file("bathy = " + XParam.Bathymetryfile + ";");
+	write_text_to_log_file("# Model controls");
+	write_text_to_log_file("swave = " + std::to_string(XParam.swave) + ";");
+	write_text_to_log_file("flow = " + std::to_string(XParam.flow) + ";");
+
+}
+
 
 

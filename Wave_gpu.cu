@@ -1230,22 +1230,36 @@ int main(int argc, char **argv)
 	totaltime = 0.0;
 	nextoutputtime = 0.0;
 
-	//////////////////////////////////////////////////////
-	/////             Read Operational file          /////
-	//////////////////////////////////////////////////////
+
 	int nx, ny;
 	float dx, grdalpha;
-
 	double dt;
 	
 
-	char filename[256];
+	// Reset the log file 
+	FILE * flog;
+	flog = fopen("XBG_log.txt", "w");
+	fclose(flog);
+		
+	//Logfile header
+	time_t rawtime, dstart;
+	struct tm * timeinfo;
+	char buffer[80];
 
-	//char slbnd[256];
-	//char windfile[256];
-	char zofile[256];
-	//char HLfile[256];
+	time(&rawtime);
+	timeinfo = localtime(&rawtime);
 
+	strftime(buffer, 80, "%d-%m-%Y %H:%M:%S", timeinfo);
+	std::string strtimenow(buffer);
+	write_text_to_log_file("#################################");
+	write_text_to_log_file("XBeach_GPU v0.0");
+	write_text_to_log_file("#################################");
+	write_text_to_log_file("model started at " + strtimenow);
+	
+
+	//////////////////////////////////////////////////////
+	/////             Read Operational file          /////
+	//////////////////////////////////////////////////////
 	XBGPUParam XParam;
 
 	std::vector<SLBnd> slbnd;
@@ -1255,7 +1269,7 @@ int main(int argc, char **argv)
 
 	if (fs.fail()){
 		std::cerr << "XBG_param.txt file could not be opened" << std::endl;
-		
+		write_text_to_log_file("ERROR: XBG_param.txt file could not be opened...Exiting");
 		exit(1);
 	}
 
@@ -1278,7 +1292,7 @@ int main(int argc, char **argv)
 	//XParam = checkparamsanity(XParam);
 	//std::cout << XParam.Bathymetryfile << std::endl;
 
-	//write_text_to_log_file("something");
+	
 
 
 	//filename = XParam.Bathymetryfile.c_str();
@@ -1293,6 +1307,9 @@ int main(int argc, char **argv)
 	if (!XParam.Bathymetryfile.empty())
 	{
 		printf("bathy: %s\n", XParam.Bathymetryfile.c_str());
+
+		write_text_to_log_file("bathy: " + XParam.Bathymetryfile);
+
 		readbathyHead(XParam.Bathymetryfile, XParam.nx, XParam.ny, XParam.dx, XParam.grdalpha);
 		//fid = fopen(XParam.Bathymetryfile.c_str(), "r");
 		//fscanf(fid, "%u\t%u\t%lf\t%*f\t%lf", &XParam.nx, &XParam.ny, &XParam.dx, &XParam.grdalpha);
@@ -1301,6 +1318,7 @@ int main(int argc, char **argv)
 	else
 	{
 		std::cerr << "Fatal error:No bathymetry file specified. Please specify using 'bathy = Filename.bot'" << std::endl;
+		write_text_to_log_file("Fatal error : No bathymetry file specified.Please specify using 'bathy = Filename.bot'");
 		exit(1);
 	}
 	
@@ -1314,7 +1332,7 @@ int main(int argc, char **argv)
 	XParam.grdalpha = XParam.grdalpha*pi / 180; // grid rotation
 
 	printf("Opening sea level bnd...");
-	
+	write_text_to_log_file("Opening sea level bnd...");
 
 	if (!XParam.slbnd.empty())
 	{
@@ -1323,6 +1341,7 @@ int main(int argc, char **argv)
 	else
 	{
 		printf("No file was specified. Setting Offshore water level boundary to zero...");
+		write_text_to_log_file("WARNING: No file was specified. Setting Offshore water level boundary to zero...");
 		SLBnd slbndline;
 
 		slbndline.time = 0.0;
@@ -1340,10 +1359,11 @@ int main(int argc, char **argv)
 	SLstepinbnd = 1;
 
 	printf("done\n");
-
+	write_text_to_log_file("done");
 
 	// Read Wind forcing
 	printf("Opening wind forcing...");
+	write_text_to_log_file("Opening wind forcing...");
 	if (!XParam.windfile.empty())
 	{
 		wndbnd = readWNDfile(XParam.windfile, XParam.grdalpha);
@@ -1351,6 +1371,7 @@ int main(int argc, char **argv)
 	else
 	{
 		printf("No wind file was specified. Setting wind forcing to zero...");
+		write_text_to_log_file("No wind file was specified. Setting wind forcing to zero...");
 		WindBnd wndbndline;
 
 		wndbndline.time = 0.0;
@@ -1373,7 +1394,7 @@ int main(int argc, char **argv)
 	WNDstepinbnd = 1;
 
 	printf("done\n");
-
+	write_text_to_log_file("done");
 	XParam = checkparamsanity(XParam, slbnd,wndbnd);
 	
 
@@ -1401,6 +1422,7 @@ int main(int argc, char **argv)
 
 	// set initital condition and read bathy file
 	printf("Set initial condition...");
+	write_text_to_log_file("Set initial condition...");
 	readbathy(XParam.Bathymetryfile, zb);
 
 
@@ -1436,8 +1458,7 @@ int main(int argc, char **argv)
 
 	//fclose(fid);
 	printf("...done\n");
-	//fclose(fiz);
-	char nofrictionfile[] = "none";
+	write_text_to_log_file("...done");
 
 
 	//// read Hard layer file
@@ -1445,6 +1466,7 @@ int main(int argc, char **argv)
 	if (!XParam.SedThkfile.empty())
 	{
 		printf("Hard layer file found\n");
+		write_text_to_log_file("Hard layer file found");
 		int STnx, STny;
 		double STdx, STgrdalpha;
 
@@ -1453,6 +1475,7 @@ int main(int argc, char **argv)
 		if (STnx != nx || STny != ny)
 		{
 			printf("Error Sediment thickness file (Hard layer file) dimension mismatch. Model will run with constant sediment thickness.\n");
+			write_text_to_log_file("ERROR: Sediment thickness file (Hard layer file) dimension mismatch. Model will run with constant sediment thickness.");
 		}
 
 		
@@ -1462,6 +1485,8 @@ int main(int argc, char **argv)
 	else
 	{
 		printf("No hard layer file found, Model will run with constant sediment thickness\n");
+		write_text_to_log_file("No hard layer file found, Model will run with constant sediment thickness");
+
 		for (int j = 0; j < ny; j++)
 		{
 			for (int i = 0; i < nx; i++)
@@ -1473,18 +1498,6 @@ int main(int argc, char **argv)
 
 	
 	
-	//fwind = fopen(XParam.windfile.c_str(), "r");
-	//fscanf(fwind, "%f\t%f\t%f", &rtwind, &windvold, &windthold);
-	//fscanf(fwind, "%f\t%f\t%f", &windtime, &windvnew, &windthnew);
-
-	//windv = windvold;
-	//windth = (1.5f*pi - XParam.grdalpha) - windthold*pi / 180.0f;
-
-
-
-	//zo=0.1;//roughness length
-	//cf=zo;//zo;
-	//lat=-35.0;
 	//calculate coriolis force
 	XParam.lat = XParam.lat*pi / 180.0f;
 	DECNUM wearth = pi*(1.0f / 24.0f) / 1800.0f;
@@ -1576,7 +1589,7 @@ int main(int argc, char **argv)
 
 		//CUT_DEVICE_INIT(argc, argv);
 		printf("Allocating GPU memory\n");
-
+		write_text_to_log_file("Allocating GPU memory");
 
 
 
@@ -1978,6 +1991,7 @@ int main(int argc, char **argv)
 		
 
 		printf("gridDim=%i,%i,%i\n", gridDim.x, gridDim.y, gridDim.z);
+		write_text_to_log_file("gridDim= " + std::to_string(gridDim.x) + "," + std::to_string(gridDim.y) + "," + std::to_string(gridDim.z));
 		//printf("gridDim=%i,%i,%i\n", gridDimLine.x, gridDimLine.y, gridDimLine.z);
 
 		//Calculate bottomm friction based on initial hard layer file
@@ -2020,13 +2034,14 @@ int main(int argc, char **argv)
 		dt = arrmin[0]*0.5;
 
 		printf("Initial timestep: dt=%f\n", dt);
-
+		write_text_to_log_file("Initial timestep: dt=" + std::to_string(dt));
 
 		double tiny = 0.00000001;
 
 		if (dt < tiny)
 		{
 			std::cerr << " Error: timestep too small;" << std::endl;
+			write_text_to_log_file("ERROR: timestep too small");
 			exit(EXIT_FAILURE);
 		}
 
@@ -2069,6 +2084,7 @@ int main(int argc, char **argv)
 	}
 	// prepare output file
 	printf("prepare output");
+	write_text_to_log_file("prepare output");
 	//creatncfile(tsoutfile, nx, ny, dx, 0.0f, imodel, zb, zs, uu, vv, H, H, thetamean, uu, uu, uu, uu, uu, uu, uu, hh, uu, uu, uu, uu, uu, uu);
 	creatncfile(XParam, 0.0f, zb, zs, uu, vv, H, H, thetamean, uu, uu, uu, uu, uu, uu, uu, hh, uu, uu, uu, uu, uu, uu);
 
@@ -2078,11 +2094,15 @@ int main(int argc, char **argv)
 	nextoutputtime = nextoutputtime + XParam.outputtimestep;
 
 	printf("...done\n");
+	write_text_to_log_file("...done");
 
 
+	write_text_to_log_file("#################################");
+	write_text_to_log_file("XBeach_GPU Parameters:");
 
-
-
+	SaveParamtolog(XParam);
+	write_text_to_log_file("#################################");
+	write_text_to_log_file("Starting Computation ");
 	printf("Starting Computation \n");
 
 	// for hot start purposes

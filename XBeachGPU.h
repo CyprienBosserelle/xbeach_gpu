@@ -216,6 +216,8 @@ void wavestep(XBGPUParam Param);
 void flowstep(XBGPUParam Param);
 void sedimentstep(XBGPUParam Param);
 
+void write_text_to_log_file( std::string text);
+void SaveParamtolog(XBGPUParam XParam);
 
 
 
