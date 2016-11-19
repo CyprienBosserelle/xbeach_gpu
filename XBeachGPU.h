@@ -219,7 +219,8 @@ void sedimentstep(XBGPUParam Param);
 void write_text_to_log_file( std::string text);
 void SaveParamtolog(XBGPUParam XParam);
 
-
+void readgridncsize(std::string ncfile, int &nx, int &ny, double &dx);
+extern "C" void readnczb(int nx, int ny, std::string ncfile, DECNUM * &zb);
 
 
 

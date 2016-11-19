@@ -1302,7 +1302,7 @@ int main(int argc, char **argv)
 	FILE * fid;
 	FILE * fiz;
 
-
+	std::string bathyext;
 	//read bathy input data:
 	if (!XParam.Bathymetryfile.empty())
 	{
@@ -1310,7 +1310,20 @@ int main(int argc, char **argv)
 
 		write_text_to_log_file("bathy: " + XParam.Bathymetryfile);
 
-		readbathyHead(XParam.Bathymetryfile, XParam.nx, XParam.ny, XParam.dx, XParam.grdalpha);
+		std::vector<std::string> extvec = split(XParam.Bathymetryfile, '.');
+		bathyext = extvec.back();
+
+		if (bathyext.compare(".md") == 0)
+		{
+			readbathyHead(XParam.Bathymetryfile, XParam.nx, XParam.ny, XParam.dx, XParam.grdalpha);
+		}
+		if (bathyext.compare(".nc") == 0)
+		{
+			readgridncsize(XParam.Bathymetryfile, XParam.nx, XParam.ny, XParam.dx);
+			
+		}
+			
+		
 		//fid = fopen(XParam.Bathymetryfile.c_str(), "r");
 		//fscanf(fid, "%u\t%u\t%lf\t%*f\t%lf", &XParam.nx, &XParam.ny, &XParam.dx, &XParam.grdalpha);
 		printf("nx=%d\tny=%d\tdx=%f\talpha=%f\n", XParam.nx, XParam.ny, XParam.dx, XParam.grdalpha*180/pi);
@@ -1423,8 +1436,15 @@ int main(int argc, char **argv)
 	// set initital condition and read bathy file
 	printf("Set initial condition...");
 	write_text_to_log_file("Set initial condition...");
-	readbathy(XParam.Bathymetryfile, zb);
 
+	if (bathyext.compare(".md") == 0)
+	{
+		readbathy(XParam.Bathymetryfile, zb);
+	}
+	if (bathyext.compare(".nc") == 0)
+	{
+		readnczb(XParam.nx, XParam.ny, XParam.Bathymetryfile, zb);
+	}
 
 	int jread;
 	//int jreadzs;
