@@ -1312,13 +1312,15 @@ int main(int argc, char **argv)
 
 		std::vector<std::string> extvec = split(XParam.Bathymetryfile, '.');
 		bathyext = extvec.back();
-
-		if (bathyext.compare(".md") == 0)
+		write_text_to_log_file("bathy extension: " + bathyext);
+		if (bathyext.compare("md") == 0)
 		{
+			write_text_to_log_file("Reading 'md' file");
 			readbathyHead(XParam.Bathymetryfile, XParam.nx, XParam.ny, XParam.dx, XParam.grdalpha);
 		}
-		if (bathyext.compare(".nc") == 0)
+		if (bathyext.compare("nc") == 0)
 		{
+			write_text_to_log_file("Reading 'nc' file");
 			readgridncsize(XParam.Bathymetryfile, XParam.nx, XParam.ny, XParam.dx);
 			
 		}
@@ -1327,6 +1329,7 @@ int main(int argc, char **argv)
 		//fid = fopen(XParam.Bathymetryfile.c_str(), "r");
 		//fscanf(fid, "%u\t%u\t%lf\t%*f\t%lf", &XParam.nx, &XParam.ny, &XParam.dx, &XParam.grdalpha);
 		printf("nx=%d\tny=%d\tdx=%f\talpha=%f\n", XParam.nx, XParam.ny, XParam.dx, XParam.grdalpha*180/pi);
+		write_text_to_log_file("nx=" + std::to_string(XParam.nx) + " ny=" + std::to_string(XParam.ny) + " dx=" + std::to_string(XParam.dx) + " rdalpha=" + std::to_string(XParam.grdalpha));
 	}
 	else
 	{
@@ -1437,11 +1440,11 @@ int main(int argc, char **argv)
 	printf("Set initial condition...");
 	write_text_to_log_file("Set initial condition...");
 
-	if (bathyext.compare(".md") == 0)
+	if (bathyext.compare("md") == 0)
 	{
 		readbathy(XParam.Bathymetryfile, zb);
 	}
-	if (bathyext.compare(".nc") == 0)
+	if (bathyext.compare("nc") == 0)
 	{
 		readnczb(XParam.nx, XParam.ny, XParam.Bathymetryfile, zb);
 	}

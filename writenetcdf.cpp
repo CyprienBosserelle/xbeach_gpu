@@ -19,6 +19,13 @@
 #define pi 3.14159265
 using DECNUM = float;
 
+void handle_error(int status) {
+	if (status != NC_NOERR) {
+		fprintf(stderr, "Netcdf %s\n", nc_strerror(status));
+		//fprintf(logfile, "Netcdf: %s\n", nc_strerror(status));
+		exit(-1);
+	}
+}
 
 extern "C" void creatncfile(XBGPUParam XParam, DECNUM totaltime, DECNUM *zb, DECNUM *zs, DECNUM * uu, DECNUM * vv, DECNUM * H, DECNUM * Tp, DECNUM * Dp, DECNUM * D, DECNUM * Urms, DECNUM * ueu, DECNUM * vev, DECNUM * C, DECNUM *Fx, DECNUM *Fy, DECNUM * hh, DECNUM *Hmean, DECNUM *uumean, DECNUM *vvmean, DECNUM *hhmean, DECNUM *zsmean, DECNUM *Cmean)
 {               
@@ -88,8 +95,8 @@ extern "C" void creatncfile(XBGPUParam XParam, DECNUM totaltime, DECNUM *zb, DEC
 	var_dimzb[1]= xx_dim;
 	
     	status = nc_def_var (ncid, "time", NC_FLOAT,1,tdim, &time_id);
-	status = nc_def_var (ncid, "x", NC_FLOAT,1,xdim, &xx_id);
-	status = nc_def_var (ncid, "y", NC_FLOAT,1,ydim, &yy_id);
+	status = nc_def_var (ncid, "xx", NC_FLOAT,1,xdim, &xx_id);
+	status = nc_def_var (ncid, "yy", NC_FLOAT,1,ydim, &yy_id);
 	//status = nc_def_var (ncid, "xxp", NC_FLOAT,2,pdim, &xxp_id);
 	//status = nc_def_var (ncid, "yyp", NC_FLOAT,2,pdim, &yyp_id);
 	if(XParam.morphology == 1)
@@ -456,21 +463,21 @@ void readgridncsize(std::string ncfile, int &nx, int &ny, double &dx)
 	
 	//Open NC file
 	printf("Open file\n");
-	status = nc_open(ncfile.c_str(), 0, &ncid);
-	//if (status != NC_NOERR) handle_error(status);
+	status = nc_open(ncfile.c_str(), NC_NOWRITE, &ncid);
+	if (status != NC_NOERR) handle_error(status);
 
 	//printf(" %s...\n", hhvar);
 	status = nc_inq_varid(ncid, "zb", &varid);
-	//if (status != NC_NOERR)	handle_error(status);
+	if (status != NC_NOERR)	handle_error(status);
 
 
 
 	status = nc_inq_varndims(ncid, varid, &ndimshh);
-	//if (status != NC_NOERR) handle_error(status);
+	if (status != NC_NOERR) handle_error(status);
 	//printf("hhVar:%d dims\n", ndimshh);
 
 	status = nc_inq_vardimid(ncid, varid, dimids);
-	//if (status != NC_NOERR) handle_error(status);
+	if (status != NC_NOERR) handle_error(status);
 
 	ddimhh = (size_t *)malloc(ndimshh*sizeof(size_t));
 
@@ -478,7 +485,7 @@ void readgridncsize(std::string ncfile, int &nx, int &ny, double &dx)
 	for (int iddim = 0; iddim < ndimshh; iddim++)
 	{
 		status = nc_inq_dimlen(ncid, dimids[iddim], &ddimhh[iddim]);
-		//if (status != NC_NOERR) handle_error(status);
+		if (status != NC_NOERR) handle_error(status);
 
 		//printf("dim:%d=%d\n", iddim, ddimhh[iddim]);
 	}
@@ -515,13 +522,13 @@ void readgridncsize(std::string ncfile, int &nx, int &ny, double &dx)
 
 	//ycoord
 	status = nc_inq_dimname(ncid, ycovar, coordname);
-	//if (status != NC_NOERR) handle_error(status);
+	if (status != NC_NOERR) handle_error(status);
 
 	status = nc_inq_varid(ncid, coordname, &varid);
-	//if (status != NC_NOERR) handle_error(status);
+	if (status != NC_NOERR) handle_error(status);
 
 	status = nc_inq_varndims(ncid, varid, &ndims);
-	//if (status != NC_NOERR) handle_error(status);
+	if (status != NC_NOERR) handle_error(status);
 
 	if (ndims < 2)
 	{
@@ -530,7 +537,7 @@ void readgridncsize(std::string ncfile, int &nx, int &ny, double &dx)
 		size_t start[] = { 0 };
 		size_t count[] = { ny };
 		status = nc_get_vara_double(ncid, varid, start, count, ytempvar);
-		//if (status != NC_NOERR) handle_error(status);
+		if (status != NC_NOERR) handle_error(status);
 
 		for (int i = 0; i<nx; i++)
 		{
@@ -547,18 +554,18 @@ void readgridncsize(std::string ncfile, int &nx, int &ny, double &dx)
 		size_t start[] = { 0, 0 };
 		size_t count[] = { ny, nx };
 		status = nc_get_vara_double(ncid, varid, start, count, ycoord);
-		//if (status != NC_NOERR) handle_error(status);
+		if (status != NC_NOERR) handle_error(status);
 
 	}
 	//xcoord
 	status = nc_inq_dimname(ncid, xcovar, coordname);
-	//if (status != NC_NOERR) handle_error(status);
+	if (status != NC_NOERR) handle_error(status);
 
 	status = nc_inq_varid(ncid, coordname, &varid);
-	//if (status != NC_NOERR) handle_error(status);
+	if (status != NC_NOERR) handle_error(status);
 
 	status = nc_inq_varndims(ncid, varid, &ndims);
-	//if (status != NC_NOERR) handle_error(status);
+	if (status != NC_NOERR) handle_error(status);
 
 	if (ndims < 2)
 	{
@@ -567,7 +574,7 @@ void readgridncsize(std::string ncfile, int &nx, int &ny, double &dx)
 		size_t start[] = { 0 };
 		size_t count[] = { nx };
 		status = nc_get_vara_double(ncid, varid, start, count, xtempvar);
-		//if (status != NC_NOERR) handle_error(status);
+		if (status != NC_NOERR) handle_error(status);
 
 		for (int i = 0; i<nx; i++)
 		{
@@ -584,14 +591,14 @@ void readgridncsize(std::string ncfile, int &nx, int &ny, double &dx)
 		size_t start[] = { 0, 0 };
 		size_t count[] = { ny, nx };
 		status = nc_get_vara_double(ncid, varid, start, count, xcoord);
-		//if (status != NC_NOERR) handle_error(status);
+		if (status != NC_NOERR) handle_error(status);
 
 	}
 
 	float dxx, dyy;
 	//check dx
-	dxx = (xcoord[0] - xcoord[nx - 1]) / nx;
-	dyy = (ycoord[0] - ycoord[(ny - 1)*nx]) / ny;
+	dxx = abs(xcoord[0] - xcoord[nx - 1]) / nx;
+	dyy = abs(ycoord[0] - ycoord[(ny - 1)*nx]) / ny;
 
 
 	dx = dxx;
