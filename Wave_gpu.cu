@@ -537,6 +537,7 @@ void mainloopGPU(XBGPUParam Param, std::vector<SLBnd> slbnd, std::vector<WindBnd
 			//CUDA_CHECK( cudaMemcpy(xxp, xxp_g, npart*sizeof(DECNUM ), cudaMemcpyDeviceToHost) );
 			//CUDA_CHECK( cudaMemcpy(yyp, yyp_g, npart*sizeof(DECNUM ), cudaMemcpyDeviceToHost) );
 			printf("Writing output, totaltime:%f s, Mean dt=%f\n", totaltime, Param.outputtimestep/nstep);
+			write_text_to_log_file("Writing outputs, totaltime: " + std::to_string(totaltime) + ", Mean dt= " + std::to_string(Param.outputtimestep / nstep));
 			//writestep2nc(tsoutfile, nx, ny,/*npart,*/(float) totaltime, imodel,/*xxp,yyp,*/zb, zs, uu, vv, H, H, thetamean, D, urms, ueu, vev, C, dzb, Fx, Fy, hh, Hmean, uumean, vvmean, hhmean, zsmean, Cmean);
 			writestep2nc(Param,(float)totaltime, zb, zs, uu, vv, H, H, thetamean, D, urms, ueu, vev, C, dzb, Fx, Fy, hh, Hmean, uumean, vvmean, hhmean, zsmean, Cmean);
 			
@@ -1332,7 +1333,8 @@ int main(int argc, char **argv)
 			write_text_to_log_file("For this type of bathy file please specify nx, ny, dx and grdalpha in the XBG_param.txt");
 		}
 			
-		
+		XParam.grdalpha = XParam.grdalpha*pi / 180; // grid rotation
+
 		//fid = fopen(XParam.Bathymetryfile.c_str(), "r");
 		//fscanf(fid, "%u\t%u\t%lf\t%*f\t%lf", &XParam.nx, &XParam.ny, &XParam.dx, &XParam.grdalpha);
 		printf("nx=%d\tny=%d\tdx=%f\talpha=%f\n", XParam.nx, XParam.ny, XParam.dx, XParam.grdalpha*180/pi);
@@ -1460,7 +1462,6 @@ int main(int argc, char **argv)
 		readXBbathy(XParam.Bathymetryfile, XParam.nx, XParam.ny, zb);
 	}
 
-	XParam.grdalpha = XParam.grdalpha*pi / 180; // grid rotation
 	
 
 	// set initital condition and read bathy file
@@ -2178,10 +2179,12 @@ int main(int argc, char **argv)
 	//fclose(fwind);
 
 	endcputime = clock();
-
+	printf("End Computation");
 	printf("Total runtime= %d  seconds\n", (endcputime - startcputime) / CLOCKS_PER_SEC);
-
-	cudaThreadExit();
+	write_text_to_log_file("End Computation");
+	write_text_to_log_file("#################################");
+	write_text_to_log_file("Total runtime= " + std::to_string((endcputime - startcputime) / CLOCKS_PER_SEC) + " seconds");
+	cudaDeviceReset();
 
 	//CUT_EXIT(argc, argv);
 

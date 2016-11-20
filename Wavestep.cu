@@ -68,7 +68,8 @@ void waveinitGPU(XBGPUParam Param)
 
 	ntheta = round((thetamax - thetamin) / dtheta);
 	printf("ntheta=%d\tdtheta=%f\n", ntheta, dtheta);
-	printf("nwavbnd=%d\n", nwavbnd);
+	write_text_to_log_file("ntheta=" + std::to_string(ntheta) + "\t dtheta=" + std::to_string(dtheta));
+	//printf("nwavbnd=%d\n", nwavbnd);
 
 	theta = (DECNUM *)malloc(ntheta*sizeof(DECNUM));
 
@@ -91,7 +92,7 @@ void waveinitGPU(XBGPUParam Param)
 		cxsth[i] = cos(theta[i]);
 		sxnth[i] = sin(theta[i]);
 
-		printf("theta=%f\tcxsth=%f\tsxnth=%f\n", theta[i], cxsth[i], sxnth[i]);
+		//printf("theta=%f\tcxsth=%f\tsxnth=%f\n", theta[i], cxsth[i], sxnth[i]);
 	}
 
 	dang = theta[1] - theta[0];
@@ -108,6 +109,7 @@ void waveinitGPU(XBGPUParam Param)
 
 
 	printf("Reading bnd data\n");
+	write_text_to_log_file("Reading wave bnd data");
 	if (Param.wavebndtype == 1)
 	{
 		readStatbnd(nx, ny, ntheta, Param.rho, Param.g, Param.wavebndfile.c_str(), Tpfile, Stfile);

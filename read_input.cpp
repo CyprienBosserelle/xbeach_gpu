@@ -49,7 +49,7 @@ extern "C" void readXbbndstep(int nx, int ny, int ntheta, const char * wavebnd, 
 	DECNUM thetamin, thetamax, dtheta, dtwavbnd;
 	int nwavbnd, nwavfile;
 
-	printf("Reading next bnd file... ");
+	printf("Reading next wave bnd file... ");
 	write_text_to_log_file("Reading next bnd file... ");
 
 	fwav = fopen(wavebnd, "r");
