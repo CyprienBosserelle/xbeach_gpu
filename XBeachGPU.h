@@ -45,8 +45,8 @@ public:
 	//int modeltype;// Type of model: 1: wave only; 2: currents only 3: waves+currents 4:waves+currents+sediment(+ morphology if morfac>0) //Obsolete Need to remove
 	int swave=1, flow=1, sedtrans=0, morphology=0;
 	int GPUDEVICE=0;// What GPU device to use default is the firt one availabe (i.e. 0) CPU only should be -1 (not operational yet) and 1 for second GPU etc...
-	int nx, ny; // grid size
-	double dx; // grid resolution
+	int nx=0, ny=0; // grid size
+	double dx=0; // grid resolution
 	double grdalpha=0.0; // grid rotation Y axis from the North input in degrees but later converted to rad
 	
 	//Flow parameters
@@ -221,6 +221,7 @@ void SaveParamtolog(XBGPUParam XParam);
 
 void readgridncsize(std::string ncfile, int &nx, int &ny, double &dx);
 extern "C" void readnczb(int nx, int ny, std::string ncfile, DECNUM * &zb);
+extern "C" void readXBbathy(std::string filename, int nx, int ny, float *&zb);
 
 
 

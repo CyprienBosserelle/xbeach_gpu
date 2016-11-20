@@ -739,6 +739,36 @@ XBGPUParam checkparamsanity(XBGPUParam XParam, std::vector<SLBnd> slbnd, std::ve
 
 	double tiny = 0.0000001;
 
+	//Check Bathy input type
+	std::string bathyext;
+	std::vector<std::string> extvec = split(XParam.Bathymetryfile, '.');
+	bathyext = extvec.back();
+	if (bathyext.compare("nc") == 0)
+	{
+		if (abs(XParam.grdalpha - DefaultParams.grdalpha) < tiny)
+		{
+			
+			write_text_to_log_file("For nc of bathy file please specify grdalpha in the XBG_param.txt (if different then default [0])");
+		}
+	}
+	if (bathyext.compare("dep") == 0 || bathyext.compare("bot") == 0)
+	{
+		if (XParam.nx <= 0 || XParam.ny <= 0 || XParam.dx < tiny)
+		{
+			std::cerr << "FATAL ERROR: nx or ny or dx were not specified. These parameters are required when using ." << bathyext << " file" << std::endl;
+			write_text_to_log_file("FATAL ERROR: nx or ny or dx were not specified. These parameters are required when using ." + bathyext + " file");
+			exit(1);
+		}
+	}
+
+	if (XParam.nx <= 0 || XParam.ny <= 0 || XParam.dx < tiny)
+	{
+		std::cerr << "FATAL ERROR: nx or ny or dx could not specified." << std::endl;
+		write_text_to_log_file("FATAL ERROR: nx or ny or dx could not specified.");
+		exit(1);
+	}
+
+
 	// Check whether endtime was specified by the user
 	if (abs(XParam.endtime - DefaultParams.endtime) <= tiny)
 	{
@@ -973,6 +1003,33 @@ extern "C" void readbathy(std::string filename, float *&zb)
 	fclose(fid);
 }
 
+extern "C" void readXBbathy(std::string filename, int nx,int ny, float *&zb)
+{
+	//read input data:
+	//printf("bathy: %s\n", filename);
+	FILE *fid;
+	
+	//read md file
+	fid = fopen(filename.c_str(), "r");
+	
+	
+
+	
+	//int jreadzs;
+	for (int jnod = 0; jnod < ny; jnod++)
+	{
+
+		
+
+		for (int inod = 0; inod < nx; inod++)
+		{
+			fscanf(fid, "%f", &zb[inod + (jnod - 1)*nx]);
+
+		}
+	}
+
+	fclose(fid);
+}
 void write_text_to_log_file(std::string text)
 {
 	std::ofstream log_file(

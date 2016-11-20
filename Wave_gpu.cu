@@ -1322,7 +1322,14 @@ int main(int argc, char **argv)
 		{
 			write_text_to_log_file("Reading 'nc' file");
 			readgridncsize(XParam.Bathymetryfile, XParam.nx, XParam.ny, XParam.dx);
+			write_text_to_log_file("For nc of bathy file please specify grdalpha in the XBG_param.txt (default 0)");
 			
+		}
+		if (bathyext.compare("dep") == 0 || bathyext.compare("bot") == 0)
+		{
+			//XBeach style file
+			write_text_to_log_file("Reading " + bathyext + " file");
+			write_text_to_log_file("For this type of bathy file please specify nx, ny, dx and grdalpha in the XBG_param.txt");
 		}
 			
 		
@@ -1448,6 +1455,11 @@ int main(int argc, char **argv)
 	{
 		readnczb(XParam.nx, XParam.ny, XParam.Bathymetryfile, zb);
 	}
+	if (bathyext.compare("bot") == 0 || bathyext.compare("dep") == 0)
+	{
+		readXBbathy(XParam.Bathymetryfile, XParam.nx, XParam.ny, zb);
+	}
+	
 
 	int jread;
 	//int jreadzs;
