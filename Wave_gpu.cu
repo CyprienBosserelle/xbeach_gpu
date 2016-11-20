@@ -381,11 +381,12 @@ void mainloopGPU(XBGPUParam Param, std::vector<SLBnd> slbnd, std::vector<WindBnd
 
 		//dt = wdt;
 
-		
-		//need to limit timestep so that it matches the exact output time
-		if (ceil((nextoutputtime - totaltime) / dt)> 0.0)
+		double nextstop = min(nextoutputtime, Param.endtime);
+
+		//need to limit timestep so that it matches the exact output time or endtime
+		if (ceil((nextstop - totaltime) / dt)> 0.0)
 		{
-			dt = (nextoutputtime - totaltime) / ceil((nextoutputtime - totaltime) / dt);
+			dt = (nextstop - totaltime) / ceil((nextstop - totaltime) / dt);
 		}
 
 
@@ -702,6 +703,7 @@ void flowbnd(XBGPUParam Param,std::vector<SLBnd> slbnd, std::vector<WindBnd> wnd
 	{
 		SLstepinbnd++;
 	}
+
 	zsbndi = interptime(slbnd[SLstepinbnd].wlev, slbnd[SLstepinbnd - 1].wlev, slbnd[SLstepinbnd].time - slbnd[SLstepinbnd - 1].time, totaltime - slbnd[SLstepinbnd - 1].time);
 
 
@@ -751,7 +753,7 @@ void flowbnd(XBGPUParam Param,std::vector<SLBnd> slbnd, std::vector<WindBnd> wnd
 	}
 
 	
-	difft = wndbnd[SLstepinbnd].time - totaltime;
+	difft = wndbnd[WNDstepinbnd].time - totaltime;
 	if (difft < 0.0)
 	{
 		WNDstepinbnd++;
@@ -1367,6 +1369,12 @@ int main(int argc, char **argv)
 	{
 		printf("No file was specified. Setting Offshore water level boundary to zero...");
 		write_text_to_log_file("WARNING: No file was specified. Setting Offshore water level boundary to zero...");
+		if (XParam.endtime < 0.000001)
+		{
+			printf("WARNING: endtime is also set to zero so the model will initialise but no calculation will be performed. either specifiy a sea level boundary or endtime");
+			write_text_to_log_file("WARNING: endtime is also set to zero so the model will initialise but no calculation will be performed. either specifiy a sea level boundary or endtime");
+			
+		}
 		SLBnd slbndline;
 
 		slbndline.time = 0.0;
@@ -1407,7 +1415,7 @@ int main(int argc, char **argv)
 		wndbndline.V = 0.0;
 		wndbnd.push_back(wndbndline);
 
-		wndbndline.time = XParam.endtime;
+		wndbndline.time = max(XParam.endtime,slbnd.back().time);
 		wndbndline.spd = 0.0;
 		wndbndline.dir = 0.0;
 		wndbndline.theta = 0.0;
