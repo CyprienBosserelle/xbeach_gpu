@@ -967,7 +967,7 @@ extern "C" void readbathyHead(std::string filename, int &nx, int &ny, double &dx
 	//read md file
 	fid = fopen(filename.c_str(), "r");
 	fscanf(fid, "%u\t%u\t%lf\t%*f\t%lf", &nx, &ny, &dx, &grdalpha);
-	grdalpha = grdalpha*pi / 180; // grid rotation
+	//grdalpha = grdalpha*pi / 180; // grid rotation
 	fclose(fid);
 }
 
@@ -1023,13 +1023,15 @@ extern "C" void readXBbathy(std::string filename, int nx,int ny, float *&zb)
 
 		for (int inod = 0; inod < nx; inod++)
 		{
-			fscanf(fid, "%f", &zb[inod + (jnod - 1)*nx]);
+			fscanf(fid, "%f", &zb[inod + (jnod)*nx]);
 
 		}
 	}
 
 	fclose(fid);
 }
+
+
 void write_text_to_log_file(std::string text)
 {
 	std::ofstream log_file(

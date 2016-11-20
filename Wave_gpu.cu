@@ -1444,8 +1444,8 @@ int main(int argc, char **argv)
 
 
 	// set initital condition and read bathy file
-	printf("Set initial condition...");
-	write_text_to_log_file("Set initial condition...");
+	printf("Read bathy data...");
+	write_text_to_log_file("Read bathy data...");
 
 	if (bathyext.compare("md") == 0)
 	{
@@ -1459,7 +1459,13 @@ int main(int argc, char **argv)
 	{
 		readXBbathy(XParam.Bathymetryfile, XParam.nx, XParam.ny, zb);
 	}
+
+	XParam.grdalpha = XParam.grdalpha*pi / 180; // grid rotation
 	
+
+	// set initital condition and read bathy file
+	printf("Set initial condition...");
+	write_text_to_log_file("Set initial condition...");
 
 	int jread;
 	//int jreadzs;
