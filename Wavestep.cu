@@ -211,8 +211,9 @@ void waveinitGPU(XBGPUParam Param)
 				{
 					ee[0 + jj*nx + nt*nx*ny] = St[jj + nt*ny];// not on gpu since it is a bank conflicting problem
 				}
-				else{
-					ee[ii + jj*nx + nt*nx*ny] = 0.00f;
+				else
+				{
+					ee[ii + jj*nx + nt*nx*ny] = 0.0f;
 				}
 				rr[ii + jj*nx + nt*nx*ny] = 0.0f;
 
@@ -592,7 +593,7 @@ void wavestep(XBGPUParam Param)
 	//
 	//CUDA_CHECK( cudaMemcpy(hhmean,E_g, nx*ny*sizeof(DECNUM ), cudaMemcpyDeviceToHost) );
 
-	if (roller == 1)
+	if (Param.roller == 1)
 	{
 		xadvecupwind2 << <gridDim, blockDim, 0 >> >(nx, ny, ntheta, dtheta, Param.dx, dt, wci_g, rr_g, c_g, cxsth_g, uu_g, xadvec_g);
 		//CUT_CHECK_ERROR("eulerupwind xadvec execution failed\n");

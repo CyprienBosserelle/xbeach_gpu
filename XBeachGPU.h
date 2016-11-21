@@ -74,6 +74,7 @@ public:
 	double beta = 0.15; // Roller slope dissipation param
 	double fw = 0.001;//Wave bottom dissipation parameters fw 
 	double fwsand = 0.0, fwreef = 0.0; //Wave bottom dissipation parameters fw is for sand fw2 is for reefs.see cf comments
+	int roller = 1;
 	
 	//Sediment parameters
 	double D50=0.00038, D90=0.00053; // sand grain size in m

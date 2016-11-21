@@ -163,6 +163,11 @@ std::vector<SLBnd> readWLfile(std::string WLfilename)
 
 			//by default we expect tab delimitation
 			lineelements = split(line, '\t');
+			if (lineelements.size() < 2)
+			{
+				lineelements.clear();
+				lineelements = split(line, ' ');
+			}
 			slbndline.time = std::stod(lineelements[0]);
 			slbndline.wlev = std::stod(lineelements[1]);
 			
@@ -295,6 +300,13 @@ XBGPUParam readparamstr(std::string line, XBGPUParam param)
 	if (!parametervalue.empty())
 	{
 		param.GPUDEVICE = std::stoi(parametervalue);
+	}
+
+	parameterstr = "roller =";
+	parametervalue = findparameter(parameterstr, line);
+	if (!parametervalue.empty())
+	{
+		param.roller = std::stoi(parametervalue);
 	}
 
 	///////////////////////////////////////////////////////
@@ -933,7 +945,11 @@ void split(const std::string &s, char delim, std::vector<std::string> &elems) {
 	ss.str(s);
 	std::string item;
 	while (std::getline(ss, item, delim)) {
-		elems.push_back(item);
+		if (!item.empty())//skip empty tokens
+		{
+			elems.push_back(item);
+		}
+		
 	}
 }
 
@@ -1090,6 +1106,7 @@ void SaveParamtolog(XBGPUParam XParam)
 	write_text_to_log_file("beta = " + std::to_string(XParam.beta) + ";");
 	write_text_to_log_file("fwsand = " + std::to_string(XParam.fwsand) + ";");
 	write_text_to_log_file("fwreef = " + std::to_string(XParam.fwreef) + ";");
+	write_text_to_log_file("roller = " + std::to_string(XParam.roller) + ";");
 	write_text_to_log_file("\n");
 	write_text_to_log_file("# Sediment parameters");
 	write_text_to_log_file("D50 = " + std::to_string(XParam.D50) + ";");
