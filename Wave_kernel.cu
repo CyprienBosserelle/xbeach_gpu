@@ -152,7 +152,7 @@ __global__ void WAVEDT(int nx, int ny, DECNUM dtheta, DECNUM *dtwave, DECNUM *ct
 	unsigned int i = ix + iy*nx;
 	if (ix < nx && iy < ny)
 	{
-		dtwave[i] = dtheta / (ctheta[i]);
+		dtflow[i] = dtheta / (ctheta[i]);
 	}
 }
 
