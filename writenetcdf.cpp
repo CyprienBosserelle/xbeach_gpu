@@ -15,17 +15,25 @@
 //along with this program.  If not, see <http://www.gnu.org/licenses/>.         //
 //////////////////////////////////////////////////////////////////////////////////
 
-#include <stdio.h>
-#include <math.h>
-#include <algorithm>
-#include <netcdf.h>
+#include "XBeachGPU.h"
 #define pi 3.14159265
 using DECNUM = float;
 
+void handle_error(int status) {
+	if (status != NC_NOERR) {
+		fprintf(stderr, "Netcdf %s\n", nc_strerror(status));
+		//fprintf(logfile, "Netcdf: %s\n", nc_strerror(status));
+		exit(-1);
+	}
+}
 
-extern "C" void creatncfile(char outfile[], int nx,int ny,/*int npart,*/DECNUM dx,DECNUM totaltime,int imodel,/*DECNUM * xxp,DECNUM * yyp,*/DECNUM *zb,DECNUM *zs,DECNUM * uu, DECNUM * vv, DECNUM * H,DECNUM * Tp,DECNUM * Dp,DECNUM * D,DECNUM * Urms,DECNUM * ueu,DECNUM * vev,DECNUM * C,DECNUM *Fx, DECNUM *Fy,DECNUM * hh,DECNUM *Hmean,DECNUM *uumean,DECNUM *vvmean,DECNUM *hhmean,DECNUM *zsmean,DECNUM *Cmean)
+extern "C" void creatncfile(XBGPUParam XParam, DECNUM totaltime, DECNUM *zb, DECNUM *zs, DECNUM * uu, DECNUM * vv, DECNUM * H, DECNUM * Tp, DECNUM * Dp, DECNUM * D, DECNUM * Urms, DECNUM * ueu, DECNUM * vev, DECNUM * C, DECNUM *Fx, DECNUM *Fy, DECNUM * hh, DECNUM *Hmean, DECNUM *uumean, DECNUM *vvmean, DECNUM *hhmean, DECNUM *zsmean, DECNUM *Cmean)
 {               
 	int status;
+	int nx = XParam.nx;
+	int ny = XParam.ny;
+	double dx = XParam.dx;
+
    	int ncid,xx_dim,yy_dim,time_dim,p_dim;
 	size_t nxx,nyy,nnpart;
 	int  var_dimids[3], var_dimzb[2];
@@ -65,7 +73,7 @@ extern "C" void creatncfile(char outfile[], int nx,int ny,/*int npart,*/DECNUM d
 
 
 	//create the netcdf dataset
-	status = nc_create(outfile, NC_NOCLOBBER, &ncid);
+	status = nc_create(XParam.outfile.c_str(), NC_NOCLOBBER, &ncid);
 	
 	//Define dimensions: Name and length
 	
@@ -87,11 +95,11 @@ extern "C" void creatncfile(char outfile[], int nx,int ny,/*int npart,*/DECNUM d
 	var_dimzb[1]= xx_dim;
 	
     	status = nc_def_var (ncid, "time", NC_FLOAT,1,tdim, &time_id);
-	status = nc_def_var (ncid, "x", NC_FLOAT,1,xdim, &xx_id);
-	status = nc_def_var (ncid, "y", NC_FLOAT,1,ydim, &yy_id);
+	status = nc_def_var (ncid, "xx", NC_FLOAT,1,xdim, &xx_id);
+	status = nc_def_var (ncid, "yy", NC_FLOAT,1,ydim, &yy_id);
 	//status = nc_def_var (ncid, "xxp", NC_FLOAT,2,pdim, &xxp_id);
 	//status = nc_def_var (ncid, "yyp", NC_FLOAT,2,pdim, &yyp_id);
-	if(imodel==4)
+	if(XParam.morphology == 1)
 	{
 		status = nc_def_var (ncid, "zb", NC_FLOAT, 3, var_dimids, &zb_id);
 		status = nc_def_var (ncid, "dzb", NC_FLOAT, 3, var_dimids, &dzb_id);
@@ -135,7 +143,7 @@ extern "C" void creatncfile(char outfile[], int nx,int ny,/*int npart,*/DECNUM d
 	status = nc_put_vara_float(ncid, yy_id,ystart,ycount, yval);
 	//status = nc_put_vara_float(ncid, xxp_id,pstart,pcount, xxp);
 	//status = nc_put_vara_float(ncid, yyp_id,pstart,pcount, yyp);
-	if(imodel==4)
+	if (XParam.morphology == 1)
 	{
 		status = nc_put_vara_float(ncid, zb_id, start, count, zb);
 		status = nc_put_vara_float(ncid, dzb_id, start, count, H);
@@ -171,9 +179,14 @@ extern "C" void creatncfile(char outfile[], int nx,int ny,/*int npart,*/DECNUM d
 	//close and save new file
 	status = nc_close(ncid);  
 }
-extern "C" void writestep2nc(char outfile[], int nx,int ny,/*int npart,*/DECNUM totaltime,int imodel/*,DECNUM *xxp,DECNUM *yyp*/,DECNUM *zb,DECNUM *zs,DECNUM * uu, DECNUM * vv, DECNUM * H,DECNUM * Tp,DECNUM * Dp,DECNUM * D,DECNUM * Urms,DECNUM *ueu,DECNUM * vev,DECNUM * C,DECNUM *dzb, DECNUM *Fx, DECNUM *Fy,DECNUM *hh,DECNUM *Hmean,DECNUM *uumean,DECNUM *vvmean,DECNUM *hhmean,DECNUM *zsmean,DECNUM *Cmean)
+extern "C" void writestep2nc(XBGPUParam XParam, DECNUM totaltime,DECNUM *zb,DECNUM *zs,DECNUM * uu, DECNUM * vv, DECNUM * H,DECNUM * Tp,DECNUM * Dp,DECNUM * D,DECNUM * Urms,DECNUM *ueu,DECNUM * vev,DECNUM * C,DECNUM *dzb, DECNUM *Fx, DECNUM *Fy,DECNUM *hh,DECNUM *Hmean,DECNUM *uumean,DECNUM *vvmean,DECNUM *hhmean,DECNUM *zsmean,DECNUM *Cmean)
 {
 	int status;
+
+	int nx = XParam.nx;
+	int ny = XParam.ny;
+	double dx = XParam.dx;
+
    	int ncid,time_dim,recid;
 	size_t nxx,nyy;
 	int dzb_id,zb_id,zs_id,uu_id,vv_id,H_id,Tp_id,Dp_id,D_id,Urms_id,ueu_id,vev_id,time_id,xxp_id,yyp_id,C_id,Fx_id,Fy_id,hh_id,Hmean_id,uumean_id,vvmean_id,hhmean_id,zsmean_id,Cmean_id;
@@ -188,7 +201,7 @@ extern "C" void writestep2nc(char outfile[], int nx,int ny,/*int npart,*/DECNUM 
 
 	
 	static size_t nrec;
-	status = nc_open(outfile, NC_WRITE, &ncid);
+	status = nc_open(XParam.outfile.c_str(), NC_WRITE, &ncid);
 	
 	//read id from time dimension
 	status = nc_inq_unlimdim(ncid, &recid);
@@ -197,7 +210,7 @@ extern "C" void writestep2nc(char outfile[], int nx,int ny,/*int npart,*/DECNUM 
 
 	//read file for variable ids
 	status = nc_inq_varid(ncid, "time", &time_id);
-	if(imodel==4)
+	if(XParam.morphology == 1)
 	{
 		status = nc_inq_varid(ncid, "zb", &zb_id);
 		status = nc_inq_varid(ncid, "dzb", &dzb_id);
@@ -233,7 +246,7 @@ extern "C" void writestep2nc(char outfile[], int nx,int ny,/*int npart,*/DECNUM 
 
 	//Provide values for variables
 	status = nc_put_var1_float(ncid, time_id,tst,&totaltime);
-	if(imodel==4)
+	if (XParam.morphology == 1)
 	{
 		status = nc_put_vara_float(ncid, zb_id, start, count, zb);
 		status = nc_put_vara_float(ncid, dzb_id, start, count, dzb);
@@ -415,3 +428,184 @@ extern "C" void read2Dnc(int nx, int ny,char ncfile[],DECNUM * &hh)
 	
 	
 }
+
+extern "C" void readnczb(int nx, int ny, std::string ncfile, DECNUM * &zb)
+{
+	int status;
+	int ncid, hh_id;
+	static size_t count[] = { nx, ny };
+
+	status = nc_open(ncfile.c_str(), NC_NOWRITE, &ncid);
+	status = nc_inq_varid(ncid, "zb", &hh_id);
+	status = nc_get_var_float(ncid, hh_id, zb);
+	status = nc_close(ncid);
+
+
+}
+
+
+
+
+void readgridncsize(std::string ncfile, int &nx, int &ny, double &dx)
+{
+	//read the dimentions of grid, levels and time 
+	int status;
+	int ncid, ndimshh, ndims;
+	double *xcoord, *ycoord;
+	int varid;
+
+
+	int dimids[NC_MAX_VAR_DIMS];   /* dimension IDs */
+	char coordname[NC_MAX_NAME + 1];
+	size_t  *ddimhh;
+	//char ncfile[]="ocean_ausnwsrstwq2.nc";
+
+	
+	//Open NC file
+	printf("Open file\n");
+	status = nc_open(ncfile.c_str(), NC_NOWRITE, &ncid);
+	if (status != NC_NOERR) handle_error(status);
+
+	//printf(" %s...\n", hhvar);
+	status = nc_inq_varid(ncid, "zb", &varid);
+	if (status != NC_NOERR)	handle_error(status);
+
+
+
+	status = nc_inq_varndims(ncid, varid, &ndimshh);
+	if (status != NC_NOERR) handle_error(status);
+	//printf("hhVar:%d dims\n", ndimshh);
+
+	status = nc_inq_vardimid(ncid, varid, dimids);
+	if (status != NC_NOERR) handle_error(status);
+
+	ddimhh = (size_t *)malloc(ndimshh*sizeof(size_t));
+
+	//Read dimensions nx_u ny_u 
+	for (int iddim = 0; iddim < ndimshh; iddim++)
+	{
+		status = nc_inq_dimlen(ncid, dimids[iddim], &ddimhh[iddim]);
+		if (status != NC_NOERR) handle_error(status);
+
+		//printf("dim:%d=%d\n", iddim, ddimhh[iddim]);
+	}
+
+	if (ndimshh > 2)
+	{
+		ny = ddimhh[1];
+		nx = ddimhh[2];
+	}
+	else
+	{
+		ny = ddimhh[0];
+		nx = ddimhh[1];
+	}
+
+	//allocate
+	xcoord = (double *)malloc(nx*ny*sizeof(double));
+	ycoord = (double *)malloc(nx*ny*sizeof(double));
+
+	//inquire variable name for x dimension
+	//aka x dim of hh
+	int ycovar, xcovar;
+
+	if (ndimshh > 2)
+	{
+		ycovar = dimids[1];
+		xcovar = dimids[2];
+	}
+	else
+	{
+		ycovar = dimids[0];
+		xcovar = dimids[1];
+	}
+
+	//ycoord
+	status = nc_inq_dimname(ncid, ycovar, coordname);
+	if (status != NC_NOERR) handle_error(status);
+
+	status = nc_inq_varid(ncid, coordname, &varid);
+	if (status != NC_NOERR) handle_error(status);
+
+	status = nc_inq_varndims(ncid, varid, &ndims);
+	if (status != NC_NOERR) handle_error(status);
+
+	if (ndims < 2)
+	{
+		double * ytempvar;
+		ytempvar = (double *)malloc(ny*sizeof(double));
+		size_t start[] = { 0 };
+		size_t count[] = { ny };
+		status = nc_get_vara_double(ncid, varid, start, count, ytempvar);
+		if (status != NC_NOERR) handle_error(status);
+
+		for (int i = 0; i<nx; i++)
+		{
+			for (int j = 0; j<ny; j++)
+			{
+
+				ycoord[i + j*nx] = ytempvar[j];
+
+			}
+		}
+	}
+	else
+	{
+		size_t start[] = { 0, 0 };
+		size_t count[] = { ny, nx };
+		status = nc_get_vara_double(ncid, varid, start, count, ycoord);
+		if (status != NC_NOERR) handle_error(status);
+
+	}
+	//xcoord
+	status = nc_inq_dimname(ncid, xcovar, coordname);
+	if (status != NC_NOERR) handle_error(status);
+
+	status = nc_inq_varid(ncid, coordname, &varid);
+	if (status != NC_NOERR) handle_error(status);
+
+	status = nc_inq_varndims(ncid, varid, &ndims);
+	if (status != NC_NOERR) handle_error(status);
+
+	if (ndims < 2)
+	{
+		double * xtempvar;
+		xtempvar = (double *)malloc(nx*sizeof(double));
+		size_t start[] = { 0 };
+		size_t count[] = { nx };
+		status = nc_get_vara_double(ncid, varid, start, count, xtempvar);
+		if (status != NC_NOERR) handle_error(status);
+
+		for (int i = 0; i<nx; i++)
+		{
+			for (int j = 0; j<ny; j++)
+			{
+
+				xcoord[i + j*nx] = xtempvar[i];
+
+			}
+		}
+	}
+	else
+	{
+		size_t start[] = { 0, 0 };
+		size_t count[] = { ny, nx };
+		status = nc_get_vara_double(ncid, varid, start, count, xcoord);
+		if (status != NC_NOERR) handle_error(status);
+
+	}
+
+	float dxx, dyy;
+	//check dx
+	dxx = abs(xcoord[0] - xcoord[nx - 1]) / (nx-1);
+	dyy = abs(ycoord[0] - ycoord[(ny - 1)*nx]) / (ny-1);
+
+
+	dx = dxx;
+
+
+	status = nc_close(ncid);
+
+
+}
+

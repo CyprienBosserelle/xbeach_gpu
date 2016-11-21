@@ -141,18 +141,86 @@ __global__ void FLOWDT(int nx, int ny, DECNUM dx, DECNUM cfl, DECNUM *dtflow, DE
 	unsigned int i = ix + iy*nx;
 	if (ix < nx && iy < ny)
 	{
-		dtflow[i] = cfl*dx/(sqrtf(9.81*hh[i]));
+		dtflow[i] = cfl*dx / (sqrtf(9.81f*hh[i]));
 	}
 }
 
-__global__ void WAVEDT(int nx, int ny, DECNUM dtheta, DECNUM *dtwave, DECNUM *ctheta)
+__global__ void minmaxKernel(int ntot, DECNUM *max, DECNUM *min, DECNUM *a) {
+	__shared__ double maxtile[32];
+	__shared__ double mintile[32];
+
+	unsigned int tid = threadIdx.x;
+	unsigned int i = blockIdx.x * blockDim.x + threadIdx.x;
+	if (i < ntot)
+	{
+		maxtile[tid] = a[i];
+		mintile[tid] = a[i];
+		__syncthreads();
+
+		// strided index and non-divergent branch
+		for (unsigned int s = 1; s < blockDim.x; s *= 2) {
+			int index = 2 * s * tid;
+			if (index < blockDim.x) {
+				if (maxtile[tid + s] > maxtile[tid])
+					maxtile[tid] = maxtile[tid + s];
+				if (mintile[tid + s] < mintile[tid])
+					mintile[tid] = mintile[tid + s];
+			}
+			__syncthreads();
+		}
+
+		if (tid == 0) {
+			max[blockIdx.x] = maxtile[0];
+			min[blockIdx.x] = mintile[0];
+		}
+	}
+}
+
+__global__ void finalminmaxKernel(DECNUM *max, DECNUM *min) {
+	__shared__ double maxtile[32];
+	__shared__ double mintile[32];
+
+	unsigned int tid = threadIdx.x;
+	unsigned int i = blockIdx.x * blockDim.x + threadIdx.x;
+	maxtile[tid] = max[i];
+	mintile[tid] = min[i];
+	__syncthreads();
+
+	// strided index and non-divergent branch
+	for (unsigned int s = 1; s < blockDim.x; s *= 2) {
+		int index = 2 * s * tid;
+		if (index < blockDim.x) {
+			if (maxtile[tid + s] > maxtile[tid])
+				maxtile[tid] = maxtile[tid + s];
+			if (mintile[tid + s] < mintile[tid])
+				mintile[tid] = mintile[tid + s];
+		}
+		__syncthreads();
+	}
+
+	if (tid == 0) {
+		max[blockIdx.x] = maxtile[0];
+		min[blockIdx.x] = mintile[0];
+	}
+}
+
+
+__global__ void WAVEDT(int nx, int ny, int ntheta, DECNUM cfl, DECNUM dtheta, DECNUM *dtwave, DECNUM *ctheta)
 {
 	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
 	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
-	unsigned int i = ix + iy*nx;
+	unsigned int iz = blockIdx.z*blockDim.z + threadIdx.z;
+	unsigned int i = ix + iy*nx + iz*nx*ny;
+
+	float mindt=9999999.9f;
 	if (ix < nx && iy < ny)
 	{
-		dtflow[i] = dtheta / (ctheta[i]);
+		for (int itheta = 0; itheta < ntheta; itheta++)
+		{
+			mindt = min(cfl*dtheta / abs(ctheta[i + itheta*nx*ny]), mindt);
+		}
+
+		dtwave[i] = mindt;
 	}
 }
 
@@ -234,8 +302,8 @@ __global__ void sanity(int nx, int ny, DECNUM eps, DECNUM * hh, DECNUM * sigm, i
 	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
 	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
 	unsigned int i = ix + iy*nx;
-	int tx = threadIdx.x;
-	int ty = threadIdx.y;
+	//int tx = threadIdx.x;
+	//int ty = threadIdx.y;
 
 	if (ix < nx && iy < ny)
 	{
@@ -282,7 +350,7 @@ __global__ void dispersion(int nx, int ny, DECNUM twopi, DECNUM g, DECNUM aphi, 
 
 		errdisp = 1000.0f;
 		//while (errdisp > 0.0001f)
-		for (int k = 1; k < 200; k++)
+		for (int p = 1; p < 200; p++)
 		{
 			L2 = L0*tanh(2 * pi*hhi[tx][ty] / L1);
 			errdisp = abs(L2 - L1);
@@ -291,7 +359,7 @@ __global__ void dispersion(int nx, int ny, DECNUM twopi, DECNUM g, DECNUM aphi, 
 			{
 				break;
 			}
-			if (k == 199)
+			if (p == 199)
 			{
 				L1 = L0*powf(tanh(powf(sigmi[tx][ty] * sigmi[tx][ty] * hhi[tx][ty] / g, 3.0f / 4.0f)), 2.0f / 3.0f);
 				break;
@@ -647,7 +715,7 @@ __global__ void xadvecupwind2(int nx, int ny, int ntheta, DECNUM dtheta, DECNUM 
 
 			if (cgx > 0.0f)
 			{
-				arrinx = (1.5*ee[i + itheta*nx*ny] - 0.5*ee[xminus + iy*nx + itheta*nx*ny]);
+				arrinx = (1.5f*ee[i + itheta*nx*ny] - 0.5f*ee[xminus + iy*nx + itheta*nx*ny]);
 				if (arrinx < 0.0f)
 				{
 					arrinx = ee[i + itheta*nx*ny];
@@ -656,7 +724,7 @@ __global__ void xadvecupwind2(int nx, int ny, int ntheta, DECNUM dtheta, DECNUM 
 			}
 			else
 			{
-				arrinx = 1.5*ee[xplus + iy*nx + itheta*nx*ny] - 0.5*ee[xplus2 + iy*nx + itheta*nx*ny];
+				arrinx = 1.5f*ee[xplus + iy*nx + itheta*nx*ny] - 0.5f*ee[xplus2 + iy*nx + itheta*nx*ny];
 				if (arrinx < 0.0f)
 				{
 					arrinx = ee[xplus + iy*nx + itheta*nx*ny];
@@ -665,7 +733,7 @@ __global__ void xadvecupwind2(int nx, int ny, int ntheta, DECNUM dtheta, DECNUM 
 			}
 			if (cgxmin > 0.0f)
 			{
-				arrminx = 1.5*ee[xminus + iy*nx + itheta*nx*ny] - 0.5*ee[xminus2 + iy*nx + itheta*nx*ny];
+				arrminx = 1.5f*ee[xminus + iy*nx + itheta*nx*ny] - 0.5f*ee[xminus2 + iy*nx + itheta*nx*ny];
 				if (arrminx < 0.0f)
 				{
 					arrminx = ee[xminus + iy*nx + itheta*nx*ny];
@@ -674,7 +742,7 @@ __global__ void xadvecupwind2(int nx, int ny, int ntheta, DECNUM dtheta, DECNUM 
 			}
 			else
 			{
-				arrminx = 1.5*ee[i + itheta*nx*ny] - 0.5*ee[xplus + iy*nx + itheta*nx*ny];
+				arrminx = 1.5f*ee[i + itheta*nx*ny] - 0.5f*ee[xplus + iy*nx + itheta*nx*ny];
 				if (arrminx < 0.0f)
 				{
 					arrminx = ee[i + itheta*nx*ny];
@@ -832,7 +900,7 @@ __global__ void yadvecupwind2(int nx, int ny, int ntheta, DECNUM dtheta, DECNUM 
 			}
 			else
 			{
-				arriny = 1.5*ee[ix + yplus*nx + itheta*nx*ny] - 0.5*ee[ix + yplus2*nx + itheta*nx*ny];
+				arriny = 1.5f*ee[ix + yplus*nx + itheta*nx*ny] - 0.5f*ee[ix + yplus2*nx + itheta*nx*ny];
 				if (arriny < 0.0f)
 				{
 					arriny = ee[ix + yplus*nx + itheta*nx*ny];
@@ -841,7 +909,7 @@ __global__ void yadvecupwind2(int nx, int ny, int ntheta, DECNUM dtheta, DECNUM 
 			}
 			if (cgymin > 0.0f)
 			{
-				arrminy = 1.5*ee[ix + yminus*nx + itheta*nx*ny] - 0.5*ee[ix + yminus2*nx + itheta*nx*ny];
+				arrminy = 1.5f*ee[ix + yminus*nx + itheta*nx*ny] - 0.5f*ee[ix + yminus2*nx + itheta*nx*ny];
 				if (arrminy < 0.0f)
 				{
 					arrminy = ee[ix + yminus*nx + itheta*nx*ny];
@@ -850,7 +918,7 @@ __global__ void yadvecupwind2(int nx, int ny, int ntheta, DECNUM dtheta, DECNUM 
 			}
 			else
 			{
-				arrminy = 1.5*ee[i + itheta*nx*ny] - 0.5*ee[ix + yplus*nx + itheta*nx*ny];
+				arrminy = 1.5f*ee[i + itheta*nx*ny] - 0.5f*ee[ix + yplus*nx + itheta*nx*ny];
 				if (arrminy < 0.0f)
 				{
 					arrminy = ee[i + itheta*nx*ny];
