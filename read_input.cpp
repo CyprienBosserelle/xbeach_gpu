@@ -685,6 +685,31 @@ XBGPUParam readparamstr(std::string line, XBGPUParam param)
 		//std::cerr << "Bathymetry file found!" << std::endl;
 	}
 
+	//outvars
+	parameterstr = "outvars =";
+	parametervalue = findparameter(parameterstr, line);
+	if (!parametervalue.empty())
+	{
+		std::vector<std::string> vars = split(parametervalue, ',');
+		for (int nv = 0; nv < vars.size(); nv++)
+		{
+			//Verify that the variable name makes sense?
+			std::vector<std::string> SupportedVarNames = {"H","zs","uu","vv"};
+			for (int isup = 0; isup < SupportedVarNames.size(); isup++)
+			{
+				if (vars[nv].compare(SupportedVarNames[isup]))
+				{
+					param.outvars.push_back(vars[nv]);
+					break;
+				}
+			}
+			
+		}
+		
+
+		//std::cerr << "Bathymetry file found!" << std::endl;
+	}
+
 	parameterstr = "wavebndtype =";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
