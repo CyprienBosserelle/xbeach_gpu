@@ -17,23 +17,28 @@ void CUDA_CHECK(cudaError CUDerr)
 }
 
 
-void waveinitGPU(void)
+void waveinitGPU(XBGPUParam Param)
 {
 	// Initialize wave model
+	int nx, ny;
+	nx = Param.nx;
+	ny = Param.ny;
+
+
 
 	//Wave input bnd
 	printf("Opening wave bnd\n");
 
-	if (wavebndtype == 1)
+	if (Param.wavebndtype == 1)
 	{
 
-		readbndhead(wavebndfile, thetamin, thetamax, dtheta, dtwavbnd, nwavbnd);
+		readbndhead(Param.wavebndfile.c_str(), thetamin, thetamax, dtheta, dtwavbnd, nwavbnd);
 
 
 	}
 	else
 	{
-		readXbbndhead(wavebndfile, thetamin, thetamax, dtheta, dtwavbnd, nwavbnd, nwavfile);
+		readXbbndhead(Param.wavebndfile.c_str(), thetamin, thetamax, dtheta, dtwavbnd, nwavbnd, nwavfile);
 
 	}
 
@@ -63,7 +68,8 @@ void waveinitGPU(void)
 
 	ntheta = round((thetamax - thetamin) / dtheta);
 	printf("ntheta=%d\tdtheta=%f\n", ntheta, dtheta);
-	printf("nwavbnd=%d\n", nwavbnd);
+	write_text_to_log_file("ntheta=" + std::to_string(ntheta) + "\t dtheta=" + std::to_string(dtheta));
+	//printf("nwavbnd=%d\n", nwavbnd);
 
 	theta = (DECNUM *)malloc(ntheta*sizeof(DECNUM));
 
@@ -86,7 +92,7 @@ void waveinitGPU(void)
 		cxsth[i] = cos(theta[i]);
 		sxnth[i] = sin(theta[i]);
 
-		printf("theta=%f\tcxsth=%f\tsxnth=%f\n", theta[i], cxsth[i], sxnth[i]);
+		//printf("theta=%f\tcxsth=%f\tsxnth=%f\n", theta[i], cxsth[i], sxnth[i]);
 	}
 
 	dang = theta[1] - theta[0];
@@ -103,18 +109,19 @@ void waveinitGPU(void)
 
 
 	printf("Reading bnd data\n");
-	if (wavebndtype == 1)
+	write_text_to_log_file("Reading wave bnd data");
+	if (Param.wavebndtype == 1)
 	{
-		readStatbnd(nx, ny, ntheta, rho, g, wavebndfile, Tpfile, Stfile);
+		readStatbnd(nx, ny, ntheta, Param.rho, Param.g, Param.wavebndfile.c_str(), Tpfile, Stfile);
 		Trepold = Tpfile[0];
 		Trepnew = Tpfile[1];
 		rt = dtwavbnd;
 
 	}
 
-	if (wavebndtype == 2)
+	if (Param.wavebndtype == 2)
 	{
-		readXbbndstep(nx, ny, ntheta, wavebndfile, 1, Trepold, qfile, Stfile);
+		readXbbndstep(nx, ny, ntheta, Param.wavebndfile.c_str(), 1, Trepold, qfile, Stfile);
 
 
 		for (int ni = 0; ni < ny; ni++)
@@ -204,8 +211,9 @@ void waveinitGPU(void)
 				{
 					ee[0 + jj*nx + nt*nx*ny] = St[jj + nt*ny];// not on gpu since it is a bank conflicting problem
 				}
-				else{
-					ee[ii + jj*nx + nt*nx*ny] = 0.00f;
+				else
+				{
+					ee[ii + jj*nx + nt*nx*ny] = 0.0f;
 				}
 				rr[ii + jj*nx + nt*nx*ny] = 0.0f;
 
@@ -222,13 +230,17 @@ void waveinitGPU(void)
 
 
 
-void wavebnd(void)
+void wavebnd(XBGPUParam Param)
 {
+	int nx, ny;
+	nx = Param.nx;
+	ny = Param.ny;
+
 	if (totaltime >= dtwavbnd*(nwavbnd*wxstep - 1))//The -1 here is so that we read the next file before the last step of the previous file runs out
 	{
-		if (wavebndtype == 2)
+		if (Param.wavebndtype == 2)
 		{
-			readXbbndstep(nx, ny, ntheta, wavebndfile, wxstep, Trep, qfile, Stfile);
+			readXbbndstep(nx, ny, ntheta, Param.wavebndfile.c_str(), wxstep, Trep, qfile, Stfile);
 
 		}
 		nwbndstep = 0;
@@ -243,7 +255,7 @@ void wavebnd(void)
 				Stold[ni + itheta*ny] = Stfile[ni + itheta*ny + nwbndstep*ny*ntheta];
 				Stnew[ni + itheta*ny] = Stfile[ni + itheta*ny + (nwbndstep + 1)*ny*ntheta];
 			}
-			if (wavebndtype == 2)
+			if (Param.wavebndtype == 2)
 			{
 				for (int xi = 0; xi < 4; xi++)
 				{
@@ -293,14 +305,14 @@ void wavebnd(void)
 
 				Stnew[ni + i*ny] = Stfile[ni + i*ny + nwbndstep*ntheta*ny];
 
-				if (wavebndtype == 1)
+				if (Param.wavebndtype == 1)
 				{
 
 					Trep = Tpfile[nwbndstep];
 				}
 			}
 		}
-		if (wavebndtype == 2)
+		if (Param.wavebndtype == 2)
 		{
 			for (int ni = 0; ni < ny; ni++)
 			{
@@ -310,7 +322,7 @@ void wavebnd(void)
 					qbndnew[ni + xi*ny] = qfile[ni + xi*ny + nwbndstep*ny * 4];
 				}
 			}
-			if (GPUDEVICE >= 0)
+			if (Param.GPUDEVICE >= 0)
 			{
 				CUDA_CHECK(cudaMemcpy(qbndold_g, qbndold, 4 * ny*sizeof(DECNUM), cudaMemcpyHostToDevice));
 				CUDA_CHECK(cudaMemcpy(qbndnew_g, qbndnew, 4 * ny*sizeof(DECNUM), cudaMemcpyHostToDevice));
@@ -338,16 +350,19 @@ void wavebnd(void)
 	//printf("Wave timestep:%f\n",wdt);
 	//Wave model step
 	//wavestep();
-	nwstp = nstep + nstpw;
+	//nwstp = nstep + nstpw;
 	//wdt = dt;
 	//}
 
 }
 
 
-void wavestep(void)
+void wavestep(XBGPUParam Param)
 {
-
+	int nx, ny;
+	nx = Param.nx;
+	ny = Param.ny;
+	double dt = Param.dt;
 	//Subroutine runs the wave model
 
 	dim3 blockDim(16, 16, 1);
@@ -366,7 +381,7 @@ void wavestep(void)
 	CUDA_CHECK(cudaThreadSynchronize());
 
 	//Sanity check
-	sanity << <gridDim, blockDim, 0 >> >(nx, ny, eps, hh_g, sigm_g, ntheta, ee_g);
+	sanity << <gridDim, blockDim, 0 >> >(nx, ny, Param.eps, hh_g, sigm_g, ntheta, ee_g);
 
 	//CUT_CHECK_ERROR("sanity execution failed\n");
 	CUDA_CHECK(cudaThreadSynchronize());
@@ -383,7 +398,7 @@ void wavestep(void)
 
 
 	//dispersion
-	dispersion << <gridDim, blockDim, 0 >> >(nx, ny, twopi, g, aphi, bphi, sigm_g, hh_g, k_g, c_g, kh_g, sinh2kh_g, cg_g);
+	dispersion << <gridDim, blockDim, 0 >> >(nx, ny, twopi, Param.g, aphi, bphi, sigm_g, hh_g, k_g, c_g, kh_g, sinh2kh_g, cg_g);
 	//CUT_CHECK_ERROR("dispersion execution failed\n");
 	CUDA_CHECK(cudaThreadSynchronize());
 
@@ -399,13 +414,13 @@ void wavestep(void)
 
 
 	// Wave current interaction	(i.e remove wci in shallow water)
-	calcwci << <gridDim, blockDim, 0 >> >(nx, ny, wci, hwci, hh_g, wci_g);
+	calcwci << <gridDim, blockDim, 0 >> >(nx, ny, Param.wci, Param.hwci, hh_g, wci_g);
 	//CUT_CHECK_ERROR("calcwci execution failed\n");
 	CUDA_CHECK(cudaThreadSynchronize());
 
 
 	// // Slopes of water depth and velocities
-	slopes << <gridDim, blockDim, 0 >> >(nx, ny, dx, hh_g, uu_g, vv_g, dhdx_g, dhdy_g, dudx_g, dudy_g, dvdx_g, dvdy_g);//
+	slopes << <gridDim, blockDim, 0 >> >(nx, ny, Param.dx, hh_g, uu_g, vv_g, dhdx_g, dhdy_g, dudx_g, dudy_g, dvdx_g, dvdy_g);//
 	//CUT_CHECK_ERROR("slopes execution failed\n");
 	CUDA_CHECK(cudaThreadSynchronize());
 
@@ -458,13 +473,13 @@ void wavestep(void)
 	CUDA_CHECK(cudaMalloc((void **)&yadvec_g, nx*ny*ntheta*sizeof(DECNUM)));
 	CUDA_CHECK(cudaMalloc((void **)&thetaadvec_g, nx*ny*ntheta*sizeof(DECNUM)));
 
-	xadvecupwind2 << <gridDim, blockDim, 0 >> >(nx, ny, ntheta, dtheta, dx, dt, wci_g, ee_g, cg_g, cxsth_g, uu_g, xadvec_g);
+	xadvecupwind2 << <gridDim, blockDim, 0 >> >(nx, ny, ntheta, dtheta, Param.dx, dt, wci_g, ee_g, cg_g, cxsth_g, uu_g, xadvec_g);
 	//CUT_CHECK_ERROR("eulerupwind xadvec execution failed\n");
 	CUDA_CHECK(cudaThreadSynchronize());
 
 
 
-	yadvecupwind2 << <gridDim, blockDim, 0 >> >(nx, ny, ntheta, dtheta, dx, dt, wci_g, ee_g, cg_g, sxnth_g, vv_g, yadvec_g);
+	yadvecupwind2 << <gridDim, blockDim, 0 >> >(nx, ny, ntheta, dtheta, Param.dx, dt, wci_g, ee_g, cg_g, sxnth_g, vv_g, yadvec_g);
 	//CUT_CHECK_ERROR("eulerupwind yadvec execution failed\n");
 	CUDA_CHECK(cudaThreadSynchronize());
 
@@ -479,7 +494,7 @@ void wavestep(void)
 	////CUT_CHECK_ERROR("eulerupwind thetaadvecuw execution failed\n");
 	//CUDA_CHECK( cudaThreadSynchronize() );
 
-	thetaadvecuw2ho << <gridDim, blockDim, 0 >> >(nx, ny, ntheta, dtheta, dx, dt, wci, ee_g, ctheta_g, thetaadvec_g);
+	thetaadvecuw2ho << <gridDim, blockDim, 0 >> >(nx, ny, ntheta, dtheta, Param.dx, dt, Param.wci, ee_g, ctheta_g, thetaadvec_g);
 	//CUT_CHECK_ERROR("eulerupwind thetaadvec execution failed\n");
 	CUDA_CHECK(cudaThreadSynchronize());
 	//CUDA_CHECK( cudaMemcpy(ctheta,yadvec_g,  ny*nx*ntheta*sizeof(DECNUM ), cudaMemcpyDeviceToHost) );
@@ -498,7 +513,7 @@ void wavestep(void)
 
 
 
-	eulerupwind << <gridDim, blockDim, 0 >> >(nx, ny, ntheta, dtheta, dx, dt, wci, ee_g, xadvec_g, yadvec_g, thetaadvec_g);
+	eulerupwind << <gridDim, blockDim, 0 >> >(nx, ny, ntheta, dtheta, Param.dx, dt, Param.wci, ee_g, xadvec_g, yadvec_g, thetaadvec_g);
 	//CUT_CHECK_ERROR("eulerupwind  execution failed\n");
 	CUDA_CHECK(cudaThreadSynchronize());
 
@@ -510,7 +525,7 @@ void wavestep(void)
 	//CUDA_CHECK( cudaFree(cgx_g));
 	//CUDA_CHECK( cudaFree(cgy_g));
 	//Fix lateraL BND
-	rollerlatbnd << <gridDim, blockDim, 0 >> >(nx, ny, ntheta, eps, hh_g, ee_g);
+	rollerlatbnd << <gridDim, blockDim, 0 >> >(nx, ny, ntheta, Param.eps, hh_g, ee_g);
 	//CUT_CHECK_ERROR("energy latbnd execution failed\n");
 	CUDA_CHECK(cudaThreadSynchronize());
 
@@ -534,7 +549,7 @@ void wavestep(void)
 	//
 	// Energy integrated over wave directions,Hrms
 	//
-	energint << <gridDim, blockDim, 0 >> >(nx, ny, ntheta, dtheta, rho, g, gammax, E_g, H_g, hh_g, ee_g);
+	energint << <gridDim, blockDim, 0 >> >(nx, ny, ntheta, dtheta, Param.rho, Param.g, Param.gammax, E_g, H_g, hh_g, ee_g);
 	//CUT_CHECK_ERROR("energint execution failed\n");
 	CUDA_CHECK(cudaThreadSynchronize());
 
@@ -561,15 +576,15 @@ void wavestep(void)
 	//  Total dissipation from breaking  and bottom friction
 	//
 
-	if (breakmod == 1)
+	if (Param.breakmodel == 1)
 	{
-		roelvink << <gridDim, blockDim, 0 >> >(nx, ny, rho, g, gammaa, alpha, n, Trep, fwm_g, cfm_g, hh_g, H_g, E_g, D_g, k_g);
+		roelvink << <gridDim, blockDim, 0 >> >(nx, ny, Param.rho, Param.g, Param.gammaa, Param.alpha, Param.n, Trep, fwm_g, cfm_g, hh_g, H_g, E_g, D_g, k_g);
 		//CUT_CHECK_ERROR("roelvink execution failed\n");
 		CUDA_CHECK(cudaThreadSynchronize());
 	}
 	else
 	{
-		baldock << <gridDim, blockDim, 0 >> > (nx, ny, rho, g, gammaa, alpha, n, Trep, fwm_g, cfm_g, hh_g, H_g, E_g, D_g, k_g);//Baldock more appropriate for pseudo stationary cases
+		baldock << <gridDim, blockDim, 0 >> > (nx, ny, Param.rho, Param.g, Param.gammaa, Param.alpha, Param.n, Trep, fwm_g, cfm_g, hh_g, H_g, E_g, D_g, k_g);//Baldock more appropriate for pseudo stationary cases
 		//CUT_CHECK_ERROR("baldoc execution failed\n");
 		CUDA_CHECK(cudaThreadSynchronize());
 	}
@@ -578,13 +593,13 @@ void wavestep(void)
 	//
 	//CUDA_CHECK( cudaMemcpy(hhmean,E_g, nx*ny*sizeof(DECNUM ), cudaMemcpyDeviceToHost) );
 
-	if (roller == 1)
+	if (Param.roller == 1)
 	{
-		xadvecupwind2 << <gridDim, blockDim, 0 >> >(nx, ny, ntheta, dtheta, dx, dt, wci_g, rr_g, c_g, cxsth_g, uu_g, xadvec_g);
+		xadvecupwind2 << <gridDim, blockDim, 0 >> >(nx, ny, ntheta, dtheta, Param.dx, dt, wci_g, rr_g, c_g, cxsth_g, uu_g, xadvec_g);
 		//CUT_CHECK_ERROR("eulerupwind xadvec execution failed\n");
 		CUDA_CHECK(cudaThreadSynchronize());
 
-		yadvecupwind2 << <gridDim, blockDim, 0 >> >(nx, ny, ntheta, dtheta, dx, dt, wci_g, rr_g, c_g, sxnth_g, vv_g, yadvec_g);
+		yadvecupwind2 << <gridDim, blockDim, 0 >> >(nx, ny, ntheta, dtheta, Param.dx, dt, wci_g, rr_g, c_g, sxnth_g, vv_g, yadvec_g);
 		//CUT_CHECK_ERROR("eulerupwind yadvec execution failed\n");
 		CUDA_CHECK(cudaThreadSynchronize());
 
@@ -596,11 +611,11 @@ void wavestep(void)
 		////CUT_CHECK_ERROR("eulerupwind thetaadvecuw execution failed\n");
 		//CUDA_CHECK( cudaThreadSynchronize() );	
 
-		thetaadvecuw2ho << <gridDim, blockDim, 0 >> >(nx, ny, ntheta, dtheta, dx, dt, wci, rr_g, ctheta_g, thetaadvec_g);
+		thetaadvecuw2ho << <gridDim, blockDim, 0 >> >(nx, ny, ntheta, dtheta, Param.dx, dt, Param.wci, rr_g, ctheta_g, thetaadvec_g);
 		//CUT_CHECK_ERROR("eulerupwind thetaadvec execution failed\n");
 		CUDA_CHECK(cudaThreadSynchronize());
 
-		eulerupwind << <gridDim, blockDim, 0 >> >(nx, ny, ntheta, dtheta, dx, dt, wci, rr_g, xadvec_g, yadvec_g, thetaadvec_g);
+		eulerupwind << <gridDim, blockDim, 0 >> >(nx, ny, ntheta, dtheta, Param.dx, dt, Param.wci, rr_g, xadvec_g, yadvec_g, thetaadvec_g);
 		//CUT_CHECK_ERROR("eulerupwind  execution failed\n");
 		CUDA_CHECK(cudaThreadSynchronize());
 
@@ -608,7 +623,7 @@ void wavestep(void)
 		//  Adjust lateral bnds
 		//
 
-		rollerlatbnd << <gridDim, blockDim, 0 >> >(nx, ny, ntheta, eps, hh_g, rr_g);
+		rollerlatbnd << <gridDim, blockDim, 0 >> >(nx, ny, ntheta, Param.eps, hh_g, rr_g);
 		//CUT_CHECK_ERROR("rollerlatbnd execution failed\n");
 		CUDA_CHECK(cudaThreadSynchronize());
 	}
@@ -624,7 +639,7 @@ void wavestep(void)
 	// 
 	//  Distribution of dissipation over directions and frequencies
 	//                               
-	dissipation << <gridDim, blockDim, 0 >> >(nx, ny, ntheta, dtheta, eps, dt, g, beta, wci_g, hh_g, ee_g, D_g, E_g, rr_g, c_g, cxsth_g, sxnth_g, uu_g, vv_g, DR_g, R_g);
+	dissipation << <gridDim, blockDim, 0 >> >(nx, ny, ntheta, dtheta, Param.eps, dt, Param.g, Param.beta, wci_g, hh_g, ee_g, D_g, E_g, rr_g, c_g, cxsth_g, sxnth_g, uu_g, vv_g, DR_g, R_g);
 	//CUT_CHECK_ERROR("dissipation execution failed\n");
 	CUDA_CHECK(cudaThreadSynchronize());
 
@@ -633,7 +648,7 @@ void wavestep(void)
 	//
 	//Fix lateraL BND
 	//
-	rollerlatbnd << <gridDim, blockDim, 0 >> >(nx, ny, ntheta, eps, hh_g, ee_g);
+	rollerlatbnd << <gridDim, blockDim, 0 >> >(nx, ny, ntheta, Param.eps, hh_g, ee_g);
 	//CUT_CHECK_ERROR("energy latbnd execution failed\n");
 	CUDA_CHECK(cudaThreadSynchronize());
 
@@ -643,7 +658,7 @@ void wavestep(void)
 	//  Compute mean wave direction
 	// 
 
-	meandir << <gridDim, blockDim, 0 >> >(nx, ny, ntheta, rho, g, dtheta, ee_g, theta_g, thetamean_g, E_g, H_g);
+	meandir << <gridDim, blockDim, 0 >> >(nx, ny, ntheta, Param.rho, Param.g, dtheta, ee_g, theta_g, thetamean_g, E_g, H_g);
 	//CUT_CHECK_ERROR("meandir execution failed\n");
 	CUDA_CHECK(cudaThreadSynchronize());
 
@@ -667,7 +682,7 @@ void wavestep(void)
 	CUDA_CHECK(cudaMalloc((void **)&Sxy_g, nx*ny*sizeof(DECNUM)));
 	CUDA_CHECK(cudaMalloc((void **)&Syy_g, nx*ny*sizeof(DECNUM)));
 
-	radstress << <gridDim, blockDim, 0 >> >(nx, ny, ntheta, dx, dtheta, ee_g, rr_g, cxsth_g, sxnth_g, cg_g, c_g, Sxx_g, Sxy_g, Syy_g);
+	radstress << <gridDim, blockDim, 0 >> >(nx, ny, ntheta, Param.dx, dtheta, ee_g, rr_g, cxsth_g, sxnth_g, cg_g, c_g, Sxx_g, Sxy_g, Syy_g);
 
 	//CUT_CHECK_ERROR("radstress execution failed\n");
 	CUDA_CHECK(cudaThreadSynchronize());
@@ -675,15 +690,15 @@ void wavestep(void)
 	//	
 	// Wave forces
 	//
-	wavforce << <gridDim, blockDim, 0 >> >(nx, ny, ntheta, dx, dtheta, Sxx_g, Sxy_g, Syy_g, Fx_g, Fy_g, hh_g);
+	wavforce << <gridDim, blockDim, 0 >> >(nx, ny, ntheta, Param.dx, dtheta, Sxx_g, Sxy_g, Syy_g, Fx_g, Fy_g, hh_g);
 	//CUT_CHECK_ERROR("wavforce execution failed\n");
 	CUDA_CHECK(cudaThreadSynchronize());
 
-	twodimbndnoix << <gridDim, blockDim, 0 >> >(nx, ny, eps, hh_g, Fx_g);
+	twodimbndnoix << <gridDim, blockDim, 0 >> >(nx, ny, Param.eps, hh_g, Fx_g);
 	//CUT_CHECK_ERROR("wave force X bnd execution failed\n");
 	CUDA_CHECK(cudaThreadSynchronize());
 
-	twodimbnd << <gridDim, blockDim, 0 >> >(nx, ny, eps, hh_g, Fy_g);
+	twodimbnd << <gridDim, blockDim, 0 >> >(nx, ny, Param.eps, hh_g, Fy_g);
 	//CUT_CHECK_ERROR("wave force Y bnd execution failed\n");
 	CUDA_CHECK(cudaThreadSynchronize());
 
@@ -693,7 +708,7 @@ void wavestep(void)
 	//
 	// CAlculate stokes velocity and breaker delay //Breaker delay removed because it is slow and kinda useless
 	//
-	breakerdelay << <gridDim, blockDim, 0 >> >(nx, ny, ntheta, dtheta, g, rho, Trep, eps, urms_g, ust_g, H_g, E_g, c_g, k_g, hh_g, R_g);
+	breakerdelay << <gridDim, blockDim, 0 >> >(nx, ny, ntheta, dtheta, Param.g, Param.rho, Trep, Param.eps, urms_g, ust_g, H_g, E_g, c_g, k_g, hh_g, R_g);
 	//CUT_CHECK_ERROR("breakerdelay execution failed\n");
 	CUDA_CHECK(cudaThreadSynchronize());
 
@@ -701,7 +716,7 @@ void wavestep(void)
 	//CUT_CHECK_ERROR("wave force Y bnd execution failed\n");
 	//CUDA_CHECK( cudaThreadSynchronize() );
 
-	twodimbnd << <gridDim, blockDim, 0 >> >(nx, ny, eps, hh_g, ust_g);
+	twodimbnd << <gridDim, blockDim, 0 >> >(nx, ny, Param.eps, hh_g, ust_g);
 	//CUT_CHECK_ERROR("wave force Y bnd execution failed\n");
 	CUDA_CHECK(cudaThreadSynchronize());
 
@@ -745,9 +760,11 @@ void wavestep(void)
 
 }
 
-void wavestepCPU(void)
+void wavestepCPU(XBGPUParam Param)
 {
-
+	int nx, ny;
+	nx = Param.nx;
+	ny = Param.ny;
 	//Subroutine runs the wave model
 
 	//printf("%2.2f\t",ee_g[16+8*nx+1*ntheta]);
@@ -756,20 +773,20 @@ void wavestepCPU(void)
 
 
 	//Sanity check
-	sanityCPU(nx, ny, eps, hh_g, sigm_g, ntheta, ee_g);
+	sanityCPU(nx, ny, Param.eps, hh_g, sigm_g, ntheta, ee_g);
 	//printf("%2.2f\t", ee_g[16 + 8 * nx + 1 * ntheta]);
 
 	//dispersion
 	//printf("%2.2f\t", ee_g[16 + 8 * nx + 1 * ntheta]);
-	dispersionCPU(nx, ny, twopi, g, aphi, bphi, sigm_g, hh_g, k_g, c_g, kh_g, sinh2kh_g, cg_g);
+	dispersionCPU(nx, ny, twopi, Param.g, aphi, bphi, sigm_g, hh_g, k_g, c_g, kh_g, sinh2kh_g, cg_g);
 
 
 	// Wave current interaction	(i.e remove wci in shallow water)
-	calcwciCPU(nx, ny, wci, hwci, hh_g, wci_g);
+	calcwciCPU(nx, ny, Param.wci, Param.hwci, hh_g, wci_g);
 	//printf("%f\t",ee_g[0+16*nx+6*nx*ny]);
 
 	// Slopes of water depth and velocities
-	slopesCPU(nx, ny, dx, hh_g, uu_g, vv_g, dhdx_g, dhdy_g, dudx_g, dudy_g, dvdx_g, dvdy_g);//
+	slopesCPU(nx, ny, Param.dx, hh_g, uu_g, vv_g, dhdx_g, dhdy_g, dudx_g, dudy_g, dvdx_g, dvdy_g);//
 	//printf("%f\t",ee_g[0+16*nx+6*nx*ny]);
 
 	//Propagation speed in theta space
@@ -785,23 +802,23 @@ void wavestepCPU(void)
 
 
 	// Upwind Euler timestep propagation
-	xadvecupwind2CPU(nx, ny, ntheta, dtheta, dx, dt, wci_g, ee_g, cg_g, cxsth_g, uu_g, xadvec_g);
+	xadvecupwind2CPU(nx, ny, ntheta, dtheta, Param.dx, Param.dt, wci_g, ee_g, cg_g, cxsth_g, uu_g, xadvec_g);
 
-	yadvecupwind2CPU(nx, ny, ntheta, dtheta, dx, dt, wci_g, ee_g, cg_g, sxnth_g, vv_g, yadvec_g);
+	yadvecupwind2CPU(nx, ny, ntheta, dtheta, Param.dx, Param.dt, wci_g, ee_g, cg_g, sxnth_g, vv_g, yadvec_g);
 
-	thetaadvecuw2hoCPU(nx, ny, ntheta, dtheta, dx, dt, wci, ee_g, ctheta_g, thetaadvec_g);
+	thetaadvecuw2hoCPU(nx, ny, ntheta, dtheta, Param.dx, Param.dt, Param.wci, ee_g, ctheta_g, thetaadvec_g);
 
 	//Apply advection
-	eulerupwindCPU(nx, ny, ntheta, dtheta, dx, dt, wci, ee_g, xadvec_g, yadvec_g, thetaadvec_g);
+	eulerupwindCPU(nx, ny, ntheta, dtheta, Param.dx, Param.dt, Param.wci, ee_g, xadvec_g, yadvec_g, thetaadvec_g);
 
 	//Fix lateraL BND
-	rollerlatbndCPU(nx, ny, ntheta, eps, hh_g, ee_g);
+	rollerlatbndCPU(nx, ny, ntheta, Param.eps, hh_g, ee_g);
 
 	// transform back to wave energy
 	energyCPU(nx, ny, ntheta, ee_g, sigm_g);
 
 	// Energy integrated over wave directions,Hrms
-	energintCPU(nx, ny, ntheta, dtheta, rho, g, gammax, E_g, H_g, hh_g, ee_g);
+	energintCPU(nx, ny, ntheta, dtheta, Param.rho, Param.g, Param.gammax, E_g, H_g, hh_g, ee_g);
 
 	//
 	// calculate change in intrinsic frequency // removed because it is super slow and doesn't do much
@@ -816,54 +833,54 @@ void wavestepCPU(void)
 
 
 	//  Total dissipation from breaking  and bottom friction
-	if (breakmod == 1)
+	if (Param.breakmodel == 1)
 	{
-		roelvinkCPU(nx, ny, rho, g, gammaa, alpha, n, Trep, fwm_g, cfm_g, hh_g, H_g, E_g, D_g, k_g);
+		roelvinkCPU(nx, ny, Param.rho, Param.g, Param.gammaa, Param.alpha, Param.n, Trep, fwm_g, cfm_g, hh_g, H_g, E_g, D_g, k_g);
 
 	}
 	else
 	{
-		baldockCPU(nx, ny, rho, g, gammaa, alpha, n, Trep, fwm_g, cfm_g, hh_g, H_g, E_g, D_g, k_g);//Baldock more appropriate for pseudo stationary cases
+		baldockCPU(nx, ny, Param.rho, Param.g, Param.gammaa, Param.alpha, Param.n, Trep, fwm_g, cfm_g, hh_g, H_g, E_g, D_g, k_g);//Baldock more appropriate for pseudo stationary cases
 
 	}
 
 	//  Calculate roller energy balance
 	if (roller == 1)
 	{
-		xadvecupwind2CPU(nx, ny, ntheta, dtheta, dx, dt, wci_g, rr_g, c_g, cxsth_g, uu_g, xadvec_g);
+		xadvecupwind2CPU(nx, ny, ntheta, dtheta, Param.dx, Param.dt, wci_g, rr_g, c_g, cxsth_g, uu_g, xadvec_g);
 
-		yadvecupwind2CPU(nx, ny, ntheta, dtheta, dx, dt, wci_g, rr_g, c_g, sxnth_g, vv_g, yadvec_g);
+		yadvecupwind2CPU(nx, ny, ntheta, dtheta, Param.dx, Param.dt, wci_g, rr_g, c_g, sxnth_g, vv_g, yadvec_g);
 
-		thetaadvecuw2hoCPU(nx, ny, ntheta, dtheta, dx, dt, wci, rr_g, ctheta_g, thetaadvec_g);
+		thetaadvecuw2hoCPU(nx, ny, ntheta, dtheta, Param.dx, Param.dt, Param.wci, rr_g, ctheta_g, thetaadvec_g);
 
-		eulerupwindCPU(nx, ny, ntheta, dtheta, dx, dt, wci, rr_g, xadvec_g, yadvec_g, thetaadvec_g);
+		eulerupwindCPU(nx, ny, ntheta, dtheta, Param.dx, Param.dt, Param.wci, rr_g, xadvec_g, yadvec_g, thetaadvec_g);
 
-		rollerlatbndCPU(nx, ny, ntheta, eps, hh_g, rr_g);
+		rollerlatbndCPU(nx, ny, ntheta, Param.eps, hh_g, rr_g);
 
 	}
 
 	//  Distribution of dissipation over directions and frequencies
-	dissipationCPU(nx, ny, ntheta, dtheta, eps, dt, g, beta, wci_g, hh_g, ee_g, D_g, E_g, rr_g, c_g, cxsth_g, sxnth_g, uu_g, vv_g, DR_g, R_g);
+	dissipationCPU(nx, ny, ntheta, dtheta, Param.eps, Param.dt, Param.g, Param.beta, wci_g, hh_g, ee_g, D_g, E_g, rr_g, c_g, cxsth_g, sxnth_g, uu_g, vv_g, DR_g, R_g);
 
 	//Fix lateraL BND
-	rollerlatbndCPU(nx, ny, ntheta, eps, hh_g, ee_g);
+	rollerlatbndCPU(nx, ny, ntheta, Param.eps, hh_g, ee_g);
 
 	//  Compute mean wave direction
-	meandirCPU(nx, ny, ntheta, rho, g, dtheta, ee_g, theta_g, thetamean_g, E_g, H_g);
+	meandirCPU(nx, ny, ntheta, Param.rho, Param.g, dtheta, ee_g, theta_g, thetamean_g, E_g, H_g);
 
 	// Radiation stresses and forcing terms
-	radstressCPU(nx, ny, ntheta, dx, dtheta, ee_g, rr_g, cxsth_g, sxnth_g, cg_g, c_g, Sxx_g, Sxy_g, Syy_g);
+	radstressCPU(nx, ny, ntheta, Param.dx, dtheta, ee_g, rr_g, cxsth_g, sxnth_g, cg_g, c_g, Sxx_g, Sxy_g, Syy_g);
 
 	// Wave forces
-	wavforceCPU(nx, ny, ntheta, dx, dtheta, Sxx_g, Sxy_g, Syy_g, Fx_g, Fy_g, hh_g);
+	wavforceCPU(nx, ny, ntheta, Param.dx, dtheta, Sxx_g, Sxy_g, Syy_g, Fx_g, Fy_g, hh_g);
 
 	//Lat Bnd
-	twodimbndnoixCPU(nx, ny, eps, hh_g, Fx_g);
-	twodimbndCPU(nx, ny, eps, hh_g, Fy_g);
+	twodimbndnoixCPU(nx, ny, Param.eps, hh_g, Fx_g);
+	twodimbndCPU(nx, ny, Param.eps, hh_g, Fy_g);
 
 	// CAlculate stokes velocity and breaker delay //Breaker delay removed because it is slow and kinda useless
-	breakerdelayCPU(nx, ny, ntheta, dtheta, g, rho, Trep, eps, urms_g, ust_g, H_g, E_g, c_g, k_g, hh_g, R_g);
-	twodimbndCPU(nx, ny, eps, hh_g, ust_g);
+	breakerdelayCPU(nx, ny, ntheta, dtheta, Param.g, Param.rho, Trep, Param.eps, urms_g, ust_g, H_g, E_g, c_g, k_g, hh_g, R_g);
+	twodimbndCPU(nx, ny, Param.eps, hh_g, ust_g);
 
 	// Adjust Offshore Bnd
 	//CUDA_CHECK( cudaMemcpy(St_g, St, ny*ntheta*sizeof(DECNUM ), cudaMemcpyHostToDevice) );
