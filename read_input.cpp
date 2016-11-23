@@ -1093,7 +1093,7 @@ void SaveParamtolog(XBGPUParam XParam)
 	write_text_to_log_file("nx = " + std::to_string(XParam.nx) + ";");
 	write_text_to_log_file("ny = " + std::to_string(XParam.ny) + ";");
 	write_text_to_log_file("dx = " + std::to_string(XParam.dx) + ";");
-	write_text_to_log_file("grdalpha = " + std::to_string(XParam.grdalpha) + ";");
+	write_text_to_log_file("grdalpha = " + std::to_string(XParam.grdalpha*180.0/pi) + ";");
 	write_text_to_log_file("\n");
 	write_text_to_log_file("# Model controls");
 	write_text_to_log_file("swave = " + std::to_string(XParam.swave) + ";");
