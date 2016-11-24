@@ -694,7 +694,7 @@ XBGPUParam readparamstr(std::string line, XBGPUParam param)
 		for (int nv = 0; nv < vars.size(); nv++)
 		{
 			//Verify that the variable name makes sense?
-			std::vector<std::string> SupportedVarNames = {"H","zs","uu","vv"};
+			std::vector<std::string> SupportedVarNames = { "zb", "zs", "uu", "vv", "H", "thetamean", "D", "urms", "ueu", "vev", "C", "dzb", "Fx", "Fy", "hh", "Hmean", "uumean", "vvmean", "hhmean", "zsmean", "Cmean" };
 			for (int isup = 0; isup < SupportedVarNames.size(); isup++)
 			{
 				if (vars[nv].compare(SupportedVarNames[isup]))
@@ -933,6 +933,18 @@ XBGPUParam checkparamsanity(XBGPUParam XParam, std::vector<SLBnd> slbnd, std::ve
 			{
 				XParam.TSnodesout[o].j = XParam.ny - 1;
 			}
+		}
+
+	}
+
+	if (XParam.outvars.empty() && XParam.outfile.compare(DefaultParams.outfile) == 0)
+	{
+		//a nc file was specified but no output variable were specified
+		std::vector<std::string> SupportedVarNames = { "zb", "zs", "uu", "vv", "H", "thetamean", "D", "urms", "ueu", "vev", "C", "dzb", "Fx", "Fy", "hh", "Hmean", "uumean", "vvmean", "hhmean", "zsmean", "Cmean" };
+		for (int isup = 0; isup < SupportedVarNames.size(); isup++)
+		{
+			XParam.outvars.push_back(SupportedVarNames[isup]);
+				
 		}
 
 	}
