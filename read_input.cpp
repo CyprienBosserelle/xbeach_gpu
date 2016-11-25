@@ -859,6 +859,23 @@ XBGPUParam checkparamsanity(XBGPUParam XParam, std::vector<SLBnd> slbnd, std::ve
 		XParam.cfreef = XParam.cfsand;
 	}
 
+	//Check that sand and reef friction is not zero (Default) if it is the case then use the default cf
+	if (abs(XParam.fwsand - DefaultParams.fwsand) < tiny)
+	{
+		if (XParam.fw < tiny)
+		{
+			XParam.fw = tiny;
+		}
+		XParam.fwsand = XParam.fw;
+	}
+
+	if (abs(XParam.fwreef - DefaultParams.fwreef) < tiny)
+	{
+
+		XParam.fwreef = XParam.fwsand;
+	}
+
+
 	// Check that if smagorinsky formulation is used then nuh == samgo otherwise use the specified value for smago
 	if (XParam.usesmago == 1)
 	{
