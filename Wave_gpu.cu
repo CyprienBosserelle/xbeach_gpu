@@ -1238,6 +1238,8 @@ int main(int argc, char **argv)
 	float dx, grdalpha;
 	double dt;
 	
+	
+
 
 	// Reset the log file 
 	FILE * flog;
@@ -1619,6 +1621,8 @@ int main(int argc, char **argv)
 	C = (DECNUM *)malloc(nx*ny*sizeof(DECNUM));
 	R = (DECNUM *)malloc(nx*ny*sizeof(DECNUM));
 	DR = (DECNUM *)malloc(nx*ny*sizeof(DECNUM));
+
+
 
 
 
@@ -2132,15 +2136,43 @@ int main(int argc, char **argv)
 
 		}
 	}
+
+	//Map a link between the variable s a string and the variable pointer
+
+	std::map<std::string, DECNUM *> OutputVarMapCPU;
+
+	OutputVarMapCPU["zb"] = zb;
+	OutputVarMapCPU["uu"] = uu;
+	OutputVarMapCPU["vv"] = vv;
+	OutputVarMapCPU["zs"] = zs;
+	OutputVarMapCPU["hh"] = hh;
+	OutputVarMapCPU["H"] = H;
+	OutputVarMapCPU["thetamean"] = thetamean;
+
+
+
 	// prepare output file
 	printf("prepare output");
 	write_text_to_log_file("prepare output");
+
+	// Proof of concept for map
 	//creatncfile(tsoutfile, nx, ny, dx, 0.0f, imodel, zb, zs, uu, vv, H, H, thetamean, uu, uu, uu, uu, uu, uu, uu, hh, uu, uu, uu, uu, uu, uu);
-	creatncfile(XParam, 0.0f, zb, zs, uu, vv, H, H, thetamean, uu, uu, uu, uu, uu, uu, uu, hh, uu, uu, uu, uu, uu, uu);
+	creatncfile(XParam, 0.0f, OutputVarMapCPU["zb"], OutputVarMapCPU["zs"], OutputVarMapCPU["uu"], OutputVarMapCPU["vv"], H, H, thetamean, uu, uu, uu, uu, uu, uu, uu, hh, uu, uu, uu, uu, uu, uu);
+
+	if (!XParam.outvars.empty())
+	{
+		//create nc file with no variables
+		for (int ivar = 0; ivar < XParam.outvars.size(); ivar++)
+		{
+			//Create definition for each variable and store it
+		}
+	}
+
+
 
 	//create3dnc(nx,ny,ntheta,dx,0.0f,theta,ctheta);
 
-	istepout = istepout + nstepout; // Depreciated
+	istepout = istepout + nstepout; // Depreciated ?
 	nextoutputtime = nextoutputtime + XParam.outputtimestep;
 
 	printf("...done\n");
