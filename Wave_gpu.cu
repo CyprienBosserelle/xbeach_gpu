@@ -286,10 +286,6 @@ void mainloopGPU(XBGPUParam Param, std::vector<SLBnd> slbnd, std::vector<WindBnd
 	
 	std::vector< std::vector< SLBnd > > zsAllout;
 	
-	
-
-
-
 	SLBnd stepread;
 	
 
@@ -310,7 +306,49 @@ void mainloopGPU(XBGPUParam Param, std::vector<SLBnd> slbnd, std::vector<WindBnd
 		}
 	}
 	
-	
+	//Map a link between the variable s a string and the variable pointer
+
+	std::map<std::string, DECNUM *> OutputVarMapCPU;
+	std::map<std::string, DECNUM *> OutputVarMapGPU;
+	std::map<std::string, int> OutputVarMaplen;
+
+	OutputVarMapCPU["zb"] = zb;
+	OutputVarMapGPU["zb"] = zb_g;
+	if (Param.morphology == 1)
+	{
+		OutputVarMaplen["zb"] = nx*ny;
+	}
+	else
+	{
+		OutputVarMaplen["zb"] = 0;
+	}
+	OutputVarMapCPU["uu"] = uu;
+	OutputVarMapGPU["uu"] = uu_g;
+	OutputVarMaplen["uu"] = nx*ny;
+
+	OutputVarMapCPU["vv"] = vv;
+	OutputVarMapGPU["vv"] = vv_g;
+	OutputVarMaplen["vv"] = nx*ny;
+
+	OutputVarMapCPU["zs"] = zs;
+	OutputVarMapGPU["zs"] = zs_g;
+	OutputVarMaplen["zs"] = nx*ny;
+
+	OutputVarMapCPU["hh"] = hh;
+	OutputVarMapGPU["hh"] = hh_g;
+	OutputVarMaplen["hh"] = nx*ny;
+
+	OutputVarMapCPU["H"] = H;
+	OutputVarMapGPU["H"] = H_g;
+	OutputVarMaplen["H"] = nx*ny;
+
+	OutputVarMapCPU["thetamean"] = thetamean;
+	OutputVarMapGPU["thetamean"] = thetamean_g;
+	OutputVarMaplen["thetamean"] = nx*ny;
+
+
+
+
 
 	//< or <= ? crashes with <= if the boundary limit is == to endtime
 	while (totaltime < Param.endtime)
@@ -504,6 +542,26 @@ void mainloopGPU(XBGPUParam Param, std::vector<SLBnd> slbnd, std::vector<WindBnd
 			divavg_var << <gridDim, blockDim, 0 >> >(nx, ny, nstep, Cmean_g);
 			//CUT_CHECK_ERROR("Div avg execution failed\n");
 			CUDA_CHECK(cudaDeviceSynchronize());
+
+			//For each requested variables
+
+			if (!Param.outvars.empty())
+			{
+				writenctimestep(Param, totaltime);
+				
+				for (int ivar = 0; ivar < Param.outvars.size(); ivar++)
+				{
+					if (OutputVarMaplen[Param.outvars[ivar]] > 0)
+					{
+						//Should be async
+						CUDA_CHECK(cudaMemcpy(OutputVarMapCPU[Param.outvars[ivar]], OutputVarMapGPU[Param.outvars[ivar]], OutputVarMaplen[Param.outvars[ivar]] * sizeof(DECNUM), cudaMemcpyDeviceToHost));
+						//Create definition for each variable and store it
+						writencvarstep(Param, Param.outvars[ivar], OutputVarMapCPU[Param.outvars[ivar]]);
+					}
+				}
+			}
+
+
 
 			// Download mean vars
 			CUDA_CHECK(cudaMemcpy(Hmean, Hmean_g, nx*ny*sizeof(DECNUM), cudaMemcpyDeviceToHost));
@@ -2140,14 +2198,34 @@ int main(int argc, char **argv)
 	//Map a link between the variable s a string and the variable pointer
 
 	std::map<std::string, DECNUM *> OutputVarMapCPU;
+	std::map<std::string, int> OutputVarMapndim;
 
 	OutputVarMapCPU["zb"] = zb;
+	if (XParam.morphology == 1)
+	{
+		OutputVarMapndim["zb"] = 3;
+	}
+	else
+	{
+		OutputVarMapndim["zb"] = 2;
+	}
 	OutputVarMapCPU["uu"] = uu;
+	OutputVarMapndim["uu"] = 3;
+
 	OutputVarMapCPU["vv"] = vv;
+	OutputVarMapndim["vv"] = 3;
+
 	OutputVarMapCPU["zs"] = zs;
+	OutputVarMapndim["zs"] = 3;
+
 	OutputVarMapCPU["hh"] = hh;
+	OutputVarMapndim["hh"] = 3;
+
 	OutputVarMapCPU["H"] = H;
+	OutputVarMapndim["H"] = 3;
+
 	OutputVarMapCPU["thetamean"] = thetamean;
+	OutputVarMapndim["thetamean"] = 3;
 
 
 
@@ -2162,9 +2240,11 @@ int main(int argc, char **argv)
 	if (!XParam.outvars.empty())
 	{
 		//create nc file with no variables
+		creatncfileUD(XParam, 0.0, ntheta, dtheta, thetamin, thetamax);
 		for (int ivar = 0; ivar < XParam.outvars.size(); ivar++)
 		{
 			//Create definition for each variable and store it
+			defncvar(XParam, XParam.outvars[ivar], OutputVarMapndim[XParam.outvars[ivar]], OutputVarMapCPU[XParam.outvars[ivar]]);
 		}
 	}
 

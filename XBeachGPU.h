@@ -75,7 +75,10 @@ public:
 	double fw = 0.001;//Wave bottom dissipation parameters fw 
 	double fwsand = 0.0, fwreef = 0.0; //Wave bottom dissipation parameters fw is for sand fw2 is for reefs.see cf comments
 	int roller = 1;
-	
+	//double thetamin = -80 * pi / 180; Need to sort this out when refurbishing the wave boundary stuff
+	//double thetamax = 80 * pi / 180;
+	//double dtheta = 20 * pi / 180;
+	//int ntheta;
 	//Sediment parameters
 	double D50=0.00038, D90=0.00053; // sand grain size in m
 	double rhosed = 2650.0; // sand density in kg/m3
@@ -225,6 +228,9 @@ void readgridncsize(std::string ncfile, int &nx, int &ny, double &dx);
 extern "C" void readnczb(int nx, int ny, std::string ncfile, DECNUM * &zb);
 extern "C" void readXBbathy(std::string filename, int nx, int ny, float *&zb);
 
-
+extern "C" void creatncfileUD(XBGPUParam XParam, double totaltime, int ntheta, float dtheta, float  thetamin, float thetamax);
+extern "C" void defncvar(XBGPUParam XParam, std::string varst, int vdim, float * var);
+extern "C" void writencvarstep(XBGPUParam XParam, std::string varst, float * var);
+extern "C" void writenctimestep(XBGPUParam XParam, double totaltime);
 
 #endif

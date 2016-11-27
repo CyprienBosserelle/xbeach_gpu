@@ -697,7 +697,7 @@ XBGPUParam readparamstr(std::string line, XBGPUParam param)
 			std::vector<std::string> SupportedVarNames = { "zb", "zs", "uu", "vv", "H", "thetamean", "D", "urms", "ueu", "vev", "C", "dzb", "Fx", "Fy", "hh", "Hmean", "uumean", "vvmean", "hhmean", "zsmean", "Cmean" };
 			for (int isup = 0; isup < SupportedVarNames.size(); isup++)
 			{
-				if (vars[nv].compare(SupportedVarNames[isup]))
+				if (vars[nv].compare(SupportedVarNames[isup])==0)
 				{
 					param.outvars.push_back(vars[nv]);
 					break;

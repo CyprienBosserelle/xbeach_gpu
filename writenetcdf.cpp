@@ -27,6 +27,209 @@ void handle_error(int status) {
 	}
 }
 
+
+extern "C" void creatncfileUD(XBGPUParam XParam, double totaltime,int ntheta,float dtheta,float  thetamin,float thetamax)
+{
+	int status;
+	int nx = XParam.nx;
+	int ny = XParam.ny;
+	double dx = XParam.dx;
+	size_t nxx, nyy, nth;
+	int ncid, xx_dim, yy_dim, time_dim, theta_dim;
+	float * xval, *yval, *thetaval;
+	static size_t xcount[] = { nx };
+	static size_t ycount[] = { ny };
+	static size_t thcount[] = { ntheta };
+	int time_id, xx_id, yy_id, th_id;
+
+	static size_t tst[] = { 0 };
+	static size_t xstart[] = { 0 }; // start at first value
+	static size_t ystart[] = { 0 }; // start at first value 
+	static size_t thstart[] = { 0 }; // start at first value
+	nxx = nx;
+	nyy = ny;
+	nth = ntheta;
+
+	//Recreat the x, y and theta array
+	xval = (DECNUM *)malloc(nx*sizeof(DECNUM));
+	yval = (DECNUM *)malloc(ny*sizeof(DECNUM));
+	thetaval = (float *)malloc(ntheta*sizeof(float));
+
+	for (int i = 0; i<nx; i++)
+	{
+		xval[i] = i*dx;
+	}
+	for (int i = 0; i<ny; i++)
+	{
+		yval[i] = i*dx;
+	}
+	for (int i = 0; i<ntheta; i++)
+	{
+		thetaval[i] = i*(dtheta)+thetamin + 0.5f*dtheta;
+	}
+
+	//create the netcdf datasetXParam.outfile.c_str()
+	status = nc_create("Dummy.nc", NC_NOCLOBBER, &ncid);
+
+	//Define dimensions: Name and length
+
+	status = nc_def_dim(ncid, "xx", nxx, &xx_dim);
+	status = nc_def_dim(ncid, "yy", nyy, &yy_dim);
+	status = nc_def_dim(ncid, "theta", nth, &theta_dim);
+	//status = nc_def_dim(ncid, "npart",nnpart,&p_dim);
+	status = nc_def_dim(ncid, "time", NC_UNLIMITED, &time_dim);
+
+	int tdim[] = { time_dim };
+	int xdim[] = { xx_dim };
+	int ydim[] = { yy_dim };
+	int thdim[] = {theta_dim};
+	
+	status = nc_def_var(ncid, "time", NC_FLOAT, 1, tdim, &time_id);
+	status = nc_def_var(ncid, "xx", NC_FLOAT, 1, xdim, &xx_id);
+	status = nc_def_var(ncid, "yy", NC_FLOAT, 1, ydim, &yy_id);
+	status = nc_def_var(ncid, "theta", NC_FLOAT, 1, thdim, &th_id);
+	//End definitions: leave define mode
+	status = nc_enddef(ncid);
+
+	//Provide values for variables
+	status = nc_put_var1_double(ncid, time_id, tst, &totaltime);
+	status = nc_put_vara_float(ncid, xx_id, xstart, xcount, xval);
+	status = nc_put_vara_float(ncid, yy_id, ystart, ycount, yval);
+	status = nc_put_vara_float(ncid, th_id, thstart, thcount, thetaval);
+	//close and save new file
+	status = nc_close(ncid);
+}
+
+extern "C" void defncvar(XBGPUParam XParam, std::string varst, int vdim, float * var)
+{
+	int status;
+	int ncid, var_id;
+	int  var_dimid2D[2];
+	int  var_dimid3D[3];
+	int  var_dimid4D[4];
+
+	int recid, xid, yid, thid;
+	size_t ntheta;// nx and ny are stored in XParam not yet for ntheta
+
+	status = nc_open("Dummy.nc", NC_WRITE, &ncid);
+	status = nc_redef(ncid);
+
+	//Inquire dimensions ids
+	status = nc_inq_unlimdim(ncid, &recid);//time
+	status = nc_inq_dimid(ncid, "xx", &xid);
+	status = nc_inq_dimid(ncid, "yy", &yid);
+	status = nc_inq_dimid(ncid, "theta", &thid);
+	status = nc_inq_dimlen(ncid, thid, &ntheta);
+
+	var_dimid2D[0] = yid;
+	var_dimid2D[1] = xid;
+
+	var_dimid3D[0] = recid;
+	var_dimid3D[1] = yid;
+	var_dimid3D[2] = xid;
+
+	var_dimid4D[0] = recid;
+	var_dimid4D[1] = thid;
+	var_dimid4D[2] = yid;
+	var_dimid4D[3] = xid;
+
+	static size_t start2D[] = { 0, 0 }; // start at first value 
+	static size_t count2D[] = { XParam.ny, XParam.nx };
+
+	static size_t start3D[] = { 0, 0, 0 }; // start at first value 
+	static size_t count3D[] = { 1, XParam.ny, XParam.nx };
+
+	static size_t start4D[] = { 0, 0, 0, 0 }; // start at first value 
+	static size_t count4D[] = { 1, ntheta, XParam.ny, XParam.nx };
+
+
+	if (vdim == 2)
+	{
+		status = nc_def_var(ncid, varst.c_str(), NC_FLOAT, vdim, var_dimid2D, &var_id);
+		status = nc_enddef(ncid);
+		status = nc_put_vara_float(ncid, var_id, start2D, count2D, var);
+	}
+	if (vdim == 3)
+	{
+		status = nc_def_var(ncid, varst.c_str(), NC_FLOAT, vdim, var_dimid3D, &var_id);
+		status = nc_enddef(ncid);
+		status = nc_put_vara_float(ncid, var_id, start3D, count3D, var);
+	}
+	if (vdim == 4)
+	{
+		status = nc_def_var(ncid, varst.c_str(), NC_FLOAT, vdim, var_dimid4D, &var_id);
+		status = nc_enddef(ncid);
+		status = nc_put_vara_float(ncid, var_id, start4D, count4D, var);
+	}
+
+	//close and save new file
+	status = nc_close(ncid);
+
+}
+
+
+extern "C" void writenctimestep(XBGPUParam XParam, double totaltime)
+{
+	int status, ncid, recid, time_id;
+	status = nc_open("Dummy.nc", NC_WRITE, &ncid);
+	static size_t nrec;
+	static size_t tst[] = { 0 };
+	//read id from time dimension
+	status = nc_inq_unlimdim(ncid, &recid);
+	status = nc_inq_dimlen(ncid, recid, &nrec);
+	status = nc_inq_varid(ncid, "time", &time_id);
+	tst[0] = nrec;
+	status = nc_put_var1_double(ncid, time_id, tst, &totaltime);
+	//close and save
+	status = nc_close(ncid);
+
+}
+
+extern "C" void writencvarstep(XBGPUParam XParam, std::string varst, float * var)
+{
+	int status, ncid,time_dim, recid, var_id,ndims;
+	static size_t nrec;
+	int dimids[NC_MAX_VAR_DIMS];
+	size_t  *ddim, *start,*count;
+//XParam.outfile.c_str()
+	status = nc_open("Dummy.nc", NC_WRITE, &ncid);
+
+	//read id from time dimension
+	status = nc_inq_unlimdim(ncid, &recid);
+	status = nc_inq_dimlen(ncid, recid, &nrec);
+
+	status = nc_inq_varid(ncid, varst.c_str(), &var_id);
+
+	status = nc_inq_varndims(ncid, var_id, &ndims);
+	if (status != NC_NOERR) handle_error(status);
+	//printf("hhVar:%d dims\n", ndimshh);
+
+	status = nc_inq_vardimid(ncid, var_id, dimids);
+	if (status != NC_NOERR) handle_error(status);
+
+	ddim = (size_t *)malloc(ndims*sizeof(size_t));
+	start = (size_t *)malloc(ndims*sizeof(size_t));
+	count = (size_t *)malloc(ndims*sizeof(size_t));
+
+	//Read dimensions nx_u ny_u 
+	for (int iddim = 0; iddim < ndims; iddim++)
+	{
+		status = nc_inq_dimlen(ncid, dimids[iddim], &ddim[iddim]);
+		if (status != NC_NOERR) handle_error(status);
+		start[iddim] = 0;
+		count[iddim] = ddim[iddim];
+		//printf("dim:%d=%d\n", iddim, ddimhh[iddim]);
+	}
+
+	start[0] = nrec-1;
+	count[0] = 1;
+
+	status = nc_put_vara_float(ncid, var_id, start, count, var);
+	//close and save
+	status = nc_close(ncid);
+}
+
+
 extern "C" void creatncfile(XBGPUParam XParam, DECNUM totaltime, DECNUM *zb, DECNUM *zs, DECNUM * uu, DECNUM * vv, DECNUM * H, DECNUM * Tp, DECNUM * Dp, DECNUM * D, DECNUM * Urms, DECNUM * ueu, DECNUM * vev, DECNUM * C, DECNUM *Fx, DECNUM *Fy, DECNUM * hh, DECNUM *Hmean, DECNUM *uumean, DECNUM *vvmean, DECNUM *hhmean, DECNUM *zsmean, DECNUM *Cmean)
 {               
 	int status;
