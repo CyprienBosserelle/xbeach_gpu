@@ -69,7 +69,7 @@ extern "C" void creatncfileUD(XBGPUParam XParam, double totaltime,int ntheta,flo
 	}
 
 	//create the netcdf datasetXParam.outfile.c_str()
-	status = nc_create("Dummy.nc", NC_NOCLOBBER, &ncid);
+	status = nc_create(XParam.outfile.c_str(), NC_NOCLOBBER, &ncid);
 
 	//Define dimensions: Name and length
 
@@ -111,7 +111,7 @@ extern "C" void defncvar(XBGPUParam XParam, std::string varst, int vdim, float *
 	int recid, xid, yid, thid;
 	size_t ntheta;// nx and ny are stored in XParam not yet for ntheta
 
-	status = nc_open("Dummy.nc", NC_WRITE, &ncid);
+	status = nc_open(XParam.outfile.c_str(), NC_WRITE, &ncid);
 	status = nc_redef(ncid);
 
 	//Inquire dimensions ids
@@ -171,7 +171,7 @@ extern "C" void defncvar(XBGPUParam XParam, std::string varst, int vdim, float *
 extern "C" void writenctimestep(XBGPUParam XParam, double totaltime)
 {
 	int status, ncid, recid, time_id;
-	status = nc_open("Dummy.nc", NC_WRITE, &ncid);
+	status = nc_open(XParam.outfile.c_str(), NC_WRITE, &ncid);
 	static size_t nrec;
 	static size_t tst[] = { 0 };
 	//read id from time dimension
@@ -192,7 +192,7 @@ extern "C" void writencvarstep(XBGPUParam XParam, std::string varst, float * var
 	int dimids[NC_MAX_VAR_DIMS];
 	size_t  *ddim, *start,*count;
 //XParam.outfile.c_str()
-	status = nc_open("Dummy.nc", NC_WRITE, &ncid);
+	status = nc_open(XParam.outfile.c_str(), NC_WRITE, &ncid);
 
 	//read id from time dimension
 	status = nc_inq_unlimdim(ncid, &recid);

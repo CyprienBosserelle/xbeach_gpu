@@ -694,12 +694,16 @@ XBGPUParam readparamstr(std::string line, XBGPUParam param)
 		for (int nv = 0; nv < vars.size(); nv++)
 		{
 			//Verify that the variable name makes sense?
-			std::vector<std::string> SupportedVarNames = { "zb", "zs", "uu", "vv", "H", "thetamean", "D", "urms", "ueu", "vev", "C", "dzb", "Fx", "Fy", "hh", "Hmean", "uumean", "vvmean", "hhmean", "zsmean", "Cmean" };
+			//Need to add more here
+			std::vector<std::string> SupportedVarNames = { "hh", "uu", "vv", "zs", "zb", "cfm", "dzb", "stdep", "Fx", "Fy", "cgx", "cgy", "cx", "cy", "ctheta", "D", "E", "H", "urms", "ueu", "vev", "thetamean", "Hmean", "uumean", "vvmean", "hhmean", "zsmean", "Cmean", "sigm", "k", "c", "kh", "cg", "sinh2kh", "dhdx", "dhdy", "dudx", "dudy", "dvdx", "dvdy", "C", "R", "DR", "ee" };
+
 			for (int isup = 0; isup < SupportedVarNames.size(); isup++)
 			{
-				if (vars[nv].compare(SupportedVarNames[isup])==0)
+				std::string vvar = trim(vars[nv]," ");
+				//std::cout << "..." << vvar << "..." << std::endl;
+				if (vvar.compare(SupportedVarNames[isup]) == 0)
 				{
-					param.outvars.push_back(vars[nv]);
+					param.outvars.push_back(vvar);
 					break;
 				}
 			}

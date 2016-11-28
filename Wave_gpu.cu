@@ -307,7 +307,7 @@ void mainloopGPU(XBGPUParam Param, std::vector<SLBnd> slbnd, std::vector<WindBnd
 	}
 	
 	//Map a link between the variable s a string and the variable pointer
-
+	// This may need to be stored somewhere else??
 	std::map<std::string, DECNUM *> OutputVarMapCPU;
 	std::map<std::string, DECNUM *> OutputVarMapGPU;
 	std::map<std::string, int> OutputVarMaplen;
@@ -346,8 +346,157 @@ void mainloopGPU(XBGPUParam Param, std::vector<SLBnd> slbnd, std::vector<WindBnd
 	OutputVarMapGPU["thetamean"] = thetamean_g;
 	OutputVarMaplen["thetamean"] = nx*ny;
 
+	OutputVarMapCPU["ee"] = ee;
+	OutputVarMapGPU["ee"] = ee_g;
+	OutputVarMaplen["ee"] = nx*ny*ntheta;
 
 
+	OutputVarMapCPU["cfm"] = cfm;
+	OutputVarMapGPU["cfm"] = cfm_g;
+	OutputVarMaplen["cfm"] = nx*ny;
+
+	OutputVarMapCPU["dzb"] = dzb;
+	OutputVarMapGPU["dzb"] = dzb_g;
+	OutputVarMaplen["dzb"] = nx*ny;
+
+	OutputVarMapCPU["stdep"] = stdep;
+	OutputVarMapGPU["stdep"] = stdep_g;
+	OutputVarMaplen["stdep"] = nx*ny;
+
+	OutputVarMapCPU["Fx"] = Fx;
+	OutputVarMapGPU["Fx"] = Fx_g;
+	OutputVarMaplen["Fx"] = nx*ny;
+
+	OutputVarMapCPU["Fy"] = Fy;
+	OutputVarMapGPU["Fy"] = Fy_g;
+	OutputVarMaplen["Fy"] = nx*ny;
+
+	OutputVarMapCPU["cgx"] = cgx;
+	OutputVarMapGPU["cgx"] = cgx_g;
+	OutputVarMaplen["cgx"] = nx*ny*ntheta;
+
+	OutputVarMapCPU["cgy"] = cgy;
+	OutputVarMapGPU["cgy"] = cgy_g;
+	OutputVarMaplen["cgy"] = nx*ny*ntheta;
+
+	OutputVarMapCPU["cx"] = cx;
+	OutputVarMapGPU["cx"] = cx_g;
+	OutputVarMaplen["cx"] = nx*ny*ntheta;
+
+	OutputVarMapCPU["cy"] = cy;
+	OutputVarMapGPU["cy"] = cy_g;
+	OutputVarMaplen["cy"] = nx*ny*ntheta;
+
+	OutputVarMapCPU["ctheta"] = ctheta;
+	OutputVarMapGPU["ctheta"] = ctheta_g;
+	OutputVarMaplen["ctheta"] = nx*ny*ntheta;
+
+
+	OutputVarMapCPU["D"] = D;
+	OutputVarMapGPU["D"] = D_g;
+	OutputVarMaplen["D"] = nx*ny;
+
+	OutputVarMapCPU["E"] = E;
+	OutputVarMapGPU["E"] = E_g;
+	OutputVarMaplen["E"] = nx*ny;
+
+
+	OutputVarMapCPU["urms"] = urms;
+	OutputVarMapGPU["urms"] = urms_g;
+	OutputVarMaplen["urms"] = nx*ny;
+
+	OutputVarMapCPU["ueu"] = ueu;
+	OutputVarMapGPU["ueu"] = ueu_g;
+	OutputVarMaplen["ueu"] = nx*ny;
+
+	OutputVarMapCPU["vev"] = vev;
+	OutputVarMapGPU["vev"] = vev_g;
+	OutputVarMaplen["vev"] = nx*ny;
+
+
+	OutputVarMapCPU["hhmean"] = hhmean;
+	OutputVarMapGPU["hhmean"] = hhmean_g;
+	OutputVarMaplen["hhmean"] = nx*ny;
+
+	OutputVarMapCPU["uumean"] = uumean;
+	OutputVarMapGPU["uumean"] = uumean_g;
+	OutputVarMaplen["uumean"] = nx*ny;
+
+	OutputVarMapCPU["vvmean"] = vvmean;
+	OutputVarMapGPU["vvmean"] = vvmean_g;
+	OutputVarMaplen["vvmean"] = nx*ny;
+
+	OutputVarMapCPU["zsmean"] = zsmean;
+	OutputVarMapGPU["zsmean"] = zsmean_g;
+	OutputVarMaplen["zsmean"] = nx*ny;
+
+	OutputVarMapCPU["Hmean"] = Hmean;
+	OutputVarMapGPU["Hmean"] = Hmean_g;
+	OutputVarMaplen["Hmean"] = nx*ny;
+
+	OutputVarMapCPU["Cmean"] = Cmean;
+	OutputVarMapGPU["Cmean"] = Cmean_g;
+	OutputVarMaplen["Cmean"] = nx*ny;
+
+	OutputVarMapCPU["sigm"] = sigm;
+	OutputVarMapGPU["sigm"] = sigm_g;
+	OutputVarMaplen["sigm"] = nx*ny;
+
+	OutputVarMapCPU["k"] = k;
+	OutputVarMapGPU["k"] = k_g;
+	OutputVarMaplen["k"] = nx*ny;
+
+	OutputVarMapCPU["c"] = c;
+	OutputVarMapGPU["c"] = c_g;
+	OutputVarMaplen["c"] = nx*ny;
+
+	OutputVarMapCPU["kh"] = kh;
+	OutputVarMapGPU["kh"] = kh_g;
+	OutputVarMaplen["kh"] = nx*ny;
+
+	OutputVarMapCPU["cg"] = cg;
+	OutputVarMapGPU["cg"] = cg_g;
+	OutputVarMaplen["cg"] = nx*ny;
+
+	OutputVarMapCPU["sinh2kh"] = sinh2kh;
+	OutputVarMapGPU["sinh2kh"] = sinh2kh_g;
+	OutputVarMaplen["sinh2kh"] = nx*ny;
+
+	OutputVarMapCPU["dhdx"] = dhdx;
+	OutputVarMapGPU["dhdx"] = dhdx_g;
+	OutputVarMaplen["dhdx"] = nx*ny;
+
+	OutputVarMapCPU["dhdy"] = dhdy;
+	OutputVarMapGPU["dhdy"] = dhdy_g;
+	OutputVarMaplen["dhdy"] = nx*ny;
+
+	OutputVarMapCPU["dudx"] = dudx;
+	OutputVarMapGPU["dudx"] = dudx_g;
+	OutputVarMaplen["dudx"] = nx*ny;
+
+	OutputVarMapCPU["dudy"] = dudy;
+	OutputVarMapGPU["dudy"] = dudy_g;
+	OutputVarMaplen["dudy"] = nx*ny;
+
+	OutputVarMapCPU["dvdx"] = dvdx;
+	OutputVarMapGPU["dvdx"] = dvdx_g;
+	OutputVarMaplen["dvdx"] = nx*ny;
+
+	OutputVarMapCPU["dvdy"] = dvdy;
+	OutputVarMapGPU["dvdy"] = dvdy_g;
+	OutputVarMaplen["dvdy"] = nx*ny;
+
+	OutputVarMapCPU["C"] = C;
+	OutputVarMapGPU["C"] = Cc_g;
+	OutputVarMaplen["C"] = nx*ny;
+
+	OutputVarMapCPU["R"] = R;
+	OutputVarMapGPU["R"] = R_g;
+	OutputVarMaplen["R"] = nx*ny;
+
+	OutputVarMapCPU["DR"] = DR;
+	OutputVarMapGPU["DR"] = DR_g;
+	OutputVarMaplen["DR"] = nx*ny;
 
 
 	//< or <= ? crashes with <= if the boundary limit is == to endtime
@@ -564,41 +713,41 @@ void mainloopGPU(XBGPUParam Param, std::vector<SLBnd> slbnd, std::vector<WindBnd
 
 
 			// Download mean vars
-			CUDA_CHECK(cudaMemcpy(Hmean, Hmean_g, nx*ny*sizeof(DECNUM), cudaMemcpyDeviceToHost));
-			CUDA_CHECK(cudaMemcpy(uumean, uumean_g, nx*ny*sizeof(DECNUM), cudaMemcpyDeviceToHost));
-			CUDA_CHECK(cudaMemcpy(vvmean, vvmean_g, nx*ny*sizeof(DECNUM), cudaMemcpyDeviceToHost));
-			CUDA_CHECK(cudaMemcpy(hhmean, hhmean_g, nx*ny*sizeof(DECNUM), cudaMemcpyDeviceToHost));
-			CUDA_CHECK(cudaMemcpy(zsmean, zsmean_g, nx*ny*sizeof(DECNUM), cudaMemcpyDeviceToHost));
-			CUDA_CHECK(cudaMemcpy(Cmean, Cmean_g, nx*ny*sizeof(DECNUM), cudaMemcpyDeviceToHost));
+			//CUDA_CHECK(cudaMemcpy(Hmean, Hmean_g, nx*ny*sizeof(DECNUM), cudaMemcpyDeviceToHost));
+			//CUDA_CHECK(cudaMemcpy(uumean, uumean_g, nx*ny*sizeof(DECNUM), cudaMemcpyDeviceToHost));
+			//CUDA_CHECK(cudaMemcpy(vvmean, vvmean_g, nx*ny*sizeof(DECNUM), cudaMemcpyDeviceToHost));
+			//CUDA_CHECK(cudaMemcpy(hhmean, hhmean_g, nx*ny*sizeof(DECNUM), cudaMemcpyDeviceToHost));
+			//CUDA_CHECK(cudaMemcpy(zsmean, zsmean_g, nx*ny*sizeof(DECNUM), cudaMemcpyDeviceToHost));
+			//CUDA_CHECK(cudaMemcpy(Cmean, Cmean_g, nx*ny*sizeof(DECNUM), cudaMemcpyDeviceToHost));
 
 
-			CUDA_CHECK(cudaMemcpy(H, H_g, nx*ny*sizeof(DECNUM), cudaMemcpyDeviceToHost));
-			CUDA_CHECK(cudaMemcpy(uu, uu_g, nx*ny*sizeof(DECNUM), cudaMemcpyDeviceToHost));
-			CUDA_CHECK(cudaMemcpy(vv, vv_g, nx*ny*sizeof(DECNUM), cudaMemcpyDeviceToHost));
+			//CUDA_CHECK(cudaMemcpy(H, H_g, nx*ny*sizeof(DECNUM), cudaMemcpyDeviceToHost));
+			//CUDA_CHECK(cudaMemcpy(uu, uu_g, nx*ny*sizeof(DECNUM), cudaMemcpyDeviceToHost));
+			//CUDA_CHECK(cudaMemcpy(vv, vv_g, nx*ny*sizeof(DECNUM), cudaMemcpyDeviceToHost));
 			//CUDA_CHECK(cudaMemcpy(zs, zs_g, nx*ny*sizeof(DECNUM), cudaMemcpyDeviceToHost));
-			CUDA_CHECK(cudaMemcpy(Fx, Fx_g, nx*ny*sizeof(DECNUM), cudaMemcpyDeviceToHost));
-			CUDA_CHECK(cudaMemcpy(Fy, Fy_g, nx*ny*sizeof(DECNUM), cudaMemcpyDeviceToHost));
-			CUDA_CHECK(cudaMemcpy(thetamean, thetamean_g, nx*ny*sizeof(DECNUM), cudaMemcpyDeviceToHost));
-			CUDA_CHECK(cudaMemcpy(D, D_g, nx*ny*sizeof(DECNUM), cudaMemcpyDeviceToHost));
-			CUDA_CHECK(cudaMemcpy(urms, urms_g, nx*ny*sizeof(DECNUM), cudaMemcpyDeviceToHost));
-			CUDA_CHECK(cudaMemcpy(ueu, ueu_g, nx*ny*sizeof(DECNUM), cudaMemcpyDeviceToHost));
-			CUDA_CHECK(cudaMemcpy(vev, vev_g, nx*ny*sizeof(DECNUM), cudaMemcpyDeviceToHost));
+			//CUDA_CHECK(cudaMemcpy(Fx, Fx_g, nx*ny*sizeof(DECNUM), cudaMemcpyDeviceToHost));
+			//CUDA_CHECK(cudaMemcpy(Fy, Fy_g, nx*ny*sizeof(DECNUM), cudaMemcpyDeviceToHost));
+			//CUDA_CHECK(cudaMemcpy(thetamean, thetamean_g, nx*ny*sizeof(DECNUM), cudaMemcpyDeviceToHost));
+			//CUDA_CHECK(cudaMemcpy(D, D_g, nx*ny*sizeof(DECNUM), cudaMemcpyDeviceToHost));
+			//CUDA_CHECK(cudaMemcpy(urms, urms_g, nx*ny*sizeof(DECNUM), cudaMemcpyDeviceToHost));
+			//CUDA_CHECK(cudaMemcpy(ueu, ueu_g, nx*ny*sizeof(DECNUM), cudaMemcpyDeviceToHost));
+			//CUDA_CHECK(cudaMemcpy(vev, vev_g, nx*ny*sizeof(DECNUM), cudaMemcpyDeviceToHost));
 			//CUDA_CHECK( cudaMemcpy(C, ceqsg_g, nx*ny*sizeof(DECNUM ), cudaMemcpyDeviceToHost) );
-			CUDA_CHECK(cudaMemcpy(C, hum_g, nx*ny*sizeof(DECNUM), cudaMemcpyDeviceToHost));
+			//CUDA_CHECK(cudaMemcpy(C, hum_g, nx*ny*sizeof(DECNUM), cudaMemcpyDeviceToHost));
 			//CUDA_CHECK( cudaMemcpy(C,k_g, nx*ny*sizeof(DECNUM ), cudaMemcpyDeviceToHost) );
 			//CUDA_CHECK( cudaMemcpy(ctheta,ee_g, nx*ny*ntheta*sizeof(DECNUM ), cudaMemcpyDeviceToHost) );
-			CUDA_CHECK(cudaMemcpy(hh, hh_g, nx*ny*sizeof(DECNUM), cudaMemcpyDeviceToHost));
-			if (Param.morphology == 1 )// If moprhology is on
-			{
-				CUDA_CHECK(cudaMemcpy(zb, zb_g, nx*ny*sizeof(DECNUM), cudaMemcpyDeviceToHost));
-				CUDA_CHECK(cudaMemcpy(dzb, dzb_g, nx*ny*sizeof(DECNUM), cudaMemcpyDeviceToHost));
-			}
+			//CUDA_CHECK(cudaMemcpy(hh, hh_g, nx*ny*sizeof(DECNUM), cudaMemcpyDeviceToHost));
+			//if (Param.morphology == 1 )// If moprhology is on
+			//{
+			//	CUDA_CHECK(cudaMemcpy(zb, zb_g, nx*ny*sizeof(DECNUM), cudaMemcpyDeviceToHost));
+			//	CUDA_CHECK(cudaMemcpy(dzb, dzb_g, nx*ny*sizeof(DECNUM), cudaMemcpyDeviceToHost));
+			//}
 			//CUDA_CHECK( cudaMemcpy(xxp, xxp_g, npart*sizeof(DECNUM ), cudaMemcpyDeviceToHost) );
 			//CUDA_CHECK( cudaMemcpy(yyp, yyp_g, npart*sizeof(DECNUM ), cudaMemcpyDeviceToHost) );
 			printf("Writing output, totaltime:%f s, Mean dt=%f\n", totaltime, Param.outputtimestep/nstep);
 			write_text_to_log_file("Writing outputs, totaltime: " + std::to_string(totaltime) + ", Mean dt= " + std::to_string(Param.outputtimestep / nstep));
 			//writestep2nc(tsoutfile, nx, ny,/*npart,*/(float) totaltime, imodel,/*xxp,yyp,*/zb, zs, uu, vv, H, H, thetamean, D, urms, ueu, vev, C, dzb, Fx, Fy, hh, Hmean, uumean, vvmean, hhmean, zsmean, Cmean);
-			writestep2nc(Param,(float)totaltime, zb, zs, uu, vv, H, H, thetamean, D, urms, ueu, vev, C, dzb, Fx, Fy, hh, Hmean, uumean, vvmean, hhmean, zsmean, Cmean);
+			//writestep2nc(Param,(float)totaltime, zb, zs, uu, vv, H, H, thetamean, D, urms, ueu, vev, C, dzb, Fx, Fy, hh, Hmean, uumean, vvmean, hhmean, zsmean, Cmean);
 			
 			// Write a sigle timeseries in the file
 			if (!Param.TSoutfile.empty())
@@ -1510,8 +1659,8 @@ int main(int argc, char **argv)
 	zeros = (DECNUM *)malloc(nx*ny*sizeof(DECNUM));
 	umeanbnd = (DECNUM *)malloc(ny*sizeof(DECNUM));
 	
-
-
+	
+	
 
 	// set initital condition and read bathy file
 	printf("Read bathy data...");
@@ -1624,12 +1773,14 @@ int main(int argc, char **argv)
 	Fy = (DECNUM *)malloc(nx*ny*sizeof(DECNUM));
 	zsbnd = (DECNUM *)malloc(ny*sizeof(DECNUM));
 
+	
+
 	cgx = (DECNUM *)malloc(nx*ny*ntheta*sizeof(DECNUM));
 	cgy = (DECNUM *)malloc(nx*ny*ntheta*sizeof(DECNUM));
 	cx = (DECNUM *)malloc(nx*ny*ntheta*sizeof(DECNUM));
 	cy = (DECNUM *)malloc(nx*ny*ntheta*sizeof(DECNUM));
 	ctheta = (DECNUM *)malloc(nx*ny*ntheta*sizeof(DECNUM));
-
+	
 
 
 	usd = (DECNUM *)malloc(nx*ny*sizeof(DECNUM));
@@ -1641,6 +1792,8 @@ int main(int argc, char **argv)
 	vev = (DECNUM *)malloc(nx*ny*sizeof(DECNUM));
 	thetamean = (DECNUM *)malloc(nx*ny*sizeof(DECNUM));
 
+	
+
 
 	Hmean = (DECNUM *)malloc(nx*ny*sizeof(DECNUM));
 	uumean = (DECNUM *)malloc(nx*ny*sizeof(DECNUM));
@@ -1651,7 +1804,7 @@ int main(int argc, char **argv)
 	arrmax = (DECNUM *)malloc(nx*ny*sizeof(DECNUM));
 	arrmin = (DECNUM *)malloc(nx*ny*sizeof(DECNUM));
 
-
+	
 
 	omega = 2 * pi / Trep;
 
@@ -1661,13 +1814,15 @@ int main(int argc, char **argv)
 	//costhet=(DECNUM *)malloc(nx*ny*ntheta*sizeof(DECNUM));
 	//sinthet=(DECNUM *)malloc(nx*ny*ntheta*sizeof(DECNUM));
 
-
+	
 
 	k = (DECNUM *)malloc(nx*ny*sizeof(DECNUM));
 	c = (DECNUM *)malloc(nx*ny*sizeof(DECNUM));
 	kh = (DECNUM *)malloc(nx*ny*sizeof(DECNUM));
 	cg = (DECNUM *)malloc(nx*ny*sizeof(DECNUM));
 	sinh2kh = (DECNUM *)malloc(nx*ny*sizeof(DECNUM));
+
+	
 
 	dhdx = (DECNUM *)malloc(nx*ny*sizeof(DECNUM));
 	dhdy = (DECNUM *)malloc(nx*ny*sizeof(DECNUM));
@@ -1676,11 +1831,12 @@ int main(int argc, char **argv)
 	dvdx = (DECNUM *)malloc(nx*ny*sizeof(DECNUM));
 	dvdy = (DECNUM *)malloc(nx*ny*sizeof(DECNUM));
 
+	
 	C = (DECNUM *)malloc(nx*ny*sizeof(DECNUM));
 	R = (DECNUM *)malloc(nx*ny*sizeof(DECNUM));
 	DR = (DECNUM *)malloc(nx*ny*sizeof(DECNUM));
 
-
+	
 
 
 
@@ -2196,10 +2352,23 @@ int main(int argc, char **argv)
 	}
 
 	//Map a link between the variable s a string and the variable pointer
-
+	//{ "hh", "uu", "vv", "zs", "zb", "cfm", "dzb", "stdep", "Fx", "Fy", "cgx", "cgy", "cx", "cy", "ctheta", "usd", "D", "E", "H", "urms", "ueu", "vev", "thetamean", "Hmean", "uumean", "vvmean", "hhmean", "zsmean", "Cmean", "sigm", "k", "c", "kh", "cg", "sinh2kh", "dhdx", "dhdy", "dudx", "dudy", "dvdx", "dvdy", "C", "R", "DR" };
 	std::map<std::string, DECNUM *> OutputVarMapCPU;
 	std::map<std::string, int> OutputVarMapndim;
 
+	
+	OutputVarMapCPU["hh"] = hh;
+	OutputVarMapndim["hh"] = 3;
+
+	OutputVarMapCPU["uu"] = uu;
+	OutputVarMapndim["uu"] = 3;
+
+	OutputVarMapCPU["vv"] = vv;
+	OutputVarMapndim["vv"] = 3;
+
+	OutputVarMapCPU["zs"] = zs;
+	OutputVarMapndim["zs"] = 3;
+	
 	OutputVarMapCPU["zb"] = zb;
 	if (XParam.morphology == 1)
 	{
@@ -2209,17 +2378,45 @@ int main(int argc, char **argv)
 	{
 		OutputVarMapndim["zb"] = 2;
 	}
-	OutputVarMapCPU["uu"] = uu;
-	OutputVarMapndim["uu"] = 3;
+	
+	OutputVarMapCPU["cfm"] = cfm;
+	OutputVarMapndim["cfm"] = 3;
 
-	OutputVarMapCPU["vv"] = vv;
-	OutputVarMapndim["vv"] = 3;
+	OutputVarMapCPU["dzb"] = dzb;
+	OutputVarMapndim["dzb"] = 3;
 
-	OutputVarMapCPU["zs"] = zs;
-	OutputVarMapndim["zs"] = 3;
+	OutputVarMapCPU["stdep"] = stdep;
+	OutputVarMapndim["stdep"] = 3;
 
-	OutputVarMapCPU["hh"] = hh;
-	OutputVarMapndim["hh"] = 3;
+	OutputVarMapCPU["Fx"] = Fx;
+	OutputVarMapndim["Fx"] = 3;
+
+	OutputVarMapCPU["Fy"] = Fy;
+	OutputVarMapndim["Fy"] = 3;
+
+	OutputVarMapCPU["cgx"] = cgx;
+	OutputVarMapndim["cgx"] = 4;
+
+	OutputVarMapCPU["cgy"] = cgy;
+	OutputVarMapndim["cgy"] = 4;
+
+	OutputVarMapCPU["cx"] = cx;
+	OutputVarMapndim["cx"] = 4;
+
+	OutputVarMapCPU["cy"] = cy;
+	OutputVarMapndim["cy"] = 4;
+
+	OutputVarMapCPU["ctheta"] = ctheta;
+	OutputVarMapndim["ctheta"] = 4;
+
+	OutputVarMapCPU["ee"] = ee;
+	OutputVarMapndim["ee"] = 4;
+
+	OutputVarMapCPU["D"] = D;
+	OutputVarMapndim["D"] = 3;
+
+	OutputVarMapCPU["E"] = E;
+	OutputVarMapndim["E"] = 3;
 
 	OutputVarMapCPU["H"] = H;
 	OutputVarMapndim["H"] = 3;
@@ -2227,7 +2424,78 @@ int main(int argc, char **argv)
 	OutputVarMapCPU["thetamean"] = thetamean;
 	OutputVarMapndim["thetamean"] = 3;
 
+	OutputVarMapCPU["urms"] = urms;
+	OutputVarMapndim["urms"] = 3;
 
+	OutputVarMapCPU["ueu"] = ueu;
+	OutputVarMapndim["ueu"] = 3;
+
+	OutputVarMapCPU["vev"] = vev;
+	OutputVarMapndim["vev"] = 3;
+
+
+	OutputVarMapCPU["hhmean"] = hhmean;
+	OutputVarMapndim["hhmean"] = 3;
+
+	OutputVarMapCPU["uumean"] = uumean;
+	OutputVarMapndim["uumean"] = 3;
+
+	OutputVarMapCPU["vvmean"] = vvmean;
+	OutputVarMapndim["vvmean"] = 3;
+
+	OutputVarMapCPU["zsmean"] = zsmean;
+	OutputVarMapndim["zsmean"] = 3;
+
+	OutputVarMapCPU["Hmean"] = Hmean;
+	OutputVarMapndim["Hmean"] = 3;
+
+	OutputVarMapCPU["Cmean"] = Cmean;
+	OutputVarMapndim["Cmean"] = 3;
+
+	OutputVarMapCPU["sigm"] = sigm;
+	OutputVarMapndim["sigm"] = 3;
+
+	OutputVarMapCPU["k"] = k;
+	OutputVarMapndim["k"] = 3;
+
+	OutputVarMapCPU["c"] = c;
+	OutputVarMapndim["c"] = 3;
+
+	OutputVarMapCPU["kh"] = kh;
+	OutputVarMapndim["kh"] = 3;
+
+	OutputVarMapCPU["cg"] = cg;
+	OutputVarMapndim["cg"] = 3;
+
+	OutputVarMapCPU["sinh2kh"] = sinh2kh;
+	OutputVarMapndim["sinh2kh"] = 3;
+
+	OutputVarMapCPU["dhdx"] = dhdx;
+	OutputVarMapndim["dhdx"] = 3;
+
+	OutputVarMapCPU["dhdy"] = dhdy;
+	OutputVarMapndim["dhdy"] = 3;
+
+	OutputVarMapCPU["dudx"] = dudx;
+	OutputVarMapndim["dudx"] = 3;
+
+	OutputVarMapCPU["dudy"] = dudy;
+	OutputVarMapndim["dudy"] = 3;
+
+	OutputVarMapCPU["dvdx"] = dvdx;
+	OutputVarMapndim["dvdx"] = 3;
+
+	OutputVarMapCPU["dvdy"] = dvdy;
+	OutputVarMapndim["dvdy"] = 3;
+
+	OutputVarMapCPU["C"] = C;
+	OutputVarMapndim["C"] = 3;
+
+	OutputVarMapCPU["R"] = R;
+	OutputVarMapndim["R"] = 3;
+
+	OutputVarMapCPU["DR"] = DR;
+	OutputVarMapndim["DR"] = 3;
 
 	// prepare output file
 	printf("prepare output");
@@ -2235,7 +2503,7 @@ int main(int argc, char **argv)
 
 	// Proof of concept for map
 	//creatncfile(tsoutfile, nx, ny, dx, 0.0f, imodel, zb, zs, uu, vv, H, H, thetamean, uu, uu, uu, uu, uu, uu, uu, hh, uu, uu, uu, uu, uu, uu);
-	creatncfile(XParam, 0.0f, OutputVarMapCPU["zb"], OutputVarMapCPU["zs"], OutputVarMapCPU["uu"], OutputVarMapCPU["vv"], H, H, thetamean, uu, uu, uu, uu, uu, uu, uu, hh, uu, uu, uu, uu, uu, uu);
+	//creatncfile(XParam, 0.0f, OutputVarMapCPU["zb"], OutputVarMapCPU["zs"], OutputVarMapCPU["uu"], OutputVarMapCPU["vv"], H, H, thetamean, uu, uu, uu, uu, uu, uu, uu, hh, uu, uu, uu, uu, uu, uu);
 
 	if (!XParam.outvars.empty())
 	{
