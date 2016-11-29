@@ -1481,7 +1481,8 @@ int main(int argc, char **argv)
 
 	if (fs.fail()){
 		std::cerr << "XBG_param.txt file could not be opened" << std::endl;
-		write_text_to_log_file("ERROR: XBG_param.txt file could not be opened...Exiting");
+		write_text_to_log_file("ERROR: XBG_param.txt file could not be opened...use this log file to create a file named XBG_param.txt");
+		SaveParamtolog(XParam);
 		exit(1);
 	}
 

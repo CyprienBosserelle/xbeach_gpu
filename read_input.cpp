@@ -958,7 +958,7 @@ XBGPUParam checkparamsanity(XBGPUParam XParam, std::vector<SLBnd> slbnd, std::ve
 
 	}
 
-	if (XParam.outvars.empty() && XParam.outfile.compare(DefaultParams.outfile) == 0)
+	if (XParam.outvars.empty() && XParam.outfile.compare(DefaultParams.outfile) != 0)
 	{
 		//a nc file was specified but no output variable were specified
 		std::vector<std::string> SupportedVarNames = { "zb", "zs", "uu", "vv", "H", "thetamean", "D", "urms", "ueu", "vev", "C", "dzb", "Fx", "Fy", "hh", "Hmean", "uumean", "vvmean", "hhmean", "zsmean", "Cmean" };
