@@ -282,11 +282,11 @@ void mainloopGPU(XBGPUParam Param, std::vector<SLBnd> slbnd, std::vector<WindBnd
 	
 	//Warning hard wired stuff here
 	
-	std::vector<SLBnd> zsout;
+	std::vector<Pointout> zsout;
 	
-	std::vector< std::vector< SLBnd > > zsAllout;
+	std::vector< std::vector< Pointout > > zsAllout;
 	
-	SLBnd stepread;
+	Pointout stepread;
 	
 
 
@@ -302,7 +302,7 @@ void mainloopGPU(XBGPUParam Param, std::vector<SLBnd> slbnd, std::vector<WindBnd
 			fclose(fsSLTS);
 
 			// Add empty row for each output point
-			zsAllout.push_back(std::vector<SLBnd>());
+			zsAllout.push_back(std::vector<Pointout>());
 		}
 	}
 	
@@ -741,9 +741,11 @@ void mainloopGPU(XBGPUParam Param, std::vector<SLBnd> slbnd, std::vector<WindBnd
 		//BIG
 		//WARNING HERE -- NEED TO MAKE ASYNC
 		/////////////////////////////////////////
-
-		CUDA_CHECK(cudaMemcpy(zs, zs_g, nx*ny*sizeof(DECNUM), cudaMemcpyDeviceToHost));
-
+		if (!Param.TSnodesout.empty())
+		{
+			CUDA_CHECK(cudaMemcpy(zs, zs_g, nx*ny*sizeof(DECNUM), cudaMemcpyDeviceToHost));
+			CUDA_CHECK(cudaMemcpy(H, H_g, nx*ny*sizeof(DECNUM), cudaMemcpyDeviceToHost));
+		}
 		//after the transfert
 
 
@@ -752,7 +754,8 @@ void mainloopGPU(XBGPUParam Param, std::vector<SLBnd> slbnd, std::vector<WindBnd
 			for (int o=0; o < Param.TSnodesout.size(); o++)
 			{
 				stepread.time = totaltime;
-				stepread.wlev = zs[Param.TSnodesout[o].i + Param.TSnodesout[o].j*nx];
+				stepread.zs = zs[Param.TSnodesout[o].i + Param.TSnodesout[o].j*nx];
+				stepread.H = H[Param.TSnodesout[o].i + Param.TSnodesout[o].j*nx];
 				zsAllout[o].push_back(stepread);
 			}
 		}
@@ -857,7 +860,7 @@ void mainloopGPU(XBGPUParam Param, std::vector<SLBnd> slbnd, std::vector<WindBnd
 					fsSLTS = fopen(Param.TSoutfile[o].c_str(), "a");
 					for (int n = 0; n < zsAllout[o].size(); n++)
 					{
-						fprintf(fsSLTS, "%f\t%.4f\n", zsAllout[o][n].time, zsAllout[o][n].wlev);
+						fprintf(fsSLTS, "%f\t%.4f\t%.4f\n", zsAllout[o][n].time, zsAllout[o][n].zs, zsAllout[o][n].H);
 					}
 					fclose(fsSLTS);
 					//reset zsout

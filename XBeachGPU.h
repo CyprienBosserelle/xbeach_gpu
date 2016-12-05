@@ -128,6 +128,10 @@ public:
 	double theta; // wind direction in rad relative to the grid y axis
 };
 
+class Pointout {
+public:
+	double time, zs, H;
+};
 
 
 
