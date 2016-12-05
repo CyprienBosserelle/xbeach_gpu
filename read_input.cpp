@@ -695,7 +695,7 @@ XBGPUParam readparamstr(std::string line, XBGPUParam param)
 		{
 			//Verify that the variable name makes sense?
 			//Need to add more here
-			std::vector<std::string> SupportedVarNames = { "hh", "uu", "vv", "zs", "zb", "cfm", "dzb", "stdep", "Fx", "Fy", "cgx", "cgy", "cx", "cy", "ctheta", "D", "E", "H", "urms", "ueu", "vev", "thetamean", "Hmean", "uumean", "vvmean", "hhmean", "zsmean", "Cmean", "sigm", "k", "c", "kh", "cg", "sinh2kh", "dhdx", "dhdy", "dudx", "dudy", "dvdx", "dvdy", "C", "R", "DR", "ee" };
+			std::vector<std::string> SupportedVarNames = { "hh", "uu", "vv", "wci", "zs", "zb", "cfm", "dzb", "stdep", "Fx", "Fy", "cgx", "cgy", "cx", "cy", "ctheta", "D", "E", "H", "urms", "ueu", "vev", "thetamean", "Hmean", "uumean", "vvmean", "hhmean", "zsmean", "Cmean", "sigm", "k", "c", "kh", "cg", "sinh2kh", "dhdx", "dhdy", "dudx", "dudy", "dvdx", "dvdy", "C", "R", "DR", "ee", "vmageu", "vmagev", "dzsdx", "dzsdy", "dzsdt", "fwm", "hu", "hum", "hv", "hvm", "uv", "vu", "ududx", "vdvdy", "udvdx", "vdudy", "ust", "rr" };
 
 			for (int isup = 0; isup < SupportedVarNames.size(); isup++)
 			{

@@ -350,6 +350,10 @@ void mainloopGPU(XBGPUParam Param, std::vector<SLBnd> slbnd, std::vector<WindBnd
 	OutputVarMapGPU["ee"] = ee_g;
 	OutputVarMaplen["ee"] = nx*ny*ntheta;
 
+	OutputVarMapCPU["rr"] = rr;
+	OutputVarMapGPU["rr"] = rr_g;
+	OutputVarMaplen["rr"] = nx*ny*ntheta;
+
 
 	OutputVarMapCPU["cfm"] = cfm;
 	OutputVarMapGPU["cfm"] = cfm_g;
@@ -498,6 +502,101 @@ void mainloopGPU(XBGPUParam Param, std::vector<SLBnd> slbnd, std::vector<WindBnd
 	OutputVarMapGPU["DR"] = DR_g;
 	OutputVarMaplen["DR"] = nx*ny;
 
+	///////////////////////////////////////////////////////
+	// Warning the variable bellow were never allocted on the CPU
+	// This could lead to errors if asynchroneous meme copy is to be implemented for output
+
+	OutputVarMapCPU["wci"] = dummy;
+	OutputVarMapGPU["wci"] = wci_g;
+	OutputVarMaplen["wci"] = nx*ny;
+
+	OutputVarMapCPU["vmageu"] = dummy;
+	OutputVarMapGPU["vmageu"] = vmageu_g;
+	OutputVarMaplen["vmageu"] = nx*ny;
+
+	OutputVarMapCPU["vmagev"] = dummy;
+	OutputVarMapGPU["vmagev"] = vmagev_g;
+	OutputVarMaplen["vmagev"] = nx*ny;
+
+	OutputVarMapCPU["dzsdx"] = dummy;
+	OutputVarMapGPU["dzsdx"] = dzsdx_g;
+	OutputVarMaplen["dzsdx"] = nx*ny;
+
+	OutputVarMapCPU["dzsdy"] = dummy;
+	OutputVarMapGPU["dzsdy"] = dzsdy_g;
+	OutputVarMaplen["dzsdy"] = nx*ny;
+	
+	OutputVarMapCPU["dzsdt"] = dummy;
+	OutputVarMapGPU["dzsdt"] = dzsdt_g;
+	OutputVarMaplen["dzsdt"] = nx*ny;
+
+	OutputVarMapCPU["fwm"] = dummy;
+	OutputVarMapGPU["fwm"] = fwm_g;
+	OutputVarMaplen["fwm"] = nx*ny;
+
+	OutputVarMapCPU["hu"] = dummy;
+	OutputVarMapGPU["hu"] = hu_g;
+	OutputVarMaplen["hu"] = nx*ny;
+
+	OutputVarMapCPU["hv"] = dummy;
+	OutputVarMapGPU["hv"] = hv_g;
+	OutputVarMaplen["hv"] = nx*ny;
+
+	OutputVarMapCPU["hum"] = dummy;
+	OutputVarMapGPU["hum"] = hum_g;
+	OutputVarMaplen["hum"] = nx*ny;
+
+	OutputVarMapCPU["hvm"] = dummy;
+	OutputVarMapGPU["hvm"] = hvm_g;
+	OutputVarMaplen["hvm"] = nx*ny;
+
+	OutputVarMapCPU["uv"] = dummy;
+	OutputVarMapGPU["uv"] = uv_g;
+	OutputVarMaplen["uv"] = nx*ny;
+
+	OutputVarMapCPU["vu"] = dummy;
+	OutputVarMapGPU["vu"] = vu_g;
+	OutputVarMaplen["vu"] = nx*ny;
+
+	//OutputVarMapCPU["wetu"] = dummy;
+	//OutputVarMapGPU["wetu"] = wetu_g;
+	//OutputVarMaplen["wetu"] = nx*ny;
+
+	//OutputVarMapCPU["wetv"] = dummy;
+	//OutputVarMapGPU["wetv"] = wetv_g;
+	//OutputVarMaplen["wetv"] = nx*ny;
+
+	OutputVarMapCPU["ududx"] = dummy;
+	OutputVarMapGPU["ududx"] = ududx_g;
+	OutputVarMaplen["ududx"] = nx*ny;
+
+	OutputVarMapCPU["vdvdy"] = dummy;
+	OutputVarMapGPU["vdvdy"] = vdvdy_g;
+	OutputVarMaplen["vdvdy"] = nx*ny;
+
+	OutputVarMapCPU["udvdx"] = dummy;
+	OutputVarMapGPU["udvdx"] = udvdx_g;
+	OutputVarMaplen["udvdx"] = nx*ny;
+
+	OutputVarMapCPU["vdudy"] = dummy;
+	OutputVarMapGPU["vdudy"] = ududx_g;
+	OutputVarMaplen["vdudy"] = nx*ny;
+
+	OutputVarMapCPU["ust"] = dummy;
+	OutputVarMapGPU["ust"] = ust_g;
+	OutputVarMaplen["ust"] = nx*ny;
+
+	OutputVarMapCPU["kturb"] = dummy;
+	OutputVarMapGPU["kturb"] = kturb_g;
+	OutputVarMaplen["kturb"] = nx*ny;
+
+	OutputVarMapCPU["rolthick"] = dummy;
+	OutputVarMapGPU["rolthick"] = rolthick_g;
+	OutputVarMaplen["rolthick"] = nx*ny;
+
+	OutputVarMapCPU["ceqsg"] = dummy;
+	OutputVarMapGPU["ceqsg"] = ceqsg_g;
+	OutputVarMaplen["ceqsg"] = nx*ny;
 
 	//< or <= ? crashes with <= if the boundary limit is == to endtime
 	while (totaltime < Param.endtime)
@@ -1658,6 +1757,7 @@ int main(int argc, char **argv)
 	dzb = (DECNUM *)malloc(nx*ny*sizeof(DECNUM));
 	stdep = (DECNUM *)malloc(nx*ny*sizeof(DECNUM));
 	zeros = (DECNUM *)malloc(nx*ny*sizeof(DECNUM));
+	dummy = (DECNUM *)malloc(nx*ny*sizeof(DECNUM));
 	umeanbnd = (DECNUM *)malloc(ny*sizeof(DECNUM));
 	
 	
@@ -2413,6 +2513,9 @@ int main(int argc, char **argv)
 	OutputVarMapCPU["ee"] = ee;
 	OutputVarMapndim["ee"] = 4;
 
+	OutputVarMapCPU["rr"] = rr;
+	OutputVarMapndim["rr"] = 4;
+
 	OutputVarMapCPU["D"] = D;
 	OutputVarMapndim["D"] = 3;
 
@@ -2497,6 +2600,72 @@ int main(int argc, char **argv)
 
 	OutputVarMapCPU["DR"] = DR;
 	OutputVarMapndim["DR"] = 3;
+
+	OutputVarMapCPU["wci"] = zeros;
+	OutputVarMapndim["wci"] = 3;
+
+	OutputVarMapCPU["vmageu"] = zeros;
+	OutputVarMapndim["vmageu"] = 3;
+
+	OutputVarMapCPU["vmagev"] = zeros;
+	OutputVarMapndim["vmagev"] = 3;
+
+	OutputVarMapCPU["dzsdx"] = zeros;
+	OutputVarMapndim["dzsdx"] = 3;
+
+	OutputVarMapCPU["dzsdy"] = zeros;
+	OutputVarMapndim["dzsdy"] = 3;
+
+	OutputVarMapCPU["dzsdt"] = zeros;
+	OutputVarMapndim["dzsdt"] = 3;
+
+	OutputVarMapCPU["fwm"] = zeros;
+	OutputVarMapndim["fwm"] = 3;
+
+	OutputVarMapCPU["hu"] = hh;
+	OutputVarMapndim["hu"] = 3;
+
+	OutputVarMapCPU["hv"] = hh;
+	OutputVarMapndim["hv"] = 3;
+
+	OutputVarMapCPU["hum"] = hh;
+	OutputVarMapndim["hum"] = 3;
+
+	OutputVarMapCPU["hvm"] = hh;
+	OutputVarMapndim["hvm"] = 3;
+
+	OutputVarMapCPU["uv"] = zeros;
+	OutputVarMapndim["uv"] = 3;
+
+	OutputVarMapCPU["vu"] = zeros;
+	OutputVarMapndim["vu"] = 3;
+
+	OutputVarMapCPU["ududx"] = zeros;
+	OutputVarMapndim["ududx"] = 3;
+
+	OutputVarMapCPU["vdvdy"] = zeros;
+	OutputVarMapndim["vdvdy"] = 3;
+
+	OutputVarMapCPU["vdudy"] = zeros;
+	OutputVarMapndim["vdudy"] = 3;
+
+	OutputVarMapCPU["udvdx"] = zeros;
+	OutputVarMapndim["udvdx"] = 3;
+
+	OutputVarMapCPU["ust"] = zeros;
+	OutputVarMapndim["ust"] = 3;
+
+	OutputVarMapCPU["stdep"] = stdep;
+	OutputVarMapndim["stdep"] = 3;
+
+	OutputVarMapCPU["kturb"] = zeros;
+	OutputVarMapndim["kturb"] = 3;
+
+	OutputVarMapCPU["rolthick"] = zeros;
+	OutputVarMapndim["rolthick"] = 3;
+
+	OutputVarMapCPU["ceqsg"] = zeros;
+	OutputVarMapndim["ceqsg"] = 3;
 
 	// prepare output file
 	printf("prepare output");
