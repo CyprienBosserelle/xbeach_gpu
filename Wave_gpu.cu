@@ -1742,8 +1742,20 @@ int main(int argc, char **argv)
 	write_text_to_log_file("done");
 	XParam = checkparamsanity(XParam, slbnd,wndbnd);
 	
+	// Read Wind forcing
+	printf("Read wave forcing...");
+	write_text_to_log_file("Reading wave forcing...");
+	if (!XParam.wavebndfile.empty())
+	{
+		//
+	}
+	else
+	{
+		// No files specified that implies no wave forcing
+		// no wave forcing means constant waves at 0.0f
 
 
+	}
 
 	nx = XParam.nx;
 	ny = XParam.ny;
@@ -1811,7 +1823,7 @@ int main(int argc, char **argv)
 			//hh[inod+(jread-1)*nx]=max(zb[inod+(jread-1)*nx]+zs[inod+(jreadzs-1)*nx],eps);
 			//zs[inod+(jread-1)*nx]=max(zs[inod+(jreadzs-1)*nx],-1*zb[inod+(jread-1)*nx]);
 
-			zs[inod + (fnod - 1)*nx] = max(slbnd[0].wlev*1.0f, -1 * zb[inod + (fnod - 1)*nx]);
+			zs[inod + (fnod - 1)*nx] = max((float)slbnd[0].wlev, -1 * zb[inod + (fnod - 1)*nx]);
 			hh[inod + (fnod - 1)*nx] = max(zb[inod + (fnod - 1)*nx] + slbnd[0].wlev, XParam.eps);
 
 
