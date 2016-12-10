@@ -134,7 +134,40 @@ public:
 	double time, zs, H;
 };
 
+class WaveBnd {
+	double dtbc;
+	int wavebndtype;
 
+};
+
+class Jonswap{
+public:
+	double time;
+	double Hs, Tp, Dp, s;
+	double gamma = 3.3;
+	double alpha = 1.0;
+	double rtlength; // Length of each file in s. Should be oimplied by the time
+
+};
+
+// class of information when reusing wave boundary ccreated under Xbeach
+class ReuseXB{
+public:
+	std::string Efile;
+	std::string qfile;
+	double dtbc;
+	double time;
+	double Trep;
+	double rtlength; // Length of each file in s. Should be oimplied by the time
+
+};
+
+// Class of info for when reusing wave bnd created under XBeach_GPU (one file in nc file with all suporting infor included)
+class ReuseG{
+public:
+	std::string bndfile;
+	double time;
+};
 
 // additional functions
 void makjonswap(DECNUM hm0gew,DECNUM fp,DECNUM mainang,DECNUM rt,DECNUM scoeff,DECNUM gam,DECNUM * theta,int ntheta,DECNUM& TTrep,DECNUM * &Stt);
