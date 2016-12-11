@@ -75,10 +75,10 @@ public:
 	double fw = 0.001;//Wave bottom dissipation parameters fw 
 	double fwsand = 0.0, fwreef = 0.0; //Wave bottom dissipation parameters fw is for sand fw2 is for reefs.see cf comments
 	int roller = 1;
-	//double thetamin = -80 * pi / 180; Need to sort this out when refurbishing the wave boundary stuff
-	//double thetamax = 80 * pi / 180;
-	//double dtheta = 20 * pi / 180;
-	//int ntheta;
+	double thetamin = -90 * pi / 180; //Need to sort this out when refurbishing the wave boundary stuff
+	double thetamax = 90 * pi / 180;
+	double dtheta=0.0; // Defaul values are insane so either one has to be specified/overruled the other will be calculated automatically
+	int ntheta=0.0; // Default for bnd that are cst or generated on the fly is ntheta =1 and dtheta = thetamax-thetamin
 	//Sediment parameters
 	double D50=0.00038, D90=0.00053; // sand grain size in m
 	double rhosed = 2650.0; // sand density in kg/m3
@@ -135,8 +135,13 @@ public:
 };
 
 class WaveBnd {
-	double dtbc;
-	int wavebndtype;
+public:
+	double endtime=0;
+	double dtheta;
+	int ntheta;
+	int inputindex=0;
+	std::vector<double> time;
+	std::vector<double> theta;
 
 };
 
@@ -147,6 +152,14 @@ public:
 	double gamma = 3.3;
 	double alpha = 1.0;
 	double rtlength; // Length of each file in s. Should be oimplied by the time
+
+};
+
+class ConstantWave{
+public:
+	double time;
+	double Hs, Tp, Dp, s;
+	
 
 };
 

@@ -26,6 +26,8 @@ using DECNUM = float;
 DECNUM Trep, Trepold, Trepnew;
 DECNUM * St, *Stnew, *Stold;
 double * Stfile;
+double * eebnd;
+double * qbnd;
 double * qfile;
 double * Tpfile;
 int nwbndstep = 0;
@@ -1752,7 +1754,28 @@ int main(int argc, char **argv)
 	else
 	{
 		// No files specified that implies no wave forcing
-		// no wave forcing means constant waves at 0.0f
+		// no wave forcing means constant waves at 0.0f if sswave is on (or not because we need Fx and Fy to be null)
+		std::vector<ConstantWave> wavebnd;
+		ConstantWave waveline;
+		waveline.time = 0.0;
+		waveline.Hs = 0.0001; //not zero?
+		waveline.Tp = 10.0;
+		// make bnd normal wave direction
+		waveline.Dp = (1.5*pi - XParam.grdalpha) * 180 / pi; // Why make it in degree?
+		waveline.s = 1000.0;
+		wavebnd.push_back(waveline);
+
+		waveline.time = max(XParam.endtime, slbnd.back().time);
+		waveline.Hs = 0.0001; //not zero?
+		waveline.Tp = 10.0;
+		// make bnd normal wave direction
+		waveline.Dp = (1.5*pi - XParam.grdalpha) * 180 / pi; // Why make it in degree?
+		waveline.s = 1000.0;
+		wavebnd.push_back(waveline);
+
+		//Now create the Specbnd array and the Wavebnd class for constant forcing
+		//MakCstSpec(XParam,wavebnd);
+
 
 
 	}
