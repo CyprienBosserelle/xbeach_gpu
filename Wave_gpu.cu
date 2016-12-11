@@ -1580,8 +1580,10 @@ int main(int argc, char **argv)
 
 	std::vector<SLBnd> slbnd;
 	std::vector<WindBnd> wndbnd;
+	std::vector<Wavebndparam> wavebnd;
 
-	std::ifstream fs("XBG_param.txt");
+
+		std::ifstream fs("XBG_param.txt");
 
 	if (fs.fail()){
 		std::cerr << "XBG_param.txt file could not be opened" << std::endl;
@@ -1738,11 +1740,11 @@ int main(int argc, char **argv)
 		wndbnd.push_back(wndbndline);
 		
 	}
-	WNDstepinbnd = 1;
+	WNDstepinbnd = 1; // Should be stored in XParam
 
 	printf("done\n");
 	write_text_to_log_file("done");
-	XParam = checkparamsanity(XParam, slbnd,wndbnd);
+	
 	
 	// Read Wind forcing
 	printf("Read wave forcing...");
@@ -1755,8 +1757,8 @@ int main(int argc, char **argv)
 	{
 		// No files specified that implies no wave forcing
 		// no wave forcing means constant waves at 0.0f if sswave is on (or not because we need Fx and Fy to be null)
-		std::vector<ConstantWave> wavebnd;
-		ConstantWave waveline;
+		XParam.wavebndtype = 1;
+		Wavebndparam waveline;
 		waveline.time = 0.0;
 		waveline.Hs = 0.0001; //not zero?
 		waveline.Tp = 10.0;
@@ -1774,11 +1776,20 @@ int main(int argc, char **argv)
 		wavebnd.push_back(waveline);
 
 		//Now create the Specbnd array and the Wavebnd class for constant forcing
-		//MakCstSpec(XParam,wavebnd);
+		//This should be part of wave init?
+		//MakeCstSpec(XParam,wavebnd);
 
 
 
 	}
+
+
+
+
+	///////////////////////////////////////////////////////////////////
+	// Check input sanity
+	XParam = checkparamsanity(XParam, slbnd, wndbnd);
+
 
 	nx = XParam.nx;
 	ny = XParam.ny;
@@ -1991,7 +2002,7 @@ int main(int argc, char **argv)
 
 		if (XParam.swave == 1)
 		{
-			waveinitGPU(XParam);
+			waveinitGPU(XParam, wavebnd);
 		}
 
 		//CUT_DEVICE_INIT(argc, argv);
@@ -2098,7 +2109,7 @@ int main(int argc, char **argv)
 
 		if (XParam.swave == 1 )
 		{
-			waveinitGPU(XParam);
+			waveinitGPU(XParam, wavebnd);
 		}
 
 		//Allocate GPU memory

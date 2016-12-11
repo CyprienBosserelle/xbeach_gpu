@@ -137,50 +137,34 @@ public:
 class WaveBnd {
 public:
 	double endtime=0;
-	double dtheta;
-	int ntheta;
+	double ntime;
+
 	int inputindex=0;
-	std::vector<double> time;
-	std::vector<double> theta;
+	
 
 };
 
-class Jonswap{
+class Wavebndparam{
 public:
 	double time;
 	double Hs, Tp, Dp, s;
 	double gamma = 3.3;
 	double alpha = 1.0;
-	double rtlength; // Length of each file in s. Should be oimplied by the time
-
-};
-
-class ConstantWave{
-public:
-	double time;
-	double Hs, Tp, Dp, s;
-	
-
-};
-
-// class of information when reusing wave boundary ccreated under Xbeach
-class ReuseXB{
-public:
-	std::string Efile;
+	double rtlength; // duration of specific file in s
+	std::string Efile; // For Xbeach Reuse
 	std::string qfile;
+	std::string ncXBGfile; // for XBeach_GPU reuse
+	std::string Swanfile;
 	double dtbc;
-	double time;
 	double Trep;
-	double rtlength; // Length of each file in s. Should be oimplied by the time
 
 };
 
-// Class of info for when reusing wave bnd created under XBeach_GPU (one file in nc file with all suporting infor included)
-class ReuseG{
-public:
-	std::string bndfile;
-	double time;
-};
+
+
+
+
+
 
 // additional functions
 void makjonswap(DECNUM hm0gew,DECNUM fp,DECNUM mainang,DECNUM rt,DECNUM scoeff,DECNUM gam,DECNUM * theta,int ntheta,DECNUM& TTrep,DECNUM * &Stt);
@@ -265,7 +249,7 @@ template <class T> const T& max (const T& a, const T& b);
 
 
 extern "C"
-void waveinitGPU(XBGPUParam Param);
+void waveinitGPU(XBGPUParam Param, std::vector<Wavebndparam> wavebnd);
 void wavebnd(XBGPUParam Param);
 void flowbnd(XBGPUParam Param, std::vector<SLBnd> slbnd, std::vector<WindBnd> wndbnd);
 void wavestep(XBGPUParam Param);

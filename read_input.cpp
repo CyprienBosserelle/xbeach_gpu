@@ -721,6 +721,27 @@ XBGPUParam readparamstr(std::string line, XBGPUParam param)
 		param.wavebndtype = std::stoi(parametervalue);
 	}
 
+	parameterstr = "thetamin =";
+	parametervalue = findparameter(parameterstr, line);
+	if (!parametervalue.empty())
+	{
+		param.thetamin = std::stod(parametervalue);
+	}
+
+	parameterstr = "thetamax =";
+	parametervalue = findparameter(parameterstr, line);
+	if (!parametervalue.empty())
+	{
+		param.thetamax = std::stod(parametervalue);
+	}
+
+	parameterstr = "dtheta =";
+	parametervalue = findparameter(parameterstr, line);
+	if (!parametervalue.empty())
+	{
+		param.dtheta = std::stod(parametervalue);
+	}
+
 	//Other parameters
 	parameterstr = "GPUDEVICE =";
 	parametervalue = findparameter(parameterstr, line);

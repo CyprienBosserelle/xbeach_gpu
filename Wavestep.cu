@@ -17,7 +17,10 @@ void CUDA_CHECK(cudaError CUDerr)
 }
 
 
-void waveinitGPU(XBGPUParam Param)
+
+
+
+void waveinitGPU(XBGPUParam Param, std::vector<Wavebndparam> wavebnd)
 {
 	// Initialize wave model
 	int nx, ny;
@@ -25,52 +28,34 @@ void waveinitGPU(XBGPUParam Param)
 	ny = Param.ny;
 
 
-
-	//Wave input bnd
-	printf("Opening wave bnd\n");
-
-	if (Param.wavebndtype == 1)
+	
+	if (Param.dtheta > 0.0)
 	{
-
-		readbndhead(Param.wavebndfile.c_str(), thetamin, thetamax, dtheta, dtwavbnd, nwavbnd);
-
-
+		Param.ntheta = round((Param.thetamax - Param.thetamin) / Param.dtheta);
 	}
 	else
 	{
-		readXbbndhead(Param.wavebndfile.c_str(), thetamin, thetamax, dtheta, dtwavbnd, nwavbnd, nwavfile);
-
+		Param.dtheta = (Param.thetamax - Param.thetamin) / Param.ntheta;
 	}
 
+	
+	ntheta = Param.ntheta;
+	dtheta = Param.dtheta;
 
 
-
-	//printf("Hs=%f\tTp=%f\ta=%f\tscoef=%f\tgam=%f\trt=%f\n",hm0gew,fp,mainang,scoeff,gam,rt);
-
-	fp = 1 / fp;
-
-
-
-
-
-
-
-	//hm0gew=1.0f;//Significant wave height (m)
-	//fp=1.0f/12.0f; //Wave peak frequency (Hz)
-	//mainang=0; //wave mean direction (angle of incidence º)
-	//rt=1000; //Boundary duration
-	//scoeff=100;// spread coef n.u.
-	//gam=3.3f;//: peak enhancement factor, optional parameter (DEFAULT 3.3)
-
-	thetamin = thetamin*pi / 180;
-	thetamax = thetamax*pi / 180;
-	dtheta = dtheta*pi / 180;
-
-	ntheta = round((thetamax - thetamin) / dtheta);
 	printf("ntheta=%d\tdtheta=%f\n", ntheta, dtheta);
 	write_text_to_log_file("ntheta=" + std::to_string(ntheta) + "\t dtheta=" + std::to_string(dtheta));
 	//printf("nwavbnd=%d\n", nwavbnd);
 
+	if (Param.wavebndtype == 1)
+	{
+		nwavbnd = wavebnd.size(); // one Stfile/qfile will be used throughout the simulation
+	}
+	if (Param.wavebndtype >= 2)
+	{
+		nwavbnd = ceil(wavebnd[0].rtlength / wavebnd[0].dtbc);
+	}
+		
 	theta = (DECNUM *)malloc(ntheta*sizeof(DECNUM));
 
 	Stfile = (double *)malloc(ntheta*ny*nwavbnd*sizeof(double));
@@ -108,14 +93,50 @@ void waveinitGPU(XBGPUParam Param)
 	//drr=(DECNUM *)malloc(nx*ny*ntheta*sizeof(DECNUM));
 
 
-	printf("Reading bnd data\n");
-	write_text_to_log_file("Reading wave bnd data");
+	printf("Generating initial wave bnd data\n");
+	write_text_to_log_file("Generating initial wave bnd data");
 	if (Param.wavebndtype == 1)
 	{
-		readStatbnd(nx, ny, ntheta, Param.rho, Param.g, Param.wavebndfile.c_str(), Tpfile, Stfile);
-		Trepold = Tpfile[0];
-		Trepnew = Tpfile[1];
-		rt = dtwavbnd;
+		//GenCstWave(Param, wavebnd, Stfile, qfile, Tpfile);
+		for (int n = 0; n < nwavbnd; n++)
+		{
+			double eetot = wavebnd[0].Hs*wavebnd[0].Hs*Param.rho*Param.g/4.0;
+
+			for (int j = 0; j < ny; j++)
+			{
+				qfile[j + 0 * ny + n*ny*ntheta] = 0.0;
+				qfile[j + 1 * ny + n*ny*ntheta] = 0.0;
+				qfile[j + 2 * ny + n*ny*ntheta] = 0.0;
+				qfile[j + 3 * ny + n*ny*ntheta] = 0.0;
+			}
+
+			double sumcos=0.0;
+
+			double * scaledir;
+
+			scaledir = (double *)malloc(ntheta*sizeof(double));
+
+			for (int t = 0; t < ntheta; t++)
+			{
+				scaledir[t] = pow(cos((theta[t] - wavebnd[0].Dp) / 2.0), 2.0*wavebnd[0].s);
+				sumcos = sumcos + scaledir[t];
+			}
+
+			for (int t = 0; t < ntheta; t++)
+			{
+				double Stdir = scaledir[t] / sumcos*eetot;
+				for (int j = 0; j < ny; j++)
+				{
+					Stfile[j + t*ny + n*ny*ntheta] = Stdir;
+				}
+				
+			}
+		}
+		
+		//readStatbnd(nx, ny, ntheta, Param.rho, Param.g, Param.wavebndfile.c_str(), Tpfile, Stfile);
+		//Trepold = Tpfile[0];
+		//Trepnew = Tpfile[1];
+		//rt = dtwavbnd;
 
 	}
 
@@ -124,41 +145,27 @@ void waveinitGPU(XBGPUParam Param)
 		readXbbndstep(nx, ny, ntheta, Param.wavebndfile.c_str(), 1, Trepold, qfile, Stfile);
 
 
-		for (int ni = 0; ni < ny; ni++)
-		{
-			for (int itheta = 0; itheta < ntheta; itheta++)
-			{
-				Stold[ni + itheta*ny] = Stfile[ni + itheta*ny + nwbndstep*ny*ntheta];
-				Stnew[ni + itheta*ny] = Stfile[ni + itheta*ny + (nwbndstep + 1)*ny*ntheta];
-
-
-			}
-			for (int xi = 0; xi < 4; xi++)
-			{
-				qbndold[ni + xi*ny] = qfile[ni + xi*ny + nwbndstep*ny * 4];
-				qbndnew[ni + xi*ny] = qfile[ni + xi*ny + (nwbndstep + 1)*ny * 4];
-			}
-		}
+		
 		//CUDA_CHECK( cudaMemcpy(qbndold_g,qbndold, 3*ny*sizeof(DECNUM ), cudaMemcpyHostToDevice) );
 		//CUDA_CHECK( cudaMemcpy(qbndnew_g,qbndnew, 3*ny*sizeof(DECNUM ), cudaMemcpyHostToDevice) );
 		//printf("qfile[0]=%f\n",qfile[0]);
 	}
-	else
+	
+	for (int ni = 0; ni < ny; ni++)
 	{
-
-
-		for (int ni = 0; ni < ny; ni++)
+		for (int itheta = 0; itheta < ntheta; itheta++)
 		{
-			for (int itheta = 0; itheta < ntheta; itheta++)
-			{
-				Stold[ni + itheta*ny] = Stfile[itheta];
-				Stnew[ni + itheta*ny] = Stfile[itheta + ntheta];
-			}
+			Stold[ni + itheta*ny] = Stfile[ni + itheta*ny + nwbndstep*ny*ntheta];
+			Stnew[ni + itheta*ny] = Stfile[ni + itheta*ny + (nwbndstep + 1)*ny*ntheta];
+
 
 		}
-
+		for (int xi = 0; xi < 4; xi++)
+		{
+			qbndold[ni + xi*ny] = qfile[ni + xi*ny + nwbndstep*ny * 4];
+			qbndnew[ni + xi*ny] = qfile[ni + xi*ny + (nwbndstep + 1)*ny * 4];
+		}
 	}
-
 
 
 
@@ -172,7 +179,7 @@ void waveinitGPU(XBGPUParam Param)
 	//makjonswap(hm0gew,fp,mainang,rt,scoeff,gam,theta,ntheta,Trepnew, Stnew);
 
 
-
+	//Clac Stat
 
 	Trep = Trepold;
 	for (int i = 0; i < ntheta; i++)                             //! Fill St
@@ -197,7 +204,7 @@ void waveinitGPU(XBGPUParam Param)
 
 
 
-
+	// Apply bnd on CPU side
 
 	for (int ii = 0; ii < nx; ii++)
 	{
