@@ -235,6 +235,7 @@ std::string trim(const std::string& str, const std::string& whitespace);
 XBGPUParam checkparamsanity(XBGPUParam XParam, std::vector<SLBnd> slbnd, std::vector<WindBnd> wndbnd);
 std::vector<SLBnd> readWLfile(std::string WLfilename);
 std::vector<WindBnd> readWNDfile(std::string WNDfilename, double grdalpha);
+std::vector<Wavebndparam> ReadCstBnd(XBGPUParam XParam);
 double interptime(double next, double prev, double timenext, double time);
 
 
@@ -249,8 +250,8 @@ template <class T> const T& max (const T& a, const T& b);
 
 
 extern "C"
-void waveinitGPU(XBGPUParam Param, std::vector<Wavebndparam> wavebnd);
-void wavebnd(XBGPUParam Param);
+XBGPUParam waveinitGPU(XBGPUParam Param, std::vector<Wavebndparam> wavebnd);
+void wavebnd(XBGPUParam Param, std::vector<Wavebndparam> wavebndvec);
 void flowbnd(XBGPUParam Param, std::vector<SLBnd> slbnd, std::vector<WindBnd> wndbnd);
 void wavestep(XBGPUParam Param);
 void flowstep(XBGPUParam Param);

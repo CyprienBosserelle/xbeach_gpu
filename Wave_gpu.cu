@@ -78,7 +78,7 @@ DECNUM wavbndtime;
 DECNUM slbndtime;
 DECNUM windtime;
 
-int SLstepinbnd, WNDstepinbnd;
+int SLstepinbnd, WNDstepinbnd, WAVstepinbnd;
 //DECNUM Cd; //Wind drag
 DECNUM fp, hm0gew, mainang, rt, scoeff, gam;
 int nwavbnd, nwavfile;
@@ -274,7 +274,7 @@ exit(EXIT_FAILURE);
 
 
 // Main loop that actually runs the model
-void mainloopGPU(XBGPUParam Param, std::vector<SLBnd> slbnd, std::vector<WindBnd> wndbnd)
+void mainloopGPU(XBGPUParam Param, std::vector<SLBnd> slbnd, std::vector<WindBnd> wndbnd, std::vector<Wavebndparam> wavebndparam)
 {
 	double dt = Param.dt;
 	int nx, ny;
@@ -687,7 +687,7 @@ void mainloopGPU(XBGPUParam Param, std::vector<SLBnd> slbnd, std::vector<WindBnd
 
 		if (Param.swave == 1 )
 		{
-			wavebnd(Param); // Calculate the boundary condition for this step
+			wavebnd(Param, wavebndparam); // Calculate the boundary condition for this step
 		}
 
 		if (Param.flow == 1)
@@ -914,7 +914,7 @@ void mainloopGPU(XBGPUParam Param, std::vector<SLBnd> slbnd, std::vector<WindBnd
 }
 
 
-void mainloopCPU(XBGPUParam Param,std::vector<SLBnd> slbnd, std::vector<WindBnd> wndbnd)
+void mainloopCPU(XBGPUParam Param, std::vector<SLBnd> slbnd, std::vector<WindBnd> wndbnd, std::vector<Wavebndparam> wavebndparam)
 {
 	printf("Computing CPU mode\n");
 
@@ -933,7 +933,7 @@ void mainloopCPU(XBGPUParam Param,std::vector<SLBnd> slbnd, std::vector<WindBnd>
 
 		if (Param.swave == 1 )
 		{
-			wavebnd(Param); // Calculate the boundary condition for this step
+			wavebnd(Param,wavebndparam); // Calculate the boundary condition for this step
 		}
 
 		if (Param.flow == 1)
@@ -1703,7 +1703,7 @@ int main(int argc, char **argv)
 	}
 	
 	
-	//Note: the first rtsl should be 0 
+	
 	
 	SLstepinbnd = 1;
 
@@ -1751,19 +1751,23 @@ int main(int argc, char **argv)
 	write_text_to_log_file("Reading wave forcing...");
 	if (!XParam.wavebndfile.empty())
 	{
-		//
+		// A wave bnd file was specified
+		if (XParam.wavebndtype == 1)
+		{
+			wavebnd = ReadCstBnd(XParam);
+		}
 	}
 	else
 	{
 		// No files specified that implies no wave forcing
-		// no wave forcing means constant waves at 0.0f if sswave is on (or not because we need Fx and Fy to be null)
+		// no wave forcing means constant waves at 0.0f (if swave is on or not because we need Fx and Fy to be null)
 		XParam.wavebndtype = 1;
 		Wavebndparam waveline;
 		waveline.time = 0.0;
 		waveline.Hs = 0.0001; //not zero?
 		waveline.Tp = 10.0;
 		// make bnd normal wave direction
-		waveline.Dp = (1.5*pi - XParam.grdalpha) * 180 / pi; // Why make it in degree?
+		waveline.Dp = (1.5*pi - XParam.grdalpha); // Why make it in degree?
 		waveline.s = 1000.0;
 		wavebnd.push_back(waveline);
 
@@ -1771,7 +1775,7 @@ int main(int argc, char **argv)
 		waveline.Hs = 0.0001; //not zero?
 		waveline.Tp = 10.0;
 		// make bnd normal wave direction
-		waveline.Dp = (1.5*pi - XParam.grdalpha) * 180 / pi; // Why make it in degree?
+		waveline.Dp = (1.5*pi - XParam.grdalpha) ; // Why make it in degree?
 		waveline.s = 1000.0;
 		wavebnd.push_back(waveline);
 
@@ -1783,7 +1787,7 @@ int main(int argc, char **argv)
 
 	}
 
-
+	WAVstepinbnd = 1;
 
 
 	///////////////////////////////////////////////////////////////////
@@ -1925,11 +1929,7 @@ int main(int argc, char **argv)
 
 	
 
-	cgx = (DECNUM *)malloc(nx*ny*ntheta*sizeof(DECNUM));
-	cgy = (DECNUM *)malloc(nx*ny*ntheta*sizeof(DECNUM));
-	cx = (DECNUM *)malloc(nx*ny*ntheta*sizeof(DECNUM));
-	cy = (DECNUM *)malloc(nx*ny*ntheta*sizeof(DECNUM));
-	ctheta = (DECNUM *)malloc(nx*ny*ntheta*sizeof(DECNUM));
+	
 	
 
 
@@ -1960,7 +1960,7 @@ int main(int argc, char **argv)
 
 	sigm = (DECNUM *)malloc(nx*ny*sizeof(DECNUM));
 	//sigt= (DECNUM *)malloc(nx*ny*ntheta*sizeof(DECNUM));
-	thet = (DECNUM *)malloc(nx*ny*ntheta*sizeof(DECNUM));
+	
 	//costhet=(DECNUM *)malloc(nx*ny*ntheta*sizeof(DECNUM));
 	//sinthet=(DECNUM *)malloc(nx*ny*ntheta*sizeof(DECNUM));
 
@@ -1989,7 +1989,7 @@ int main(int argc, char **argv)
 	
 
 
-
+	
 	//ONLY FOR GPU BELOW CPU
 
 
@@ -2002,7 +2002,7 @@ int main(int argc, char **argv)
 
 		if (XParam.swave == 1)
 		{
-			waveinitGPU(XParam, wavebnd);
+			XParam=waveinitGPU(XParam, wavebnd);
 		}
 
 		//CUT_DEVICE_INIT(argc, argv);
@@ -2109,7 +2109,7 @@ int main(int argc, char **argv)
 
 		if (XParam.swave == 1 )
 		{
-			waveinitGPU(XParam, wavebnd);
+			XParam=waveinitGPU(XParam, wavebnd);
 		}
 
 		//Allocate GPU memory
@@ -2771,11 +2771,11 @@ int main(int argc, char **argv)
 	// Run the model
 	if (XParam.GPUDEVICE >= 0)
 	{
-		mainloopGPU(XParam, slbnd,wndbnd);
+		mainloopGPU(XParam, slbnd, wndbnd, wavebnd);
 	}
 	else
 	{
-		mainloopCPU(XParam, slbnd,wndbnd);
+		mainloopCPU(XParam, slbnd, wndbnd, wavebnd);
 	}
 
 

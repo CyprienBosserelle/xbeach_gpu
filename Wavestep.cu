@@ -20,7 +20,7 @@ void CUDA_CHECK(cudaError CUDerr)
 
 
 
-void waveinitGPU(XBGPUParam Param, std::vector<Wavebndparam> wavebnd)
+XBGPUParam waveinitGPU(XBGPUParam Param, std::vector<Wavebndparam> wavebnd)
 {
 	// Initialize wave model
 	int nx, ny;
@@ -35,6 +35,10 @@ void waveinitGPU(XBGPUParam Param, std::vector<Wavebndparam> wavebnd)
 	}
 	else
 	{
+		if (Param.ntheta == 0)
+		{
+			Param.ntheta = 1;
+		}
 		Param.dtheta = (Param.thetamax - Param.thetamin) / Param.ntheta;
 	}
 
@@ -73,7 +77,7 @@ void waveinitGPU(XBGPUParam Param, std::vector<Wavebndparam> wavebnd)
 
 	for (int i = 0; i < ntheta; i++)
 	{
-		theta[i] = i*(dtheta)+thetamin + 0.5f*dtheta;
+		theta[i] = i*(Param.dtheta)+Param.thetamin + 0.5f*Param.dtheta;
 		cxsth[i] = cos(theta[i]);
 		sxnth[i] = sin(theta[i]);
 
@@ -90,6 +94,12 @@ void waveinitGPU(XBGPUParam Param, std::vector<Wavebndparam> wavebnd)
 
 	rr = (DECNUM *)malloc(nx*ny*ntheta*sizeof(DECNUM));
 
+	cgx = (DECNUM *)malloc(nx*ny*ntheta*sizeof(DECNUM));
+	cgy = (DECNUM *)malloc(nx*ny*ntheta*sizeof(DECNUM));
+	cx = (DECNUM *)malloc(nx*ny*ntheta*sizeof(DECNUM));
+	cy = (DECNUM *)malloc(nx*ny*ntheta*sizeof(DECNUM));
+	ctheta = (DECNUM *)malloc(nx*ny*ntheta*sizeof(DECNUM));
+	thet = (DECNUM *)malloc(nx*ny*ntheta*sizeof(DECNUM));
 	//drr=(DECNUM *)malloc(nx*ny*ntheta*sizeof(DECNUM));
 
 
@@ -100,14 +110,15 @@ void waveinitGPU(XBGPUParam Param, std::vector<Wavebndparam> wavebnd)
 		//GenCstWave(Param, wavebnd, Stfile, qfile, Tpfile);
 		for (int n = 0; n < nwavbnd; n++)
 		{
-			double eetot = wavebnd[0].Hs*wavebnd[0].Hs*Param.rho*Param.g/4.0;
+			Tpfile[n] = wavebnd[n].Tp;
+			double eetot = wavebnd[n].Hs*wavebnd[n].Hs*Param.rho*Param.g/(16.0*dtheta);
 
 			for (int j = 0; j < ny; j++)
 			{
-				qfile[j + 0 * ny + n*ny*ntheta] = 0.0;
-				qfile[j + 1 * ny + n*ny*ntheta] = 0.0;
-				qfile[j + 2 * ny + n*ny*ntheta] = 0.0;
-				qfile[j + 3 * ny + n*ny*ntheta] = 0.0;
+				qfile[j + 0 * ny + n*ny*4] = 0.0;
+				qfile[j + 1 * ny + n*ny*4] = 0.0;
+				qfile[j + 2 * ny + n*ny*4] = 0.0;
+				qfile[j + 3 * ny + n*ny*4] = 0.0;
 			}
 
 			double sumcos=0.0;
@@ -118,7 +129,7 @@ void waveinitGPU(XBGPUParam Param, std::vector<Wavebndparam> wavebnd)
 
 			for (int t = 0; t < ntheta; t++)
 			{
-				scaledir[t] = pow(cos((theta[t] - wavebnd[0].Dp) / 2.0), 2.0*wavebnd[0].s);
+				scaledir[t] = pow(cos((theta[t] - wavebnd[n].Dp) / 2.0), 2.0*wavebnd[n].s);
 				sumcos = sumcos + scaledir[t];
 			}
 
@@ -150,7 +161,7 @@ void waveinitGPU(XBGPUParam Param, std::vector<Wavebndparam> wavebnd)
 		//CUDA_CHECK( cudaMemcpy(qbndnew_g,qbndnew, 3*ny*sizeof(DECNUM ), cudaMemcpyHostToDevice) );
 		//printf("qfile[0]=%f\n",qfile[0]);
 	}
-	
+	nwbndstep = 0;
 	for (int ni = 0; ni < ny; ni++)
 	{
 		for (int itheta = 0; itheta < ntheta; itheta++)
@@ -181,7 +192,7 @@ void waveinitGPU(XBGPUParam Param, std::vector<Wavebndparam> wavebnd)
 
 	//Clac Stat
 
-	Trep = Trepold;
+	Trep = Tpfile[nwbndstep];
 	for (int i = 0; i < ntheta; i++)                             //! Fill St
 	{
 		//St[i]=Stold[i];
@@ -231,13 +242,13 @@ void waveinitGPU(XBGPUParam Param, std::vector<Wavebndparam> wavebnd)
 
 	//run dispersion relation	
 
-
+	return Param;
 
 }
 
 
 
-void wavebnd(XBGPUParam Param)
+void wavebndOLD(XBGPUParam Param)
 {
 	int nx, ny;
 	nx = Param.nx;
@@ -363,6 +374,73 @@ void wavebnd(XBGPUParam Param)
 
 }
 
+void wavebnd(XBGPUParam Param, std::vector<Wavebndparam> wavebndvec)
+{
+	int nx, ny;
+	double timenext, timesincelast;
+	nx = Param.nx;
+	ny = Param.ny;
+	//update sl bnd
+
+	// find next timestep
+
+	double difft = wavebndvec[WAVstepinbnd].time - totaltime;
+
+	
+	if (difft < 0.0)
+	{
+		WAVstepinbnd++;
+
+		
+		if (Param.wavebndtype == 2)
+		{
+			//Read new STfile and qfile
+			
+		}
+	}
+
+	if (Param.wavebndtype == 1)
+	{
+		nwbndstep = WAVstepinbnd - 1;
+		timenext = wavebndvec[WAVstepinbnd].time - wavebndvec[WAVstepinbnd - 1].time;
+		timesincelast = (totaltime - wavebndvec[WAVstepinbnd - 1].time);
+
+	}
+	if (Param.wavebndtype == 2)
+	{
+		nwbndstep = floor((totaltime - wavebndvec[WAVstepinbnd - 1].time) / wavebndvec[WAVstepinbnd - 1].dtbc);
+		timenext = wavebndvec[WAVstepinbnd - 1].dtbc;
+		timesincelast = totaltime - (nwbndstep*wavebndvec[WAVstepinbnd - 1].dtbc + wavebndvec[WAVstepinbnd - 1].time);
+	}
+
+
+
+	for (int ni = 0; ni < ny; ni++)
+	{
+		for (int itheta = 0; itheta < ntheta; itheta++)
+		{
+			Stold[ni + itheta*ny] = Stfile[ni + itheta*ny + nwbndstep*ny*ntheta];
+			Stnew[ni + itheta*ny] = Stfile[ni + itheta*ny + (nwbndstep + 1)*ny*ntheta];
+
+
+		}
+		for (int xi = 0; xi < 4; xi++)
+		{
+			qbndold[ni + xi*ny] = qfile[ni + xi*ny + nwbndstep*ny * 4];
+			qbndnew[ni + xi*ny] = qfile[ni + xi*ny + (nwbndstep + 1)*ny * 4];
+		}
+	}
+
+	for (int i = 0; i < ntheta; i++)                             //! Fill St
+	{
+		for (int ni = 0; ni < ny; ni++)
+		{
+			St[ni + i*ny] = interptime(Stnew[ni + i*ny], Stold[ni + i*ny], timenext, timesincelast);
+		}
+		
+	}
+
+}
 
 void wavestep(XBGPUParam Param)
 {
@@ -370,6 +448,7 @@ void wavestep(XBGPUParam Param)
 	nx = Param.nx;
 	ny = Param.ny;
 	double dt = Param.dt;
+	ntheta = Param.ntheta;
 	//Subroutine runs the wave model
 
 	dim3 blockDim(16, 16, 1);

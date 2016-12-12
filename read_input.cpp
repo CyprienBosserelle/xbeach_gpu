@@ -237,6 +237,57 @@ std::vector<WindBnd> readWNDfile(std::string WNDfilename, double grdalpha)
 	return windbnd;
 }
 
+
+
+std::vector<Wavebndparam> ReadCstBnd(XBGPUParam XParam)
+{
+	std::vector<Wavebndparam> wavebnd;
+
+
+	std::ifstream fs(XParam.wavebndfile);
+
+	if (fs.fail()){
+		std::cerr << XParam.wavebndfile << " Wave bnd file could not be opened" << std::endl;
+		write_text_to_log_file("ERROR: Wave bnd file could not be opened ");
+		exit(1);
+	}
+
+	std::string line;
+	std::vector<std::string> lineelements;
+	Wavebndparam waveline;
+
+	while (std::getline(fs, line))
+	{
+		//std::cout << line << std::endl;
+
+		// skip empty lines
+		if (!line.empty())
+		{
+			//Data should be in teh format :
+			//BASIN,CY,YYYYMMDDHH,TECHNUM/MIN,TECH,TAU,LatN/S,LonE/W,VMAX,MSLP,TY,RAD,WINDCODE,RAD1,RAD2,RAD3,RAD4,RADP,RRP,MRD,GUSTS,EYE,SUBREGION,MAXSEAS,INITIALS,DIR,SPEED,STORMNAME,DEPTH,SEAS,SEASCODE,SEAS1,SEAS2,SEAS3,SEAS4,USERDEFINED,userdata
+
+			//by default we expect tab delimitation
+			lineelements = split(line, '\t');
+			if (lineelements.size() < 5) // If we cant find all the elements it must be space delimited
+			{
+				lineelements.clear();
+				lineelements = split(line, ' ');
+			}
+
+			waveline.time = std::stod(lineelements[0]);
+			waveline.Hs = std::stod(lineelements[1]);
+			waveline.Tp = std::stod(lineelements[2]);
+			// make bnd normal wave direction
+			waveline.Dp = (1.5*pi - XParam.grdalpha) - std::stod(lineelements[3])*pi / 180; // Why make it in degree?
+			waveline.s = std::stod(lineelements[1]);
+			wavebnd.push_back(waveline);
+		}
+	}
+	fs.close();
+
+	return wavebnd;
+}
+
 XBGPUParam readparamstr(std::string line, XBGPUParam param)
 {
 
@@ -979,7 +1030,7 @@ XBGPUParam checkparamsanity(XBGPUParam XParam, std::vector<SLBnd> slbnd, std::ve
 
 	}
 
-	if (XParam.outvars.empty() && XParam.outfile.compare(DefaultParams.outfile) != 0)
+	if (XParam.outvars.empty() && XParam.outputtimestep > 0)
 	{
 		//a nc file was specified but no output variable were specified
 		std::vector<std::string> SupportedVarNames = { "zb", "zs", "uu", "vv", "H", "thetamean", "D", "urms", "ueu", "vev", "C", "dzb", "Fx", "Fy", "hh", "Hmean", "uumean", "vvmean", "hhmean", "zsmean", "Cmean" };
@@ -1212,6 +1263,7 @@ void SaveParamtolog(XBGPUParam XParam)
 	write_text_to_log_file("outfile = " + XParam.outfile + ";");
 	write_text_to_log_file("SedThkfile = " + XParam.SedThkfile + ";");
 	write_text_to_log_file("wavebndfile = " + XParam.wavebndfile + ";");
+	write_text_to_log_file("wavebndtype = " + std::to_string(XParam.wavebndtype) + ";");
 	write_text_to_log_file("slbndfile = " + XParam.slbnd + ";");
 	write_text_to_log_file("windbndfile = " + XParam.windfile + ";");
 	if (!XParam.TSoutfile.empty())

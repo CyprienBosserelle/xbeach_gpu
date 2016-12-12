@@ -15,12 +15,11 @@
 //along with this program.  If not, see <http://www.gnu.org/licenses/>.         //
 //////////////////////////////////////////////////////////////////////////////////
 
-#include <stdio.h>
-#include <math.h>
-#include <algorithm>
+#include "XBeachGPU.h"
 
 #define pi 3.14159265
 using DECNUM = float;
+
 
 void makjonswap(DECNUM hm0gew,DECNUM fp,DECNUM mainang,DECNUM rt,DECNUM scoeff,DECNUM gam,DECNUM *theta,int ntheta,DECNUM& TTrep,DECNUM * &Stt)
 {
