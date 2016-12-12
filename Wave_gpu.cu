@@ -692,13 +692,13 @@ void mainloopGPU(XBGPUParam Param, std::vector<SLBnd> slbnd, std::vector<WindBnd
 
 		if (Param.flow == 1)
 		{
-			flowbnd(Param, slbnd, wndbnd);// Calculate the flow boundary for this step
+			flowbnd(Param, slbnd, wndbnd, wavebndparam);// Calculate the flow boundary for this step
 		}
 
 		if (Param.swave == 1 )
 		{
 
-			wavestep(Param); // Calculate the wave action ballance for this step
+			wavestep(Param); // Calculate the wave action balance for this step
 		}
 
 
@@ -938,7 +938,7 @@ void mainloopCPU(XBGPUParam Param, std::vector<SLBnd> slbnd, std::vector<WindBnd
 
 		if (Param.flow == 1)
 		{
-			flowbnd(Param,slbnd,wndbnd);// Calculate the flow boundary for this step
+			flowbnd(Param, slbnd, wndbnd, wavebndparam);// Calculate the flow boundary for this step
 		}
 		if (Param.swave == 1)
 		{
@@ -995,13 +995,15 @@ void mainloopCPU(XBGPUParam Param, std::vector<SLBnd> slbnd, std::vector<WindBnd
 
 
 
-void flowbnd(XBGPUParam Param,std::vector<SLBnd> slbnd, std::vector<WindBnd> wndbnd)
+void flowbnd(XBGPUParam Param, std::vector<SLBnd> slbnd, std::vector<WindBnd> wndbnd, std::vector<Wavebndparam> wavebndvec)
 {
 	
 	double zsbndi;
 	int stepinbnd;
 	int nx, ny;
 	
+	double timenext, timesincelast;
+
 	nx = Param.nx;
 	ny = Param.ny;
 	//update sl bnd
@@ -1018,50 +1020,35 @@ void flowbnd(XBGPUParam Param,std::vector<SLBnd> slbnd, std::vector<WindBnd> wnd
 	zsbndi = interptime(slbnd[SLstepinbnd].wlev, slbnd[SLstepinbnd - 1].wlev, slbnd[SLstepinbnd].time - slbnd[SLstepinbnd - 1].time, totaltime - slbnd[SLstepinbnd - 1].time);
 
 
-	//std::cout << "i= " << stepinbnd << "; " << zsbndi << "\n" << std::endl;
-
-
-
-	//if (totaltime >= slbndtime)
-	//{
-
-	//	zsbndold = zsbndnew;
-	//	rtsl = slbndtime;
-	//	fscanf(fsl, "%f\t%f", &slbndtime, &zsbndnew);
-		//slbndtime=+rtsl;
-		//zsbnd=zsbndold+(t-slbndtime+rtsl)*(zsbndnew-zsbndold)/rtsl;
-	//}
-
-
-
-
-
 	if (Param.wavebndtype == 1)
 	{
-		for (int ni = 0; ni < ny; ni++)
-		{
-			zsbnd[ni] = zsbndi;//zsbndold + ((float) totaltime - rtsl)*(zsbndnew - zsbndold) / (slbndtime - rtsl);
-		}
-	}
+		timenext = wavebndvec[WAVstepinbnd].time - wavebndvec[WAVstepinbnd - 1].time;
+		timesincelast = (totaltime - wavebndvec[WAVstepinbnd - 1].time);
 
+	}
 	if (Param.wavebndtype == 2)
 	{
-		if (Param.GPUDEVICE >= 0)
-		{
+		timenext = Param.dtbc;
+		timesincelast = totaltime - (nwbndstep*Param.dtbc + wavebndvec[WAVstepinbnd - 1].time);
+	}
+
+	
+	if (Param.GPUDEVICE >= 0)
+	{
 			dim3 blockDim(16, 16, 1);
 			dim3 gridDim(ceil((nx*1.0f) / blockDim.x), ceil((ny*1.0f) / blockDim.y), 1);
 			// FLow abs_2d should be here not at the flow step		
 			// Set weakly reflective offshore boundary
-			ubnd1D << <gridDim, blockDim, 0 >> >(nx, ny, Param.dx, Param.dt, Param.g, Param.rho, (float)totaltime, wavbndtime, dtwavbnd, zsbndi, Trep, qbndold_g, qbndnew_g, zs_g, uu_g, vv_g, vu_g, umeanbnd_g, vmeanbnd_g, zb_g, cg_g, hum_g, cfm_g, Fx_g, hh_g);
+			ubnd1D << <gridDim, blockDim, 0 >> >(nx, ny, Param.dx, Param.dt, Param.g, Param.rho, (float)totaltime, timesincelast, timenext, zsbndi, Trep, qbndold_g, qbndnew_g, zs_g, uu_g, vv_g, vu_g, umeanbnd_g, vmeanbnd_g, zb_g, cg_g, hum_g, cfm_g, Fx_g, hh_g);
 			//CUT_CHECK_ERROR("ubnd execution failed\n");
 			CUDA_CHECK(cudaDeviceSynchronize());
-		}
-		else
-		{
+	}
+	else
+	{
 			ubndCPU(nx, ny, Param.dx, Param.dt, Param.g, Param.rho, (float)totaltime, wavbndtime, dtwavbnd, zsbndi, Trep, qbndold_g, qbndnew_g, zs_g, uu_g, vv_g, vu_g, umeanbnd_g, vmeanbnd_g, zb_g, cg_g, hum_g, cfm_g, Fx_g, hh_g);
 
-		}
 	}
+	
 
 	
 	difft = wndbnd[WNDstepinbnd].time - totaltime;
@@ -1756,6 +1743,11 @@ int main(int argc, char **argv)
 		{
 			wavebnd = ReadCstBnd(XParam);
 		}
+		if (XParam.wavebndtype == 2)
+		{
+			XParam = readXbbndhead(XParam);
+			wavebnd = readXbbndfile(XParam);
+		}
 	}
 	else
 	{
@@ -2003,6 +1995,8 @@ int main(int argc, char **argv)
 		if (XParam.swave == 1)
 		{
 			XParam=waveinitGPU(XParam, wavebnd);
+
+			//Trep
 		}
 
 		//CUT_DEVICE_INIT(argc, argv);
@@ -2110,6 +2104,7 @@ int main(int argc, char **argv)
 		if (XParam.swave == 1 )
 		{
 			XParam=waveinitGPU(XParam, wavebnd);
+			//Trep
 		}
 
 		//Allocate GPU memory

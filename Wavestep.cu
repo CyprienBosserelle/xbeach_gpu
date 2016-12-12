@@ -57,7 +57,7 @@ XBGPUParam waveinitGPU(XBGPUParam Param, std::vector<Wavebndparam> wavebnd)
 	}
 	if (Param.wavebndtype >= 2)
 	{
-		nwavbnd = ceil(wavebnd[0].rtlength / wavebnd[0].dtbc);
+		nwavbnd = ceil(Param.rtlength / Param.dtbc);
 	}
 		
 	theta = (DECNUM *)malloc(ntheta*sizeof(DECNUM));
@@ -108,42 +108,8 @@ XBGPUParam waveinitGPU(XBGPUParam Param, std::vector<Wavebndparam> wavebnd)
 	if (Param.wavebndtype == 1)
 	{
 		//GenCstWave(Param, wavebnd, Stfile, qfile, Tpfile);
-		for (int n = 0; n < nwavbnd; n++)
-		{
-			Tpfile[n] = wavebnd[n].Tp;
-			double eetot = wavebnd[n].Hs*wavebnd[n].Hs*Param.rho*Param.g/(16.0*dtheta);
-
-			for (int j = 0; j < ny; j++)
-			{
-				qfile[j + 0 * ny + n*ny*4] = 0.0;
-				qfile[j + 1 * ny + n*ny*4] = 0.0;
-				qfile[j + 2 * ny + n*ny*4] = 0.0;
-				qfile[j + 3 * ny + n*ny*4] = 0.0;
-			}
-
-			double sumcos=0.0;
-
-			double * scaledir;
-
-			scaledir = (double *)malloc(ntheta*sizeof(double));
-
-			for (int t = 0; t < ntheta; t++)
-			{
-				scaledir[t] = pow(cos((theta[t] - wavebnd[n].Dp) / 2.0), 2.0*wavebnd[n].s);
-				sumcos = sumcos + scaledir[t];
-			}
-
-			for (int t = 0; t < ntheta; t++)
-			{
-				double Stdir = scaledir[t] / sumcos*eetot;
-				for (int j = 0; j < ny; j++)
-				{
-					Stfile[j + t*ny + n*ny*ntheta] = Stdir;
-				}
-				
-			}
-		}
-		
+		GenCstWave(Param, wavebnd, theta, Stfile, qfile, Tpfile);
+		Trep = Tpfile[0];
 		//readStatbnd(nx, ny, ntheta, Param.rho, Param.g, Param.wavebndfile.c_str(), Tpfile, Stfile);
 		//Trepold = Tpfile[0];
 		//Trepnew = Tpfile[1];
@@ -153,13 +119,9 @@ XBGPUParam waveinitGPU(XBGPUParam Param, std::vector<Wavebndparam> wavebnd)
 
 	if (Param.wavebndtype == 2)
 	{
-		readXbbndstep(nx, ny, ntheta, Param.wavebndfile.c_str(), 1, Trepold, qfile, Stfile);
-
-
-		
-		//CUDA_CHECK( cudaMemcpy(qbndold_g,qbndold, 3*ny*sizeof(DECNUM ), cudaMemcpyHostToDevice) );
-		//CUDA_CHECK( cudaMemcpy(qbndnew_g,qbndnew, 3*ny*sizeof(DECNUM ), cudaMemcpyHostToDevice) );
-		//printf("qfile[0]=%f\n",qfile[0]);
+		//readXbbndstep(nx, ny, ntheta, Param.wavebndfile.c_str(), 1, Trepold, qfile, Stfile);
+		readXbbndstep(Param, wavebnd, 0, Trep, qfile, Stfile);
+				
 	}
 	nwbndstep = 0;
 	for (int ni = 0; ni < ny; ni++)
@@ -192,7 +154,7 @@ XBGPUParam waveinitGPU(XBGPUParam Param, std::vector<Wavebndparam> wavebnd)
 
 	//Clac Stat
 
-	Trep = Tpfile[nwbndstep];
+	
 	for (int i = 0; i < ntheta; i++)                             //! Fill St
 	{
 		//St[i]=Stold[i];
@@ -258,7 +220,7 @@ void wavebndOLD(XBGPUParam Param)
 	{
 		if (Param.wavebndtype == 2)
 		{
-			readXbbndstep(nx, ny, ntheta, Param.wavebndfile.c_str(), wxstep, Trep, qfile, Stfile);
+			//readXbbndstep(nx, ny, ntheta, Param.wavebndfile.c_str(), wxstep, Trep, qfile, Stfile);
 
 		}
 		nwbndstep = 0;
@@ -395,6 +357,7 @@ void wavebnd(XBGPUParam Param, std::vector<Wavebndparam> wavebndvec)
 		if (Param.wavebndtype == 2)
 		{
 			//Read new STfile and qfile
+			readXbbndstep(Param, wavebndvec, WAVstepinbnd - 1, Trep, qfile, Stfile);
 			
 		}
 	}
@@ -408,9 +371,9 @@ void wavebnd(XBGPUParam Param, std::vector<Wavebndparam> wavebndvec)
 	}
 	if (Param.wavebndtype == 2)
 	{
-		nwbndstep = floor((totaltime - wavebndvec[WAVstepinbnd - 1].time) / wavebndvec[WAVstepinbnd - 1].dtbc);
-		timenext = wavebndvec[WAVstepinbnd - 1].dtbc;
-		timesincelast = totaltime - (nwbndstep*wavebndvec[WAVstepinbnd - 1].dtbc + wavebndvec[WAVstepinbnd - 1].time);
+		nwbndstep = floor((totaltime - wavebndvec[WAVstepinbnd - 1].time) / Param.dtbc);
+		timenext = Param.dtbc;
+		timesincelast = totaltime - (nwbndstep*Param.dtbc + wavebndvec[WAVstepinbnd - 1].time);
 	}
 
 
@@ -438,6 +401,12 @@ void wavebnd(XBGPUParam Param, std::vector<Wavebndparam> wavebndvec)
 			St[ni + i*ny] = interptime(Stnew[ni + i*ny], Stold[ni + i*ny], timenext, timesincelast);
 		}
 		
+	}
+
+	if (Param.flow == 1)
+	{
+		CUDA_CHECK(cudaMemcpy(qbndold_g, qbndold, 4 * ny*sizeof(DECNUM), cudaMemcpyHostToDevice));
+		CUDA_CHECK(cudaMemcpy(qbndnew_g, qbndnew, 4 * ny*sizeof(DECNUM), cudaMemcpyHostToDevice));
 	}
 
 }

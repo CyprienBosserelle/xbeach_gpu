@@ -127,7 +127,7 @@ __global__ void ubnd(int nx, int ny, DECNUM dx, DECNUM dt, DECNUM g, DECNUM rho,
 
 
 			//
-			uu[i] = (order - 1.0f)*ui + ur + uumean;//2.0f*ui-(sqrtf(g/(zs[i]+zb[i]))*(zs[i]-zsbnd));;//
+			uu[i] = uumean;//(order - 1.0f)*ui + ur + uumean;//2.0f*ui-(sqrtf(g/(zs[i]+zb[i]))*(zs[i]-zsbnd));;//
 			zs[i] = 1.5f*((bnp1 - uu[i])*(bnp1 - uu[i]) / (4.0f*g) - 0.5f*(zb[i] + zb[xplus + iy*nx])) - 0.5f*((betar - uu[xplus + iy*nx])*(betar - uu[xplus + iy*nx]) / (4.0f*g) - 0.5f*(zb[xplus + iy*nx] + zb[xplus2 + iy*nx]));
 			////
 			//zsbnd+qx/(dx*dx)*dt;//
@@ -144,7 +144,7 @@ __global__ void ubnd(int nx, int ny, DECNUM dx, DECNUM dt, DECNUM g, DECNUM rho,
 
 
 }
-__global__ void ubnd1D(int nx, int ny, DECNUM dx, DECNUM dt, DECNUM g, DECNUM rho, DECNUM totaltime, DECNUM wavbndtime, DECNUM rt, DECNUM zsbnd, DECNUM Trep, DECNUM * qbndold, DECNUM * qbndnew, DECNUM *zs, DECNUM * uu, DECNUM * vv, DECNUM *vu, DECNUM * umean, DECNUM * vmean, DECNUM * zb, DECNUM * cg, DECNUM * hum, DECNUM * zo, DECNUM *Fx, DECNUM *hh)
+__global__ void ubnd1D(int nx, int ny, DECNUM dx, DECNUM dt, DECNUM g, DECNUM rho, DECNUM totaltime, DECNUM time, DECNUM timenext, DECNUM zsbnd, DECNUM Trep, DECNUM * qbndold, DECNUM * qbndnew, DECNUM *zs, DECNUM * uu, DECNUM * vv, DECNUM *vu, DECNUM * umean, DECNUM * vmean, DECNUM * zb, DECNUM * cg, DECNUM * hum, DECNUM * zo, DECNUM *Fx, DECNUM *hh)
 {
 	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
 	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
@@ -171,9 +171,9 @@ __global__ void ubnd1D(int nx, int ny, DECNUM dx, DECNUM dt, DECNUM g, DECNUM rh
 		DECNUM taper = min(totaltime / 100.0f, 1.0f);
 		DECNUM zsplus = zs[xplus + iy*nx];
 		
-
-		qx = (qbndold[iy] + (totaltime - wavbndtime + rt)*(qbndnew[iy] - qbndold[iy]) / rt)*taper;
-		qy = (qbndold[iy + ny] + (totaltime - wavbndtime + rt)*(qbndnew[iy + ny] - qbndold[iy + ny]) / rt)*taper;
+		//prev + (time) / (timenext)*(next - prev);
+		qx = (qbndold[iy] + time/ timenext*(qbndnew[iy] - qbndold[iy]) )*taper;
+		qy = (qbndold[iy + ny] + time / timenext*(qbndnew[iy + ny] - qbndold[iy + ny]) )*taper;
 
 			//zsbnd = zsbndold + (totaltime - rtsl)*(zsbndnew - zsbndold) / (slbndtime - rtsl);
 
@@ -197,7 +197,7 @@ __global__ void ubnd1D(int nx, int ny, DECNUM dx, DECNUM dt, DECNUM g, DECNUM rh
 
 
 			//
-			uu[i] = (2.0f)*ui +ur + uumean;//2.0f*ui-(sqrtf(g/(zs[i]+zb[i]))*(zs[i]-zsbnd));;//
+			uu[i] =  (2.0f)*ui + ur + uumean;//2.0f*ui-(sqrtf(g/(zs[i]+zb[i]))*(zs[i]-zsbnd));;//
 			//zs[i] = 1.5f*((bnp1 - uu[i])*(bnp1 - uu[i]) / (4.0f*g) - 0.5f*(zb[i] + zb[xplus + iy*nx])) - 0.5f*((betar - uu[xplus + iy*nx])*(betar - uu[xplus + iy*nx]) / (4.0f*g) - 0.5f*(zb[xplus + iy*nx] + zb[xplus2 + iy*nx]));
 			////
 			//zsbnd+qx/(dx*dx)*dt;//

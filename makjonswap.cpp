@@ -21,6 +21,54 @@
 using DECNUM = float;
 
 
+void GenCstWave(XBGPUParam Param, std::vector<Wavebndparam> wavebnd, float * theta, double * &Stfile, double * &qfile, double * &Tpfile)
+{
+	int ny, ntheta,nwavbnd;
+	double dtheta;
+	ny = Param.ny;
+	ntheta = Param.ntheta;
+	dtheta = Param.dtheta;
+
+	nwavbnd = wavebnd.size();
+
+	for (int n = 0; n < nwavbnd; n++)
+	{
+		Tpfile[n] = wavebnd[n].Tp;
+		double eetot = wavebnd[n].Hs*wavebnd[n].Hs*Param.rho*Param.g / (16.0*Param.dtheta);
+
+		for (int j = 0; j < Param.ny; j++)
+		{
+			qfile[j + 0 * ny + n*ny * 4] = 0.0;
+			qfile[j + 1 * ny + n*ny * 4] = 0.0;
+			qfile[j + 2 * ny + n*ny * 4] = 0.0;
+			qfile[j + 3 * ny + n*ny * 4] = 0.0;
+		}
+
+		double sumcos = 0.0;
+
+		double * scaledir;
+
+		scaledir = (double *)malloc(ntheta*sizeof(double));
+
+		for (int t = 0; t < ntheta; t++)
+		{
+			scaledir[t] = pow(cos((theta[t] - wavebnd[n].Dp) / 2.0), 2.0*wavebnd[n].s);
+			sumcos = sumcos + scaledir[t];
+		}
+
+		for (int t = 0; t < ntheta; t++)
+		{
+			double Stdir = scaledir[t] / sumcos*eetot;
+			for (int j = 0; j < ny; j++)
+			{
+				Stfile[j + t*ny + n*ny*ntheta] = Stdir;
+			}
+
+		}
+	}
+}
+	
+
 void makjonswap(DECNUM hm0gew,DECNUM fp,DECNUM mainang,DECNUM rt,DECNUM scoeff,DECNUM gam,DECNUM *theta,int ntheta,DECNUM& TTrep,DECNUM * &Stt)
 {
     

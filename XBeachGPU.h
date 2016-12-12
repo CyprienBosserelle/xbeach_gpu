@@ -111,6 +111,10 @@ public:
 	std::vector<TSnode> TSnodesout; // vector containing i and j of each variables
 	//Output variables
 	std::vector<std::string> outvars; //list of names of teh variables to output
+
+	//Wave bnd parameters
+	double dtbc=1.0; //time step for wave group forcing (generation  and reading)
+	double rtlength = 3600; // duration of wave group chunks
 };
 
 
@@ -134,15 +138,7 @@ public:
 	double time, zs, H;
 };
 
-class WaveBnd {
-public:
-	double endtime=0;
-	double ntime;
 
-	int inputindex=0;
-	
-
-};
 
 class Wavebndparam{
 public:
@@ -150,12 +146,12 @@ public:
 	double Hs, Tp, Dp, s;
 	double gamma = 3.3;
 	double alpha = 1.0;
-	double rtlength; // duration of specific file in s
+	//double rtlength; // duration of specific file in s // Moved to Param
 	std::string Efile; // For Xbeach Reuse
 	std::string qfile;
 	std::string ncXBGfile; // for XBeach_GPU reuse
 	std::string Swanfile;
-	double dtbc;
+	//double dtbc; Moved to Param
 	double Trep;
 
 };
@@ -177,8 +173,12 @@ extern "C" void write3dvarnc(int nx,int ny,int nt,DECNUM totaltime,DECNUM * var)
 extern "C" void read3Dnc(int nx, int ny,int ntheta,char ncfile[],DECNUM * &ee);
 extern "C" void read2Dnc(int nx, int ny,char ncfile[],DECNUM * &hh);
 
-extern "C" void readXbbndhead(const char * wavebndfile,DECNUM &thetamin,DECNUM &thetamax,DECNUM &dtheta,DECNUM &dtwavbnd,int &nwavbnd,int &nwavfile);
-extern "C" void readXbbndstep(int nx, int ny,int ntheta,const char * wavebndfile,int step,DECNUM &Trep,double *&qfile,double *&Stfile );
+void GenCstWave(XBGPUParam Param, std::vector<Wavebndparam> wavebnd, float * theta, double * &Stfile, double * &qfile, double * &Tpfile);
+
+//extern "C" void readXbbndhead(const char * wavebndfile,DECNUM &thetamin,DECNUM &thetamax,DECNUM &dtheta,DECNUM &dtwavbnd,int &nwavbnd,int &nwavfile);
+XBGPUParam readXbbndhead(XBGPUParam Param);
+std::vector<Wavebndparam> readXbbndfile(XBGPUParam Param);
+extern "C" void readXbbndstep(XBGPUParam Param, std::vector<Wavebndparam> wavebnd, int step, DECNUM &Trep, double *&qfile, double *&Stfile);
 extern "C" void readStatbnd(int nx, int ny,int ntheta,DECNUM rho,DECNUM g,const char * wavebndfile,double *&Tpfile,double *&Stfile );
 extern "C" void readbndhead(const char * wavebndfile,DECNUM &thetamin,DECNUM &thetamax,DECNUM &dtheta,DECNUM &dtwavbnd,int &nwavbnd);
 
@@ -252,7 +252,7 @@ template <class T> const T& max (const T& a, const T& b);
 extern "C"
 XBGPUParam waveinitGPU(XBGPUParam Param, std::vector<Wavebndparam> wavebnd);
 void wavebnd(XBGPUParam Param, std::vector<Wavebndparam> wavebndvec);
-void flowbnd(XBGPUParam Param, std::vector<SLBnd> slbnd, std::vector<WindBnd> wndbnd);
+void flowbnd(XBGPUParam Param, std::vector<SLBnd> slbnd, std::vector<WindBnd> wndbnd, std::vector<Wavebndparam> wavebndvec);
 void wavestep(XBGPUParam Param);
 void flowstep(XBGPUParam Param);
 void sedimentstep(XBGPUParam Param);

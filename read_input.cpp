@@ -21,13 +21,92 @@
 using DECNUM = float;
 
 
-extern "C" void readXbbndhead(const char * wavebnd, DECNUM &thetamin, DECNUM &thetamax, DECNUM &dtheta, DECNUM &dtwavbnd, int &nwavbnd, int &nwavfile)
+XBGPUParam readXbbndhead(XBGPUParam Param)
 {
-	FILE * fwav;
-	fwav = fopen(wavebnd, "r");
-	fscanf(fwav, "%f\t%f\t%f\t%f\t%d\t%d", &thetamin, &thetamax, &dtheta, &dtwavbnd, &nwavbnd, &nwavfile);
-	fclose(fwav);
+	std::ifstream fs(Param.wavebndfile);
+
+	if (fs.fail()){
+		std::cerr << Param.wavebndfile << " XBeach Reuse input bnd file could not be opened" << std::endl;
+		write_text_to_log_file("ERROR: XBeach Reuse input bnd file could not be opened ");
+		exit(1);
+	}
+
+	std::string line;
+	std::vector<std::string> lineelements;
+	
+	std::getline(fs, line);
+	//by default we expect tab delimitation
+	lineelements = split(line, '\t');
+	if (lineelements.size() < 5) // Expecting 5 parameters
+	{
+		lineelements.clear();
+		lineelements = split(line, ' ');
+	}
+	
+	Param.thetamin = std::stod(lineelements[0]);
+	Param.thetamax = std::stod(lineelements[1]);
+	Param.dtheta = std::stod(lineelements[2]);
+	Param.dtbc = std::stod(lineelements[3]);
+	Param.rtlength = std::stod(lineelements[4]);
+
+	
+	//FILE * fwav;
+	//fwav = fopen(wavebnd, "r");
+	//fscanf(fwav, "%f\t%f\t%f\t%f\t%d\t%d", &thetamin, &thetamax, &dtheta, &dtwavbnd, &nwavbnd, &nwavfile);
+	//fclose(fwav);
+
+	fs.close();
+
+	return Param;
+
 }
+std::vector<Wavebndparam> readXbbndfile(XBGPUParam Param)
+{
+	std::vector<Wavebndparam> wavebndvec;
+	std::ifstream fs(Param.wavebndfile);
+
+	if (fs.fail()){
+		std::cerr << Param.wavebndfile << " XBeach Reuse input bnd file could not be opened" << std::endl;
+		write_text_to_log_file("ERROR: XBeach Reuse input bnd file could not be opened ");
+		exit(1);
+	}
+
+	std::string line;
+	std::vector<std::string> lineelements;
+	Wavebndparam wavebndline;
+	int linenumber = 0;
+	while (std::getline(fs, line))
+	{
+		if (linenumber > 0)
+		{
+			//std::cout << line << std::endl;
+
+			// skip empty lines
+			if (!line.empty())
+			{
+
+				//by default we expect tab delimitation
+				lineelements = split(line, '\t');
+				if (lineelements.size() < 4)
+				{
+					lineelements.clear();
+					lineelements = split(line, ' ');
+				}
+				wavebndline.time = std::stod(lineelements[0]);
+				wavebndline.Trep = std::stod(lineelements[1]);
+				wavebndline.qfile = lineelements[2];
+				wavebndline.Efile = lineelements[3];
+
+				//slbndline = readBSHline(line);
+				wavebndvec.push_back(wavebndline);
+
+			}
+		}
+		linenumber++;
+	}
+	return wavebndvec;
+}
+
 extern "C" void readbndhead(const char * wavebnd, DECNUM &thetamin, DECNUM &thetamax, DECNUM &dtheta, DECNUM &dtwavbnd, int &nwavbnd)
 {
 	FILE * fwav;
@@ -38,36 +117,34 @@ extern "C" void readbndhead(const char * wavebnd, DECNUM &thetamin, DECNUM &thet
 	fclose(fwav);
 }
 
-extern "C" void readXbbndstep(int nx, int ny, int ntheta, const char * wavebnd, int step, DECNUM &Trep, double *&qfile, double *&Stfile)
+extern "C" void readXbbndstep(XBGPUParam Param, std::vector<Wavebndparam> wavebnd,int step, DECNUM &Trep, double *&qfile, double *&Stfile)
 {
-	FILE * fwav;
+
+	int nx, ny, ntheta;
+	nx = Param.nx;
+	ny = Param.ny;
+	ntheta = Param.ntheta;
 	FILE * fXq, *fXE;
-	char Xbqfile[256];
-	char XbEfile[256];
+	
 	double dummy;
 	size_t result;
 	DECNUM thetamin, thetamax, dtheta, dtwavbnd;
 	int nwavbnd, nwavfile;
+	nwavbnd = ceil(Param.rtlength / Param.dtbc); 
+
 
 	printf("Reading next wave bnd file... ");
 	write_text_to_log_file("Reading next bnd file... ");
 
-	fwav = fopen(wavebnd, "r");
-	fscanf(fwav, "%f\t%f\t%f\t%f\t%d\t%d", &thetamin, &thetamax, &dtheta, &dtwavbnd, &nwavbnd, &nwavfile);
-	for (int n = 0; n < step; n++)
-	{
-		fscanf(fwav, "%f\t%s\t%s\n", &Trep, &Xbqfile, &XbEfile);
-	}
-	fclose(fwav);
-
+	
 	//printf("Xbq: %s\n",Xbqfile);
 	//printf("Xbe: %s\n",XbEfile);
 
-	fXq = fopen(Xbqfile, "rb");
+	fXq = fopen(wavebnd[step].qfile.c_str(), "rb");
 	if (!fXq)
 	{
-		printf("Unable to open file %s\t", Xbqfile);
-		write_text_to_log_file("Unable to open file :"+ (std::string)Xbqfile);
+		printf("Unable to open file %s\t", wavebnd[step].qfile.c_str());
+		write_text_to_log_file("Unable to open file :" + wavebnd[step].qfile);
 		return;
 	}
 	else
@@ -84,7 +161,7 @@ extern "C" void readXbbndstep(int nx, int ny, int ntheta, const char * wavebnd, 
 	}
 
 
-	fXE = fopen(XbEfile, "rb");
+	fXE = fopen(wavebnd[step].Efile.c_str(), "rb");
 	for (int nn = 0; nn < ntheta*ny*nwavbnd; nn++)
 	{
 		fread(&dummy, sizeof(double), 1, fXE);
@@ -93,6 +170,8 @@ extern "C" void readXbbndstep(int nx, int ny, int ntheta, const char * wavebnd, 
 		Stfile[nn] = (DECNUM)dummy;
 	}
 	fclose(fXE);
+
+	Trep = wavebnd[step].Trep;
 
 	printf("done \n");
 	write_text_to_log_file("done");
