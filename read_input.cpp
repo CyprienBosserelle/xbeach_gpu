@@ -358,7 +358,56 @@ std::vector<Wavebndparam> ReadCstBnd(XBGPUParam XParam)
 			waveline.Tp = std::stod(lineelements[2]);
 			// make bnd normal wave direction
 			waveline.Dp = (1.5*pi - XParam.grdalpha) - std::stod(lineelements[3])*pi / 180; // Why make it in degree?
-			waveline.s = std::stod(lineelements[1]);
+			waveline.s = std::stod(lineelements[4]);
+			wavebnd.push_back(waveline);
+		}
+	}
+	fs.close();
+
+	return wavebnd;
+}
+std::vector<Wavebndparam> ReadJSWPBnd(XBGPUParam XParam)
+{
+	std::vector<Wavebndparam> wavebnd;
+
+
+	std::ifstream fs(XParam.wavebndfile);
+
+	if (fs.fail()){
+		std::cerr << XParam.wavebndfile << " Wave bnd file could not be opened" << std::endl;
+		write_text_to_log_file("ERROR: Wave bnd file could not be opened ");
+		exit(1);
+	}
+
+	std::string line;
+	std::vector<std::string> lineelements;
+	Wavebndparam waveline;
+
+	while (std::getline(fs, line))
+	{
+		//std::cout << line << std::endl;
+
+		// skip empty lines
+		if (!line.empty())
+		{
+			//Data should be in teh format :
+			//BASIN,CY,YYYYMMDDHH,TECHNUM/MIN,TECH,TAU,LatN/S,LonE/W,VMAX,MSLP,TY,RAD,WINDCODE,RAD1,RAD2,RAD3,RAD4,RADP,RRP,MRD,GUSTS,EYE,SUBREGION,MAXSEAS,INITIALS,DIR,SPEED,STORMNAME,DEPTH,SEAS,SEASCODE,SEAS1,SEAS2,SEAS3,SEAS4,USERDEFINED,userdata
+
+			//by default we expect tab delimitation
+			lineelements = split(line, '\t');
+			if (lineelements.size() < 6) // If we cant find all the elements it must be space delimited
+			{
+				lineelements.clear();
+				lineelements = split(line, ' ');
+			}
+
+			waveline.time = std::stod(lineelements[0]);
+			waveline.Hs = std::stod(lineelements[1]);
+			waveline.Tp = std::stod(lineelements[2]);
+			// make bnd normal wave direction
+			waveline.Dp = (1.5*pi - XParam.grdalpha) - std::stod(lineelements[3])*pi / 180; // Why make it in degree?
+			waveline.s = std::stod(lineelements[4]);
+			waveline.gamma = std::stod(lineelements[5]);
 			wavebnd.push_back(waveline);
 		}
 	}

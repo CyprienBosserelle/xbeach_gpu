@@ -1741,12 +1741,23 @@ int main(int argc, char **argv)
 		// A wave bnd file was specified
 		if (XParam.wavebndtype == 1)
 		{
+			//Constant wave boundary (no wave group)
 			wavebnd = ReadCstBnd(XParam);
 		}
 		if (XParam.wavebndtype == 2)
 		{
+			//Reuse XBeach boundary files, this requires a specific input file
 			XParam = readXbbndhead(XParam);
 			wavebnd = readXbbndfile(XParam);
+		}
+		if (XParam.wavebndtype == 3)
+		{
+			//Reuse XBeach_GPU boundary. Similar to XBeach but in netcdf format and all self explanatory
+			//Not implemented yet
+		}
+		if (XParam.wavebndtype == 4)
+		{
+			//Generate wave group for JONSWAP parameters
 		}
 	}
 	else
