@@ -115,6 +115,7 @@ public:
 	//Wave bnd parameters
 	double dtbc=1.0; //time step for wave group forcing (generation  and reading)
 	double rtlength = 3600; // duration of wave group chunks
+	double sprdthr = 0.08;
 };
 
 
@@ -163,7 +164,7 @@ public:
 
 
 // additional functions
-void makjonswap(DECNUM hm0gew,DECNUM fp,DECNUM mainang,DECNUM rt,DECNUM scoeff,DECNUM gam,DECNUM * theta,int ntheta,DECNUM& TTrep,DECNUM * &Stt);
+void makjonswap(XBGPUParam Param, std::vector<Wavebndparam> wavebnd, int step, int &nfreq, int &ntheta, double * &HRfreq, double * &HRdir, double * &HRSpec);
 extern "C" void creatncfile(XBGPUParam XParam, DECNUM totaltime, DECNUM *zb, DECNUM *zs, DECNUM * uu, DECNUM * vv, DECNUM * H, DECNUM * Tp, DECNUM * Dp, DECNUM * D, DECNUM * Urms, DECNUM * ueu, DECNUM * vev, DECNUM * C, DECNUM *Fx, DECNUM *Fy, DECNUM * hh, DECNUM *Hmean, DECNUM *uumean, DECNUM *vvmean, DECNUM *hhmean, DECNUM *zsmean, DECNUM *Cmean);
 extern "C" void writestep2nc(XBGPUParam XParam, DECNUM totaltime, DECNUM *zb, DECNUM *zs, DECNUM * uu, DECNUM * vv, DECNUM * H, DECNUM * Tp, DECNUM * Dp, DECNUM * D, DECNUM * Urms, DECNUM *ueu, DECNUM * vev, DECNUM * C, DECNUM *dzb, DECNUM *Fx, DECNUM *Fy, DECNUM *hh, DECNUM *Hmean, DECNUM *uumean, DECNUM *vvmean, DECNUM *hhmean, DECNUM *zsmean, DECNUM *Cmean);
 
@@ -181,6 +182,8 @@ std::vector<Wavebndparam> readXbbndfile(XBGPUParam Param);
 extern "C" void readXbbndstep(XBGPUParam Param, std::vector<Wavebndparam> wavebnd, int step, DECNUM &Trep, double *&qfile, double *&Stfile);
 extern "C" void readStatbnd(int nx, int ny,int ntheta,DECNUM rho,DECNUM g,const char * wavebndfile,double *&Tpfile,double *&Stfile );
 extern "C" void readbndhead(const char * wavebndfile,DECNUM &thetamin,DECNUM &thetamax,DECNUM &dtheta,DECNUM &dtwavbnd,int &nwavbnd);
+
+std::vector<Wavebndparam> ReadJSWPBnd(XBGPUParam XParam);
 
 //Below is for the new CPU routine
 extern "C" int mminusC(int ix,int nx);

@@ -123,6 +123,23 @@ XBGPUParam waveinitGPU(XBGPUParam Param, std::vector<Wavebndparam> wavebnd)
 		readXbbndstep(Param, wavebnd, 0, Trep, qfile, Stfile);
 				
 	}
+	if (Param.wavebndtype == 3)
+	{
+		//JONSWAP
+		//First generate a Highres 2D spec
+		double * HRfreq;
+		double * HRdir;
+		double * HRSpec;
+
+		int nfHR, ndHR;
+
+		makjonswap(Param, wavebnd, 0, nfHR, ndHR, HRfreq, HRdir, HRSpec);
+		//Then generate wave group timeseries based on that spectra
+		//GenWGnLBW(Param,HRfreq,HRdir,HRSpec,Trep,qfile,Stfile);
+
+
+
+	}
 	nwbndstep = 0;
 	for (int ni = 0; ni < ny; ni++)
 	{

@@ -921,6 +921,27 @@ XBGPUParam readparamstr(std::string line, XBGPUParam param)
 		param.dtheta = std::stod(parametervalue);
 	}
 
+	parameterstr = "dtbc =";
+	parametervalue = findparameter(parameterstr, line);
+	if (!parametervalue.empty())
+	{
+		param.dtheta = std::stod(parametervalue);
+	}
+
+	parameterstr = "rtlength =";
+	parametervalue = findparameter(parameterstr, line);
+	if (!parametervalue.empty())
+	{
+		param.dtheta = std::stod(parametervalue);
+	}
+
+	parameterstr = "sprdthr =";
+	parametervalue = findparameter(parameterstr, line);
+	if (!parametervalue.empty())
+	{
+		param.dtheta = std::stod(parametervalue);
+	}
+
 	//Other parameters
 	parameterstr = "GPUDEVICE =";
 	parametervalue = findparameter(parameterstr, line);

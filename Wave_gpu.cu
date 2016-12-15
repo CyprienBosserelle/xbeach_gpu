@@ -1758,6 +1758,7 @@ int main(int argc, char **argv)
 		if (XParam.wavebndtype == 4)
 		{
 			//Generate wave group for JONSWAP parameters
+			wavebnd=ReadJSWPBnd(XParam);
 		}
 	}
 	else
