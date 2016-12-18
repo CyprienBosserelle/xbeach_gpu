@@ -1873,6 +1873,8 @@ int main(int argc, char **argv)
 		}
 	}
 
+	XParam.offdepth = hh[0+(int)floor(ny*0.5)*nx]; // zb offshore should be uniform
+
 	//fclose(fid);
 	printf("...done\n");
 	write_text_to_log_file("...done");

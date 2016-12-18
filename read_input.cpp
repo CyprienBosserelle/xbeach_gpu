@@ -925,21 +925,28 @@ XBGPUParam readparamstr(std::string line, XBGPUParam param)
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
-		param.dtheta = std::stod(parametervalue);
+		param.dtbc = std::stod(parametervalue);
 	}
 
 	parameterstr = "rtlength =";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
-		param.dtheta = std::stod(parametervalue);
+		param.rtlength = std::stod(parametervalue);
 	}
 
 	parameterstr = "sprdthr =";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
-		param.dtheta = std::stod(parametervalue);
+		param.sprdthr = std::stod(parametervalue);
+	}
+
+	parameterstr = "random =";
+	parametervalue = findparameter(parameterstr, line);
+	if (!parametervalue.empty())
+	{
+		param.random = std::stoi(parametervalue);
 	}
 
 	//Other parameters

@@ -225,15 +225,19 @@ void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir
 	int nhf;
 	int nhd;
 
-	double * Sf;
+	double * Sf; // size of nf
+	double *fgen, *phigen, *thetagen, *kgen, *wgen; // size of K
+	double *pdf, *cdf; // size of ndir
 
 	double fmax,Sfmax; // Should be in Param
 
 	int Kmin = 200;
 
 	double dtheta = HRdir[1] - HRdir[0];
-
+	double dfreq = HRfreq[1] - HRfreq[0];
 	Sf = (double *)malloc(nf*sizeof(double));
+	pdf = (double *)malloc(ndir*sizeof(double));
+	cdf = (double *)malloc(ndir*sizeof(double));
 
 	for (int n = 0; n < nf; n++)
 	{
@@ -280,17 +284,194 @@ void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir
 	//Calculate number of wave components to be included in determination of the
 	//wave boundary conditions based on the wave record length and width of the
 	//wave frequency range
-	K = ceil(Param.dtbc*(HRfreq[ind2] - HRfreq[ind1]) + 1);
+	K = ceil(Param.rtlength*(HRfreq[ind2] - HRfreq[ind1]) + 1);
 	//also include minimum number of components
 	K = max(K, Kmin);
 
+	fgen = (double *)malloc(K*sizeof(double));
+	phigen = (double *)malloc(K*sizeof(double));
+	thetagen = (double *)malloc(K*sizeof(double));
+	kgen = (double *)malloc(K*sizeof(double));
+	wgen = (double *)malloc(K*sizeof(double));
+
+	double dfgen = (HRfreq[ind2] - HRfreq[ind1]) / K;
+	for (int i = 0; i < K; i++)
+	{
+		//
+		fgen[i] = HRfreq[ind1] + i*dfgen;
+	}
+
+	unsigned seed;
+	if (Param.random == 1)
+	{
+		seed = std::chrono::system_clock::now().time_since_epoch().count();
+	}
+	else
+	{
+		seed = 0;
+	}
 
 
+	std::default_random_engine generator;
+	std::uniform_real_distribution<double> distribution(0.0, 1.0);
+	//Determine a random phase for each wave train component between 0 and 2pi
+
+	for (int i = 0; i < K; i++)
+	{
+		//
+		phigen[i] = distribution(generator)*2.0*pi;
+	}
+	//double number = distribution(generator);
+
+	//Determine random directions for each wave train component, based on the CDF of
+	//the directional spectrum.For each wave train we will interpolate the directional
+	//distribution at that frequency, generate a CDF, and then interpolate the wave
+	//train direction from a random number draw and the CDF.
+	for (int i = 0; i < K; i++)
+	{
+		int fprev = ceil((fgen[i] - HRfreq[ind1]) / dfreq) + ind1;
+
+		for (int d = 0; d < ndir; d++)
+		{
+			pdf[d] = interptime(HRSpec[d + (fprev + 1)*nf], HRSpec[d + (fprev)*nf], dfreq, fgen[i] - HRfreq[fprev]);
+		}
+
+		//convert to pdf by ensuring total integral == 1, assuming constant directional bin size
+		double sumpdf = 0;
+		for (int d = 0; d < ndir; d++)
+		{
+			sumpdf = sumpdf + pdf[d];
+		}
+
+		for (int d = 0; d < ndir; d++)
+		{
+			pdf[d] = pdf[d] / sumpdf;
+		}
+
+		//convert to cdf by trapezoidal integration
+		//Note: this only works if the directional
+		//bins are constant in size.Assumed multiplication by one.
+		cdf[0] = pdf[0];
+		for (int d = 1; d < ndir; d++)
+		{
+			cdf[d] = cdf[d - 1] + 0.5*(pdf[d - 1] + pdf[d]);
+		}
+		double number = distribution(generator);
+
+		int dprev;
+		for (int d = 1; d < ndir; d++)
+		{
+			double diff = number - cdf[d];
+			if (diff < 0.0)
+			{
+				dprev = d - 1;
+				break;
+			}
+		}
+
+		thetagen[i] = interptime(HRdir[dprev + 1], HRdir[dprev], dtheta, dtheta*((number - cdf[dprev]) / (cdf[dprev + 1] - cdf[dprev])));
+	}
+
+	//determine wave number for each wave train component
+	// RL Soulsby(2006) "Simplified calculation of wave orbital velocities"
+	// HR Wallingford Report TR 155, February 2006
+	// Eqns. 12a - 14
+
+	// csherwood@usgs.gov
+	// Sept 10, 2006
+	for (int i = 0; i < K; i++)
+	{
+		double L, L0,w,x,y,h,t;
+		h = Param.offdepth;
+		L0 = Param.g*(1 / fgen[i])*(1 / fgen[i]) / 2 / pi;
+		w = 2 * pi / ((1 / fgen[i]));//2pi/T
+		x = w*w * h / Param.g;
+		y = sqrt(x) * (x<1) + x* (x >= 1);
+		t = tanh(y);
+		y = y - ((y*t - x) / (t + y*(1 - t*t)));
+		t = tanh(y);
+		y = y - ((y*t - x) / (t + y*(1 - t*t)));
+		t = tanh(y);
+		y = y - ((y*t - x) / (t + y*(1 - t*t)));
+		kgen[i] = y / h;
+		wgen[i] = w;
+	}
+
+	
 
 
 	//////////////////////////////////////
 	// Generate wave time axis
 	//////////////////////////////////////
+
+	//First assume that internal and bc - writing time step is the same
+	double dtin = Param.dtbc;
+	int tslenbc = (int)(Param.rtlength / Param.dtbc) + 1;
+	
+	//Check whether the internal frequency is high enough to describe the highest frequency
+	//wave train returned from frange(which can be used in the boundary conditions)
+	if (dtin > 0.1 / fgen[K - 1])
+	{
+		dtin = 0.1 / fgen[K - 1];
+	}
+	//! The length of the internal time axis should be even (for Fourier transform) and
+	//depends on the internal time step needed and the internal duration(~1 / dfgen) :
+	int tslen = ceil(1 / dfgen / dtin) + 1;
+	if (ceil(tslen/2)-tslen/2<0)
+	{
+		tslen = tslen + 1;
+	}
+	
+	//Now we can make the internal time axis
+	double rtin = tslen * dtin;
+	double * tin, *taperf, *taperw;
+	tin = (double *)malloc(tslen*sizeof(double));
+
+	for (int n = 0; n < tslen; n++)
+	{
+		tin[n] = n*dtin;
+	}
+
+	//Make a taper function to slowly increase and decrease the boundary condition forcing
+	//at the start and the end of the boundary condition file(including any time beyond
+	//the external rtbc
+	taperf = (double *)malloc(tslen*sizeof(double));
+	taperw = (double *)malloc(tslen*sizeof(double));
+
+	for (int n = 0; n < tslen; n++)
+	{
+		taperf[n] = 1;
+		taperw[n] = 1;
+	}
+
+	double Tbc = 1 / fgen[0]; //Should be Trep or 1/fpeak...
+	int ntaper = (int)(5.0*Tbc) / dtin;
+
+	for (int n = 0; n < min(ntaper, tslen); n++)
+	{
+		taperf[n] = tanh(5.0*n / ntaper); //
+		taperw[n] = tanh(5.0*n / ntaper); //
+	}
+
+	//We do not want to taperw the end anymore.Instead we pass the wave height at the end of rtbc to
+	//the next wave generation iteration.
+	//end taper by finding where tin = rtbc, taper before that and set everything to zero after
+	//that.
+
+	for (int n = tslen; n > 0; n--)
+	{
+		if (tin[n - 1] > (Param.rtlength - ntaper*dtin))
+		{
+			taperf[n - 1] = tanh(5.0*(Param.rtlength-tin[n-1])/dtin/ntaper);
+		}
+		
+		
+		if (tin[n - 1] > Param.rtlength)
+		{
+			taperf[n - 1] = 0;
+		}
+
+	}
 
 	//////////////////////////////////////
 	//Generate wave train variance

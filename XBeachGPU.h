@@ -24,6 +24,8 @@
 #include <vector>
 #include <ctime>
 #include <map>
+#include <random>
+#include <chrono>
 //using namespace std;
 
 
@@ -116,6 +118,8 @@ public:
 	double dtbc=1.0; //time step for wave group forcing (generation  and reading)
 	double rtlength = 3600; // duration of wave group chunks
 	double sprdthr = 0.08;
+	int random = 1;
+	double offdepth;
 };
 
 
