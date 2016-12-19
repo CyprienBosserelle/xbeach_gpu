@@ -486,7 +486,77 @@ extern "C" void writestep2nc(XBGPUParam XParam, DECNUM totaltime,DECNUM *zb,DECN
 }
 
 
-extern "C" void create3dnc(int nx,int ny,int nt,DECNUM dx,DECNUM totaltime,DECNUM *theta,DECNUM * var)
+extern "C" void create2dnc(int nx, int ny, double dx, double dy, double totaltime, double *xx, double *yy, double * var)
+{
+	int status;
+	int ncid, xx_dim, yy_dim, time_dim, p_dim, tvar_id;
+
+	size_t nxx, nyy, ntt;
+	static size_t start[] = { 0, 0, 0 }; // start at first value 
+	static size_t count[] = { 1, ny, nx };
+	int time_id, xx_id, yy_id, tt_id;	//
+	nxx = nx;
+	nyy = ny;
+	
+
+	//create the netcdf dataset
+	status = nc_create("2Dvar.nc", NC_NOCLOBBER, &ncid);
+
+	//Define dimensions: Name and length
+
+	status = nc_def_dim(ncid, "xx", nxx, &xx_dim);
+	status = nc_def_dim(ncid, "yy", nyy, &yy_dim);
+	
+	status = nc_def_dim(ncid, "time", NC_UNLIMITED, &time_dim);
+	int tdim[] = { time_dim };
+	int xdim[] = { xx_dim };
+	int ydim[] = { yy_dim };
+	
+
+	//define variables: Name, Type,...
+	int  var_dimids[3];
+	var_dimids[0] = time_dim;
+	
+	var_dimids[1] = yy_dim;
+	var_dimids[2] = xx_dim;
+
+
+	status = nc_def_var(ncid, "time", NC_DOUBLE, 1, tdim, &time_id);
+	status = nc_def_var(ncid, "x", NC_DOUBLE, 1, xdim, &xx_id);
+	status = nc_def_var(ncid, "y", NC_DOUBLE, 1, ydim, &yy_id);
+
+
+
+	status = nc_def_var(ncid, "3Dvar", NC_DOUBLE, 3, var_dimids, &tvar_id);
+
+
+	status = nc_enddef(ncid);
+
+
+	static size_t tst[] = { 0 };
+	static size_t xstart[] = { 0 }; // start at first value 
+	static size_t xcount[] = { nx };
+	;
+	static size_t ystart[] = { 0 }; // start at first value 
+	static size_t ycount[] = { ny };
+
+
+
+
+
+
+	//Provide values for variables
+	status = nc_put_var1_double(ncid, time_id, tst, &totaltime);
+	status = nc_put_vara_double(ncid, xx_id, xstart, xcount, xx);
+	status = nc_put_vara_double(ncid, yy_id, ystart, ycount, yy);
+
+
+	status = nc_put_vara_double(ncid, tvar_id, start, count, var);
+	status = nc_close(ncid);
+
+}
+
+extern "C" void create3dnc(int nx, int ny, int nt, double dx, double dy, double dtheta,double totaltime, double *xx, double *yy,double *theta, double * var)
 {
 	int status;
    	int ncid,xx_dim,yy_dim,time_dim,p_dim,tvar_id;
@@ -521,13 +591,13 @@ extern "C" void create3dnc(int nx,int ny,int nt,DECNUM dx,DECNUM totaltime,DECNU
     var_dimids[3] = xx_dim;
 	
 	
-    status = nc_def_var (ncid, "time", NC_FLOAT,1,tdim, &time_id);
-	status = nc_def_var (ncid, "x", NC_FLOAT,1,xdim, &xx_id);
-	status = nc_def_var (ncid, "y", NC_FLOAT,1,ydim, &yy_id);
-	status = nc_def_var (ncid, "theta", NC_FLOAT,1,pdim, &tt_id);
+    status = nc_def_var (ncid, "time", NC_DOUBLE,1,tdim, &time_id);
+	status = nc_def_var(ncid, "x", NC_DOUBLE, 1, xdim, &xx_id);
+	status = nc_def_var(ncid, "y", NC_DOUBLE, 1, ydim, &yy_id);
+	status = nc_def_var(ncid, "theta", NC_DOUBLE, 1, pdim, &tt_id);
 
 
-	status = nc_def_var (ncid, "3Dvar", NC_FLOAT, 4, var_dimids, &tvar_id);
+	status = nc_def_var(ncid, "3Dvar", NC_DOUBLE, 4, var_dimids, &tvar_id);
 
 
 	status = nc_enddef(ncid); 
@@ -536,38 +606,25 @@ extern "C" void create3dnc(int nx,int ny,int nt,DECNUM dx,DECNUM totaltime,DECNU
 	static size_t tst[]={0};
 	static size_t xstart[] = {0}; // start at first value 
     static size_t xcount[] = {nx};
-	DECNUM *xval;
+	
 	static size_t ystart[] = {0}; // start at first value 
     static size_t ycount[] = {ny};
-	DECNUM *yval;
+
 	static size_t tstart[] = {0}; // start at first value 
     static size_t tcount[] = {nt};
 	
 
-	xval=(DECNUM *)malloc(nx*sizeof(DECNUM));
-	yval=(DECNUM *)malloc(ny*sizeof(DECNUM));
-
-	for (int i=0; i<nx; i++)
-	{
-		xval[i]=i*dx;
-	}
-	for (int i=0; i<ny; i++)
-	{
-		yval[i]=i*dx;
-	}
-
-
 	//Provide values for variables
-	status = nc_put_var1_float(ncid, time_id,tst,&totaltime);
-	status = nc_put_vara_float(ncid, xx_id,xstart,xcount, xval);
-	status = nc_put_vara_float(ncid, yy_id,ystart,ycount, yval);
-	status = nc_put_vara_float(ncid, tt_id,tstart,tcount, theta);
+	status = nc_put_var1_double(ncid, time_id,tst,&totaltime);
+	status = nc_put_vara_double(ncid, xx_id,xstart,xcount, xx);
+	status = nc_put_vara_double(ncid, yy_id,ystart,ycount, yy);
+	status = nc_put_vara_double(ncid, tt_id,tstart,tcount, theta);
 
-	status = nc_put_vara_float(ncid, tvar_id, start, count, var);
+	status = nc_put_vara_double(ncid, tvar_id, start, count, var);
 	status = nc_close(ncid);
 
 }
-extern "C" void write3dvarnc(int nx,int ny,int nt,DECNUM totaltime,DECNUM * var)
+extern "C" void write3dvarnc(int nx,int ny,int nt,double totaltime,double * var)
 {
 	int status;
    	int ncid,time_dim,recid;
@@ -598,8 +655,45 @@ extern "C" void write3dvarnc(int nx,int ny,int nt,DECNUM totaltime,DECNUM * var)
 	tst[0]=nrec;
 
 	//Provide values for variables
-	status = nc_put_var1_float(ncid, time_id,tst,&totaltime);
-	status = nc_put_vara_float(ncid, var_id, start, count, var);
+	status = nc_put_var1_double(ncid, time_id,tst,&totaltime);
+	status = nc_put_vara_double(ncid, var_id, start, count, var);
+	status = nc_close(ncid);
+
+}
+
+extern "C" void write2varnc(int nx, int ny,  double totaltime, double * var)
+{
+	int status;
+	int ncid, time_dim, recid;
+	size_t nxx, nyy;
+	static size_t start[] = { 0, 0, 0 }; // start at first value 
+	static size_t count[] = { 1, ny, nx };
+	static size_t tst[] = { 0 };
+	int time_id, var_id;
+
+
+	nxx = nx;
+	nyy = ny;
+
+
+	static size_t nrec;
+	status = nc_open("3Dvar.nc", NC_WRITE, &ncid);
+
+	//read id from time dimension
+	status = nc_inq_unlimdim(ncid, &recid);
+	status = nc_inq_dimlen(ncid, recid, &nrec);
+	//printf("nrec=%d\n",nrec);
+
+	//read file for variable ids
+	status = nc_inq_varid(ncid, "time", &time_id);
+	status = nc_inq_varid(ncid, "3Dvar", &var_id);
+
+	start[0] = nrec;//
+	tst[0] = nrec;
+
+	//Provide values for variables
+	status = nc_put_var1_double(ncid, time_id, tst, &totaltime);
+	status = nc_put_vara_double(ncid, var_id, start, count, var);
 	status = nc_close(ncid);
 
 }

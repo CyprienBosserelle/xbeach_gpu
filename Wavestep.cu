@@ -134,6 +134,7 @@ XBGPUParam waveinitGPU(XBGPUParam Param, std::vector<Wavebndparam> wavebnd)
 		int nfHR, ndHR;
 
 		makjonswap(Param, wavebnd, 0, nfHR, ndHR, HRfreq, HRdir, HRSpec);
+		create2dnc(nfHR, ndHR, HRfreq[1] - HRfreq[0], HRdir[1] - HRdir[0], 0.0, HRfreq, HRdir, HRSpec);
 		//Then generate wave group timeseries based on that spectra
 		//GenWGnLBW(Param,HRfreq,HRdir,HRSpec,Trep,qfile,Stfile);
 

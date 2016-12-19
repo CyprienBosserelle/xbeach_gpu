@@ -172,8 +172,11 @@ void makjonswap(XBGPUParam Param, std::vector<Wavebndparam> wavebnd, int step, i
 extern "C" void creatncfile(XBGPUParam XParam, DECNUM totaltime, DECNUM *zb, DECNUM *zs, DECNUM * uu, DECNUM * vv, DECNUM * H, DECNUM * Tp, DECNUM * Dp, DECNUM * D, DECNUM * Urms, DECNUM * ueu, DECNUM * vev, DECNUM * C, DECNUM *Fx, DECNUM *Fy, DECNUM * hh, DECNUM *Hmean, DECNUM *uumean, DECNUM *vvmean, DECNUM *hhmean, DECNUM *zsmean, DECNUM *Cmean);
 extern "C" void writestep2nc(XBGPUParam XParam, DECNUM totaltime, DECNUM *zb, DECNUM *zs, DECNUM * uu, DECNUM * vv, DECNUM * H, DECNUM * Tp, DECNUM * Dp, DECNUM * D, DECNUM * Urms, DECNUM *ueu, DECNUM * vev, DECNUM * C, DECNUM *dzb, DECNUM *Fx, DECNUM *Fy, DECNUM *hh, DECNUM *Hmean, DECNUM *uumean, DECNUM *vvmean, DECNUM *hhmean, DECNUM *zsmean, DECNUM *Cmean);
 
-extern "C" void create3dnc(int nx,int ny,int nt,DECNUM dx,DECNUM totaltime,DECNUM *theta,DECNUM * var);
-extern "C" void write3dvarnc(int nx,int ny,int nt,DECNUM totaltime,DECNUM * var);
+extern "C" void create3dnc(int nx, int ny, int nt, double dx, double dy, double dtheta, double totaltime, double *xx, double *yy, double *theta, double * var);
+extern "C" void write3dvarnc(int nx, int ny, int nt, double totaltime, double * var);
+
+extern "C" void create2dnc(int nx, int ny, double dx, double dy, double totaltime, double *xx, double *yy, double * var);
+extern "C" void write2varnc(int nx, int ny, double totaltime, double * var);
 
 extern "C" void read3Dnc(int nx, int ny,int ntheta,char ncfile[],DECNUM * &ee);
 extern "C" void read2Dnc(int nx, int ny,char ncfile[],DECNUM * &hh);
@@ -256,7 +259,7 @@ template <class T> const T& max (const T& a, const T& b);
 
 
 
-extern "C"
+
 XBGPUParam waveinitGPU(XBGPUParam Param, std::vector<Wavebndparam> wavebnd);
 void wavebnd(XBGPUParam Param, std::vector<Wavebndparam> wavebndvec);
 void flowbnd(XBGPUParam Param, std::vector<SLBnd> slbnd, std::vector<WindBnd> wndbnd, std::vector<Wavebndparam> wavebndvec);

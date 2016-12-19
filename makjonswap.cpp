@@ -89,7 +89,7 @@ void makjonswap(XBGPUParam Param, std::vector<Wavebndparam> wavebnd, int step, i
 	double dfj= fp/20.0f;
 
 	// 
-	int nfreq=ceil((fnyq-dfj)/dfj);
+	nfreq=ceil((fnyq-dfj)/dfj);
 
 
 	HRfreq=(double *)malloc(nfreq*sizeof(double));
@@ -286,7 +286,7 @@ void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir
 	//wave frequency range
 	K = ceil(Param.rtlength*(HRfreq[ind2] - HRfreq[ind1]) + 1);
 	//also include minimum number of components
-	K = max(K, Kmin);
+	K = (int)max(K*1.0, Kmin*1.0);// workaround because template for int not compiling for some reason
 
 	fgen = (double *)malloc(K*sizeof(double));
 	phigen = (double *)malloc(K*sizeof(double));
@@ -416,7 +416,7 @@ void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir
 	}
 	//! The length of the internal time axis should be even (for Fourier transform) and
 	//depends on the internal time step needed and the internal duration(~1 / dfgen) :
-	int tslen = ceil(1 / dfgen / dtin) + 1;
+	int tslen = (int)(ceil(1 / dfgen / dtin) + 1);
 	if (ceil(tslen/2)-tslen/2<0)
 	{
 		tslen = tslen + 1;
@@ -445,9 +445,9 @@ void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir
 	}
 
 	double Tbc = 1 / fgen[0]; //Should be Trep or 1/fpeak...
-	int ntaper = (int)(5.0*Tbc) / dtin;
+	int ntaper = (int)((5.0*Tbc) / dtin);
 
-	for (int n = 0; n < min(ntaper, tslen); n++)
+	for (int n = 0; n < (int)min(1.0*ntaper, 1.0*tslen); n++)
 	{
 		taperf[n] = tanh(5.0*n / ntaper); //
 		taperw[n] = tanh(5.0*n / ntaper); //
