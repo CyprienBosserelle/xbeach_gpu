@@ -156,7 +156,7 @@ void makjonswap(XBGPUParam Param, std::vector<Wavebndparam> wavebnd, int step, i
 	//int ntheta=101;
 	//DECNUM *theta;
 	double * HRtheta;
-	int ntheta = 90;
+	ntheta = 90;
 	double dtheta = 2*pi / ntheta;
 	double *theta;
 
@@ -358,7 +358,7 @@ void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir
 		}
 		double number = distribution(generator);
 
-		int dprev;
+		int dprev = ndir-1;
 		for (int d = 1; d < ndir; d++)
 		{
 			double diff = number - cdf[d];
@@ -417,7 +417,7 @@ void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir
 	//! The length of the internal time axis should be even (for Fourier transform) and
 	//depends on the internal time step needed and the internal duration(~1 / dfgen) :
 	int tslen = (int)(ceil(1 / dfgen / dtin) + 1);
-	if (ceil(tslen/2)-tslen/2<0)
+	if (ceil(tslen/2)-tslen/2>0)
 	{
 		tslen = tslen + 1;
 	}
