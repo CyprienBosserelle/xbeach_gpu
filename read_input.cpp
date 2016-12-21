@@ -1263,6 +1263,106 @@ double interptime(double next, double prev, double timenext, double time)
 	return prev + (time) / (timenext)*(next - prev);
 }
 
+
+double interp1D(double *x, double *y, double xx)
+{
+	double yy;
+	double prevx=x[0];
+	double nextx=x[1];
+	double prevy=y[0];
+	double nexty=y[1];
+	int indx;
+
+	double diffx = 0;
+
+	int nx = sizeof(x) / sizeof(x[0]);
+
+	for (int i = 0; i < nx; i++)
+	{
+		diffx = xx - x[i];
+		if (diffx <= 0.0)
+		{
+			indx = max(i-1,0);
+			break;
+		}
+	}
+	
+	prevx = x[indx];
+	nextx = x[min(indx + 1, nx - 1)];
+	prevy = y[indx];
+	nexty = y[min(indx + 1, nx - 1)];
+
+
+	yy = prevy + (xx-prevx) / (nextx-prevx)*(nexty - prevy);
+	return yy;
+}
+double Interp2(double *x, double *y, double *z, double xx, double yy)
+//double BilinearInterpolation(double q11, double q12, double q21, double q22, double x1, double x2, double y1, double y2, double x, double y)
+{
+	double x2x1, y2y1, x2x, y2y, yy1, xx1;
+	double q11, q12, q21, q22, x1, x2, y1, y2;
+
+
+	// find x1 and x2
+	int indx,indxp;
+
+	double diffx;
+
+	int nx = sizeof(x) / sizeof(x[0]);
+
+	for (int i = 0; i < nx; i++)
+	{
+		diffx = xx - x[i];
+		if (diffx <= 0.0)
+		{
+			indx = max(i - 1, 0);
+			break;
+		}
+	}
+	
+	x1 = x[indx];
+	indxp = min(indx + 1, nx - 1);
+	x2 = x[indxp];
+
+	int indy,indyp;
+
+	double diffy;
+
+	int ny = sizeof(y) / sizeof(y[0]);
+
+	for (int i = 0; i < ny; i++)
+	{
+		diffy = yy - y[i];
+		if (diffy <= 0.0)
+		{
+			indy = max(i - 1, 0);
+			break;
+		}
+	}
+
+	y1 = y[indy];
+	indyp = min(indy + 1, ny - 1);
+	y2 = y[indyp];
+
+	q11 = z[indx + indy*nx];
+	q12 = z[indx + indyp*nx];
+	q21 = z[indxp + indy*nx];
+	q22 = z[indxp + indyp*nx];
+
+	x2x1 = x2 - x1;
+	y2y1 = y2 - y1;
+	x2x = x2 - xx;
+	y2y = y2 - yy;
+	yy1 = yy - y1;
+	xx1 = xx - x1;
+	return 1.0 / (x2x1 * y2y1) * (
+		q11 * x2x * y2y +
+		q21 * xx1 * y2y +
+		q12 * x2x * yy1 +
+		q22 * xx1 * yy1
+		);
+}
+
 extern "C" void readbathyHead(std::string filename, int &nx, int &ny, double &dx, double &grdalpha )
 {
 	//read input data:

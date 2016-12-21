@@ -250,7 +250,8 @@ std::vector<SLBnd> readWLfile(std::string WLfilename);
 std::vector<WindBnd> readWNDfile(std::string WNDfilename, double grdalpha);
 std::vector<Wavebndparam> ReadCstBnd(XBGPUParam XParam);
 double interptime(double next, double prev, double timenext, double time);
-
+double interp1D(double *x, double *y, double xx);
+double Interp2(double *x, double *y, double *z, double xx, double yy);
 
 extern "C" void readbathyHead(std::string filename, int &nx, int &ny, double &dx, double &grdalpha);
 extern "C" void readbathy(std::string filename, float *&zb);

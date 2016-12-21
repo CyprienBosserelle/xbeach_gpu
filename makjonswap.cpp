@@ -226,7 +226,7 @@ void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir
 	int nhd;
 
 	double * Sf; // size of nf
-	double *fgen, *phigen, *thetagen, *kgen, *wgen; // size of K
+	double *fgen, *phigen, *thetagen, *kgen, *wgen, *vargen, *Findex; // size of K
 	double *pdf, *cdf; // size of ndir
 
 	double fmax,Sfmax; // Should be in Param
@@ -235,6 +235,7 @@ void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir
 
 	double dtheta = HRdir[1] - HRdir[0];
 	double dfreq = HRfreq[1] - HRfreq[0];
+	double Hm0=0.0;
 	Sf = (double *)malloc(nf*sizeof(double));
 	pdf = (double *)malloc(ndir*sizeof(double));
 	cdf = (double *)malloc(ndir*sizeof(double));
@@ -248,7 +249,9 @@ void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir
 			Sf[n] = Sf[n] + HRSpec[d+n*nf];
 		}
 		Sf[n] = Sf[n] * dtheta;
+		Hm0 = Hm0 + Sf[n];
 	}
+	Hm0 = 4.0*sqrt(Hm0*dfreq);
 
 	//////////////////////////////////////
 	// Generate wave train component
@@ -293,6 +296,9 @@ void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir
 	thetagen = (double *)malloc(K*sizeof(double));
 	kgen = (double *)malloc(K*sizeof(double));
 	wgen = (double *)malloc(K*sizeof(double));
+	vargen = (double *)malloc(K*sizeof(double));
+	Findex = (double *)malloc(K*sizeof(double));
+
 
 	double dfgen = (HRfreq[ind2] - HRfreq[ind1]) / K;
 	for (int i = 0; i < K; i++)
@@ -368,7 +374,7 @@ void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir
 				break;
 			}
 		}
-
+		//interp1D(double *x, double *y, double xx)
 		thetagen[i] = interptime(HRdir[dprev + 1], HRdir[dprev], dtheta, dtheta*((number - cdf[dprev]) / (cdf[dprev + 1] - cdf[dprev])));
 	}
 
@@ -476,14 +482,68 @@ void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir
 	//////////////////////////////////////
 	//Generate wave train variance
 	//////////////////////////////////////
+	//! Determine variance at each spectrum location
+	double sumvargen=0.0;
+	for (int i = 0; i < K; i++)
+	{
+		//interptime(double next, double prev, double timenext, double time)
+		//vargen[i] = interp1D(HRfreq, Sf, fgen[i]);
+		vargen[i] = Interp2(HRfreq, HRdir, HRSpec, fgen[i], thetagen[i]);
+		sumvargen = sumvargen + vargen[i];
+	}
+
+	// scale vargen so that 4*sqrt(sum(vargen)*dfgen)==4*sqrt(sum(Sf)*df)
+	double scalefactor = pow(Hm0 / 4.0 * sqrt(sumvargen*dfgen),2); // squared
+
+	for (int i = 0; i < K; i++)
+	{
+		vargen[i] = vargen[i] * scalefactor;
+	}
+
+	//Not sure why this is done here (the prev values should alway be the min anyways)
+	double dummy;
+	for (int i = 0; i < K; i++)
+	{
+		dummy = interp1D(HRfreq, Sf, fgen[i]);
+		vargen[i] = min(vargen[i] ,dummy);
+	}
 
 	//////////////////////////////////////
 	//Generate wave train properties at each offshore points
 	//////////////////////////////////////
+	//Skip A=sqrt(2*vargen[i]*dfgen) and Hmo=4.0 * sqrt(sumvargen*dfgen)
 
 	//////////////////////////////////////
 	//Generate wave train fourier
 	//////////////////////////////////////
+	//  ! Determine indices of wave train components in frequency axis and
+	//  !Fourier transform result
+	
+	int tempi = floor(fgen[0] / dfgen);
+	for (int i = 0; i < K; i++)
+	{
+		Findex[i] = tempi + i+1; // why not simply i ??
+	}
+
+	//	! Determine first half of complex Fourier coefficients of wave train
+	//	!components using random phase and amplitudes from sampled spectrum
+	//	!until Nyquist frequency.The amplitudes are represented in a
+	//	!two - sided spectrum, which results in the factor 1 / 2.
+	//	!Unroll Fourier components along offshore boundary, assuming all wave trains
+	//	!start at x(1, 1), y(1, 1).
+
+
+
+	for (int i = 0; i < K; i++)
+	{
+		for (int j = 0; j < Param.ny; j++)
+		{
+			//CompFn[ii + Findex[i] * K] = sqrt(2 * vargen[i] * dfgen) / 2 * exp(par_compi*phigen[i])*    //Bas: wp%Findex used in time dimension because t = j*dt in frequency space
+			//	exp(-par_compi*kgen[i] *
+			//	(sin(thetagen[i])*(j*Param.dx))); //dsin
+				//+ cos(thetagen[i])*(xb[j] - x0))); //dcos
+		}
+	}
 
 	//////////////////////////////////////
 	//Distribute wave train direction
