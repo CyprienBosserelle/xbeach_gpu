@@ -1271,7 +1271,7 @@ double interp1D(double *x, double *y, double xx)
 	double nextx=x[1];
 	double prevy=y[0];
 	double nexty=y[1];
-	int indx;
+	int indx,indxp;
 
 	double diffx = 0;
 
@@ -1282,15 +1282,15 @@ double interp1D(double *x, double *y, double xx)
 		diffx = xx - x[i];
 		if (diffx <= 0.0)
 		{
-			indx = max(i-1,0);
+			indx = (int)max(i*1.0-1,0.0);
 			break;
 		}
 	}
-	
+	indxp = (int)min(indx*1.0 + 1, nx*1.0 - 1);
 	prevx = x[indx];
-	nextx = x[min(indx + 1, nx - 1)];
+	nextx = x[indxp];
 	prevy = y[indx];
-	nexty = y[min(indx + 1, nx - 1)];
+	nexty = y[indxp];
 
 
 	yy = prevy + (xx-prevx) / (nextx-prevx)*(nexty - prevy);
@@ -1315,13 +1315,13 @@ double Interp2(double *x, double *y, double *z, double xx, double yy)
 		diffx = xx - x[i];
 		if (diffx <= 0.0)
 		{
-			indx = max(i - 1, 0);
+			indx = (int) max(i*1.0 - 1, 0.0);
 			break;
 		}
 	}
 	
 	x1 = x[indx];
-	indxp = min(indx + 1, nx - 1);
+	indxp = (int)min(indx*1.0 + 1, nx*1.0 - 1);
 	x2 = x[indxp];
 
 	int indy,indyp;
@@ -1335,13 +1335,13 @@ double Interp2(double *x, double *y, double *z, double xx, double yy)
 		diffy = yy - y[i];
 		if (diffy <= 0.0)
 		{
-			indy = max(i - 1, 0);
+			indy = (int)max(i*1.0 - 1, 0.0);
 			break;
 		}
 	}
 
 	y1 = y[indy];
-	indyp = min(indy + 1, ny - 1);
+	indyp = (int)min(indy*1.0 + 1, ny*1.0 - 1);
 	y2 = y[indyp];
 
 	q11 = z[indx + indy*nx];
