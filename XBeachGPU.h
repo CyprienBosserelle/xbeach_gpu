@@ -26,6 +26,8 @@
 #include <map>
 #include <random>
 #include <chrono>
+
+#include <complex>
 //using namespace std;
 
 
@@ -163,6 +165,29 @@ public:
 
 
 
+//from user4581301 on stackoverflow
+template <class TYPE>
+class TwoDee
+{
+private:
+	size_t mNrRows;
+	size_t mNrColumns;
+	std::vector<TYPE> vec;
+public:
+	TwoDee(size_t nrRows, size_t nrColumns) :
+		mNrRows(nrRows), mNrColumns(nrColumns), vec(mNrRows*mNrColumns)
+	{
+
+	}
+	TYPE & operator()(size_t row, size_t column)
+	{
+		return vec[row* mNrColumns + column];
+	}
+	TYPE operator()(size_t row, size_t column) const
+	{
+		return vec[row* mNrColumns + column];
+	}
+};
 
 
 
@@ -250,8 +275,8 @@ std::vector<SLBnd> readWLfile(std::string WLfilename);
 std::vector<WindBnd> readWNDfile(std::string WNDfilename, double grdalpha);
 std::vector<Wavebndparam> ReadCstBnd(XBGPUParam XParam);
 double interptime(double next, double prev, double timenext, double time);
-double interp1D(double *x, double *y, double xx);
-double Interp2(double *x, double *y, double *z, double xx, double yy);
+double interp1D(int nx, double *x, double *y, double xx);
+double Interp2(int nx, int ny, double *x, double *y, double *z, double xx, double yy);
 
 extern "C" void readbathyHead(std::string filename, int &nx, int &ny, double &dx, double &grdalpha);
 extern "C" void readbathy(std::string filename, float *&zb);

@@ -226,8 +226,11 @@ void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir
 	int nhd;
 
 	double * Sf; // size of nf
-	double *fgen, *phigen, *thetagen, *kgen, *wgen, *vargen, *Findex; // size of K
-	double *pdf, *cdf; // size of ndir
+
+	double *fgen, *phigen, *thetagen, *kgen, *wgen, *vargen;
+	int *Findex; // size of K
+	//double *CompFn;//size of ny*K // now as a 2D vector of complex
+	double *Sd,*pdf, *cdf; // size of ndir
 
 	double fmax,Sfmax; // Should be in Param
 
@@ -237,6 +240,7 @@ void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir
 	double dfreq = HRfreq[1] - HRfreq[0];
 	double Hm0=0.0;
 	Sf = (double *)malloc(nf*sizeof(double));
+	Sd = (double *)malloc(ndir*sizeof(double));
 	pdf = (double *)malloc(ndir*sizeof(double));
 	cdf = (double *)malloc(ndir*sizeof(double));
 
@@ -246,12 +250,22 @@ void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir
 		for (int d = 0; d < ndir; d++)
 		{
 			//
-			Sf[n] = Sf[n] + HRSpec[d+n*nf];
+			Sf[n] = Sf[n] + HRSpec[n+d*nf];
 		}
 		Sf[n] = Sf[n] * dtheta;
 		Hm0 = Hm0 + Sf[n];
 	}
 	Hm0 = 4.0*sqrt(Hm0*dfreq);
+
+	for (int d = 0; d < ndir; d++)
+	{
+		Sd[d] = 0.0;
+		for (int n = 0; n < nf; n++)
+		{
+			Sd[d] = Sd[d] + HRSpec[n + d*nf];
+		}
+		Sd[d] = Sd[d] * dfreq;
+	}
 
 	//////////////////////////////////////
 	// Generate wave train component
@@ -297,8 +311,8 @@ void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir
 	kgen = (double *)malloc(K*sizeof(double));
 	wgen = (double *)malloc(K*sizeof(double));
 	vargen = (double *)malloc(K*sizeof(double));
-	Findex = (double *)malloc(K*sizeof(double));
-
+	Findex = (int *)malloc(K*sizeof(int));
+	//CompFn = (double *)malloc(K*Param.ny*sizeof(double));
 
 	double dfgen = (HRfreq[ind2] - HRfreq[ind1]) / K;
 	for (int i = 0; i < K; i++)
@@ -335,11 +349,12 @@ void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir
 	//train direction from a random number draw and the CDF.
 	for (int i = 0; i < K; i++)
 	{
-		int fprev = ceil((fgen[i] - HRfreq[ind1]) / dfreq) + ind1;
+		//int fprev = ceil((fgen[i] - HRfreq[ind1]) / dfreq) + ind1;
 
 		for (int d = 0; d < ndir; d++)
 		{
-			pdf[d] = interptime(HRSpec[d + (fprev + 1)*nf], HRSpec[d + (fprev)*nf], dfreq, fgen[i] - HRfreq[fprev]);
+			//pdf[d] = interptime(HRSpec[d + (fprev + 1)*nf], HRSpec[d + (fprev)*nf], dfreq, fgen[i] - HRfreq[fprev]);
+			pdf[d] = Interp2(nf, ndir,HRfreq, HRdir,HRSpec, fgen[i],HRdir[d]);
 		}
 
 		//convert to pdf by ensuring total integral == 1, assuming constant directional bin size
@@ -364,18 +379,20 @@ void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir
 		}
 		double number = distribution(generator);
 
-		int dprev = ndir-1;
-		for (int d = 1; d < ndir; d++)
-		{
-			double diff = number - cdf[d];
-			if (diff < 0.0)
-			{
-				dprev = d - 1;
-				break;
-			}
-		}
+		//int dprev = ndir-1;
+		//for (int d = 1; d < ndir; d++)
+		//{
+		//	double diff = number - cdf[d];
+		//	if (diff < 0.0)
+		//	{
+		//		dprev = d - 1;
+		//		break;
+		//	}
+		//}
 		//interp1D(double *x, double *y, double xx)
-		thetagen[i] = interptime(HRdir[dprev + 1], HRdir[dprev], dtheta, dtheta*((number - cdf[dprev]) / (cdf[dprev + 1] - cdf[dprev])));
+		//thetagen[i] = interptime(HRdir[dprev + 1], HRdir[dprev], dtheta, dtheta*((number - cdf[dprev]) / (cdf[dprev + 1] - cdf[dprev])));
+		thetagen[i] = interp1D(ndir, cdf, HRdir, number);
+		printf("thetagen[i]=%f\n", thetagen[i]);
 	}
 
 	//determine wave number for each wave train component
@@ -488,12 +505,12 @@ void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir
 	{
 		//interptime(double next, double prev, double timenext, double time)
 		//vargen[i] = interp1D(HRfreq, Sf, fgen[i]);
-		vargen[i] = Interp2(HRfreq, HRdir, HRSpec, fgen[i], thetagen[i]);
+		vargen[i] = Interp2( nf, ndir, HRfreq, HRdir, HRSpec, fgen[i], thetagen[i]);
 		sumvargen = sumvargen + vargen[i];
 	}
 
 	// scale vargen so that 4*sqrt(sum(vargen)*dfgen)==4*sqrt(sum(Sf)*df)
-	double scalefactor = pow(Hm0 / 4.0 * sqrt(sumvargen*dfgen),2); // squared
+	double scalefactor = pow(Hm0 / (4.0 * sqrt(sumvargen*dfgen)),2); // squared
 
 	for (int i = 0; i < K; i++)
 	{
@@ -504,7 +521,7 @@ void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir
 	double dummy;
 	for (int i = 0; i < K; i++)
 	{
-		dummy = interp1D(HRfreq, Sf, fgen[i]);
+		dummy = interp1D(nf, HRfreq, Sf, fgen[i]);
 		vargen[i] = min(vargen[i] ,dummy);
 	}
 
@@ -522,9 +539,9 @@ void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir
 	int tempi = floor(fgen[0] / dfgen);
 	for (int i = 0; i < K; i++)
 	{
-		Findex[i] = tempi + i+1; // why not simply i ??
+		Findex[i] = tempi + i + 1; // why not simply i ??
 	}
-
+	
 	//	! Determine first half of complex Fourier coefficients of wave train
 	//	!components using random phase and amplitudes from sampled spectrum
 	//	!until Nyquist frequency.The amplitudes are represented in a
@@ -533,21 +550,56 @@ void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir
 	//	!start at x(1, 1), y(1, 1).
 
 
+	std::complex<double> par_compi (0.0,1.0);
+	std::complex<double> tempcmplx;
+	//= 0.0 + 1.0*I;
+	TwoDee<std::complex<double>> CompFn(ny, tslen);
+
 
 	for (int i = 0; i < K; i++)
 	{
 		for (int j = 0; j < Param.ny; j++)
 		{
-			//CompFn[ii + Findex[i] * K] = sqrt(2 * vargen[i] * dfgen) / 2 * exp(par_compi*phigen[i])*    //Bas: wp%Findex used in time dimension because t = j*dt in frequency space
-			//	exp(-par_compi*kgen[i] *
-			//	(sin(thetagen[i])*(j*Param.dx))); //dsin
+			CompFn(j,Findex[i]) = sqrt(2 * vargen[i] * dfgen) / 2 * exp(par_compi*phigen[i])*    //Bas: wp%Findex used in time dimension because t = j*dt in frequency space
+				exp(-par_compi*kgen[i] * (sin(thetagen[i])*(j*Param.dx))); //dsin
 				//+ cos(thetagen[i])*(xb[j] - x0))); //dcos
+
+			//!Determine Fourier coefficients beyond Nyquist frequency(equal to
+			//!coefficients at negative frequency axis) of relevant wave components for
+			//!first y - coordinate by mirroring
+			for (int n = 1; n < (tslen / 2); n++)
+			{
+				tempcmplx = std::conj(CompFn(j, n));
+				CompFn(j, tslen - (tslen / 2 + n)) = tempcmplx; //Not sure this is right
+			}
+
+
 		}
 	}
-
+	//create2dnc(nfHR, ndHR, HRfreq[1] - HRfreq[0], HRdir[1] - HRdir[0], 0.0, HRfreq, HRdir, HRSpec);
 	//////////////////////////////////////
 	//Distribute wave train direction
 	//////////////////////////////////////
+
+	//!Calculate the bin edges of all the computational wave bins in the
+	//!XBeach model(not the input spectrum)
+
+
+	//All generated wave components are in the rang 0 <= theta<2pi.
+	//	!We link wave components to a wave direction bin if the direction falls
+	//	!within the bin boundaries.Note the >= and <= , ranther than >= and <.This
+	//	!is not necessarily a problem, but solves having to make an exception for the
+	//	!highest wave direction bin, in which >= and <= should be applicable.
+	//	!In the case of a central bin and a wave direction exactly(!) on the bin
+	//	!interface, the wave will be linked to the first wave bin in the ordering,
+	//	!rather than the higher of the two bins.
+	//	!
+	//	!Initially set WDindex to zero.This marks a wave direction outside the
+	//	!computational wave bins.In case it does not fit in a directional wave
+	//	!bin, it remains zero at the end of the loops.
+	//	!Note: this does not ensure all energy is included in the wave bins,
+	//	!as wave energy may still fall outside the computational domain.
+
 
 	//////////////////////////////////////
 	// Generate e (STfile)

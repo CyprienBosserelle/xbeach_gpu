@@ -1264,18 +1264,19 @@ double interptime(double next, double prev, double timenext, double time)
 }
 
 
-double interp1D(double *x, double *y, double xx)
+double interp1D(int nx,double *x, double *y, double xx)
 {
 	double yy;
 	double prevx=x[0];
 	double nextx=x[1];
 	double prevy=y[0];
 	double nexty=y[1];
-	int indx,indxp;
+	int indx = 0;
+	int indxp;
 
 	double diffx = 0;
 
-	int nx = sizeof(x) / sizeof(x[0]);
+	
 
 	for (int i = 0; i < nx; i++)
 	{
@@ -1296,7 +1297,7 @@ double interp1D(double *x, double *y, double xx)
 	yy = prevy + (xx-prevx) / (nextx-prevx)*(nexty - prevy);
 	return yy;
 }
-double Interp2(double *x, double *y, double *z, double xx, double yy)
+double Interp2(int nx, int ny,double *x, double *y, double *z, double xx, double yy)
 //double BilinearInterpolation(double q11, double q12, double q21, double q22, double x1, double x2, double y1, double y2, double x, double y)
 {
 	double x2x1, y2y1, x2x, y2y, yy1, xx1;
@@ -1304,11 +1305,12 @@ double Interp2(double *x, double *y, double *z, double xx, double yy)
 
 
 	// find x1 and x2
-	int indx,indxp;
+	int indx = 0;
+	int indxp;
 
 	double diffx;
 
-	int nx = sizeof(x) / sizeof(x[0]);
+	
 
 	for (int i = 0; i < nx; i++)
 	{
@@ -1324,11 +1326,12 @@ double Interp2(double *x, double *y, double *z, double xx, double yy)
 	indxp = (int)min(indx*1.0 + 1, nx*1.0 - 1);
 	x2 = x[indxp];
 
-	int indy,indyp;
+	int indy = 0;
+	int indyp;
 
 	double diffy;
 
-	int ny = sizeof(y) / sizeof(y[0]);
+	
 
 	for (int i = 0; i < ny; i++)
 	{
