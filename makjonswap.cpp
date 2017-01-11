@@ -228,11 +228,13 @@ void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir
 	double * Sf; // size of nf
 
 	double *fgen, *phigen, *thetagen, *kgen, *wgen, *vargen;
-	int *Findex; // size of K
+	int *Findex , *WDindex; // size of K
 	//double *CompFn;//size of ny*K // now as a 2D vector of complex
 	double *Sd,*pdf, *cdf; // size of ndir
 
 	double fmax,Sfmax; // Should be in Param
+	int nspr = 0; // Should be in Param (need test for nspr ==1)
+	double * binedgeleft, * binedgeright; // size of ntheta
 
 	int Kmin = 200;
 
@@ -312,6 +314,7 @@ void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir
 	wgen = (double *)malloc(K*sizeof(double));
 	vargen = (double *)malloc(K*sizeof(double));
 	Findex = (int *)malloc(K*sizeof(int));
+	WDindex = (int *)malloc(K*sizeof(int));
 	//CompFn = (double *)malloc(K*Param.ny*sizeof(double));
 
 	double dfgen = (HRfreq[ind2] - HRfreq[ind1]) / K;
@@ -583,6 +586,14 @@ void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir
 
 	//!Calculate the bin edges of all the computational wave bins in the
 	//!XBeach model(not the input spectrum)
+	binedgeleft = (double *)malloc(Param.ntheta*sizeof(double));
+	binedgeright = (double *)malloc(Param.ntheta*sizeof(double));
+	
+	for (int i = 0; i < Param.ntheta; i++)
+	{
+		binedgeleft[i] = fmod(i*Param.dtheta + Param.thetamin,2*pi);
+		binedgeright[i] = fmod((i+1)*Param.dtheta + Param.thetamin,2*pi);
+	}
 
 
 	//All generated wave components are in the rang 0 <= theta<2pi.
@@ -600,10 +611,95 @@ void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir
 	//	!Note: this does not ensure all energy is included in the wave bins,
 	//	!as wave energy may still fall outside the computational domain.
 
+	
+	for (int i = 0; i < K; i++)
+	{
+		WDindex[i] = 0;
+		for (int itheta = 0; itheta < Param.ntheta; i++)
+		{
+			// special case if this bin spans 0 degrees
+			if (binedgeleft[itheta]>binedgeright[itheta])
+			{
+				if ((thetagen[i] >= binedgeleft[itheta] && thetagen[i] <= (2 * pi)) || (thetagen[i] >= 0.0 && thetagen[i] <= binedgeright[itheta]))
+				{
+					WDindex[i] = itheta;
+					// We now have the correct wave bin, move to next wave component K
+					break;
+				}
+			}
+			else
+			{
+				if (thetagen[i] >= binedgeleft[itheta] && thetagen[i] <= binedgeright[itheta])
+				{
+					WDindex[i] = itheta;
+					// We now have the correct wave bin, move to next wave component K
+					break;
+				
+				}
+			}
+
+		}
+	}
+
+	// If the user has set nspr == 1 then the randomly drawn wave directions
+	// should be set to the centres of the wave directional bins.
+	// Also move all wave energy falling outside the computational bins, into
+	// the computational domain(in the outer wave direction bins)
+
+	if (nspr == 1)
+	{
+		for (int i = 0; i < K; i++)
+		{
+			if (WDindex[i]>0)
+			{
+				thetagen[i] = binedgeleft[WDindex[i]] + Param.dtheta*0.5;
+			}
+
+		}
+	}
+
+	// Check the amount of energy lost to wave trains falling outside the computational domain
+
+	double lostvar = 0.0;
+	double keptvar = 0.0;
+	for (int i = 0; i < K; i++)
+	{
+		if (WDindex[i] == 0)
+		{
+			lostvar = lostvar + sqrt(2 * vargen[i] * dfgen);
+		}
+		else
+		{ 
+			keptvar = keptvar + sqrt(2 * vargen[i] * dfgen);
+		}
+			
+	}
+
+	double perclost = 100 * (lostvar / (lostvar + keptvar));
+	if (perclost > 10.0)
+	{
+		write_text_to_log_file("Large amounts of energy (" + std::to_string(perclost) + "%) fall outside computational domain at the offshore boundary");
+	}
+	else
+	{
+		write_text_to_log_file("Wave energy outside computational domain at offshore boundary: " + std::to_string(perclost) + "%");
+	}
+
+
 
 	//////////////////////////////////////
 	// Generate e (STfile)
+	//-------- - Calculate energy envelope time series from-------- -
+	//--------Fourier components, and write to output file--------
 	//////////////////////////////////////
+
+	// Calculate wave energy for each y - coordinate along seaside boundary for
+	/// current computational directional bin
+
+	for (int itheta = 0; itheta < Param.ntheta; i++)
+	{
+
+	}
 
 	//////////////////////////////////////
 	// Generate q (qfile)
