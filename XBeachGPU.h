@@ -28,12 +28,14 @@
 #include <chrono>
 
 #include <complex>
+#include <valarray>
 //using namespace std;
 
 
 
 using DECNUM = float;
-
+typedef std::complex<double> Complex;
+typedef std::valarray<Complex> CArray;
 
 //class template to create vecotr ofg output locations fro the model
 class TSnode{
@@ -307,5 +309,9 @@ extern "C" void creatncfileUD(XBGPUParam XParam, double totaltime, int ntheta, f
 extern "C" void defncvar(XBGPUParam XParam, std::string varst, int vdim, float * var);
 extern "C" void writencvarstep(XBGPUParam XParam, std::string varst, float * var);
 extern "C" void writenctimestep(XBGPUParam XParam, double totaltime);
+
+
+void ifft(CArray& x);
+void fft(CArray& x);
 
 #endif

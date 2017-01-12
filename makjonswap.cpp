@@ -615,7 +615,7 @@ void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir
 	for (int i = 0; i < K; i++)
 	{
 		WDindex[i] = 0;
-		for (int itheta = 0; itheta < Param.ntheta; i++)
+		for (int itheta = 0; itheta < Param.ntheta; itheta++)
 		{
 			// special case if this bin spans 0 degrees
 			if (binedgeleft[itheta]>binedgeright[itheta])
@@ -695,11 +695,72 @@ void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir
 
 	// Calculate wave energy for each y - coordinate along seaside boundary for
 	/// current computational directional bin
+	
+	std::vector<int> wcompindx;
+	std::valarray<std::complex<double>> tempcplxarr;
 
-	for (int itheta = 0; itheta < Param.ntheta; i++)
+	std::valarray<double> zeta(tslen);
+	std::valarray<std::complex<double>> Gn(tslen);
+
+
+	for (int itheta = 0; itheta < Param.ntheta; itheta++)
 	{
+		//Check whether any wave components are in the current computational
+		//directional bin
+		for (int i = 0; i < K; i++)
+		{
+			if (WDindex[i] != 0)
+			{
+				wcompindx.push_back(i);
+			}
+		}
 
+		if (wcompindx.empty())//(waveinbin == 0)
+		{
+			// no wave component in bin so nothing to do!
+			break;
+		}
+		// else There are some wave component in the bin
+		
+
+
+		for (int j = 0; j < Param.ny; j++)
+		{
+			Gn = 0;// Reset the whole array
+
+			// Determine Fourier coefficients of all wave components for current
+			// y - coordinate in the current computational directional bin
+			for (int n = 0; n < wcompindx.size(); n++)
+			{
+				Gn[n]=(CompFn(j, Findex[wcompindx[n]]));
+			}
+
+			tempcplxarr = Gn[std::slice(1, tslen*0.5 - 1, 1)];
+			tempcplxarr = tempcplxarr.apply(std::conj);
+			
+			Gn[std::slice(tslen / 2 + 1, tslen - (tslen / 2 + 1), 1)] = tempcplxarr;
+
+			// Inverse Discrete Fourier transformation to transform back to time
+			// domain from frequency domain
+
+			ifft(Gn);
+			//Scale the results??  or already scaled in ifft?
+
+			//store the results in zeta
+			for (int n = 0; n < tslen; n++)
+			{
+				zeta[n] = std::real(Gn[n])*tslen*taperw[n];
+			}
+			
+
+			
+		}
+
+		wcompindx.clear();
 	}
+
+	// Calculate energy envelope amplitude
+
 
 	//////////////////////////////////////
 	// Generate q (qfile)
