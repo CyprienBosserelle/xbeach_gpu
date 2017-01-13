@@ -22,6 +22,7 @@ using DECNUM = float;
 
 // Cooley–Tukey FFT (in-place, divide-and-conquer)
 // Higher memory requirements and redundancy although more intuitive
+
 void fft(CArray& x)
 {
 	const size_t N = x.size();
@@ -46,7 +47,7 @@ void fft(CArray& x)
 
 // Cooley-Tukey FFT (in-place, breadth-first, decimation-in-frequency)
 // Better optimized but less intuitive
-void fft(CArray &x)
+/*void fft(CArray &x)
 {
 	// DFT
 	unsigned int N = x.size(), k = N, n;
@@ -93,18 +94,24 @@ void fft(CArray &x)
 	//for (unsigned int i = 0; i < N; i++)
 	//	x[i] *= f;
 }
-
+*/
 // inverse fft (in-place)
 void ifft(CArray& x)
 {
 	// conjugate the complex numbers
-	x = x.apply(std::conj);
+	for (int j = 0; j < x.size(); j++)
+	{
+		x[j] = std::conj(x[j]);
+	}
 
 	// forward fft
 	fft(x);
 
 	// conjugate the complex numbers again
-	x = x.apply(std::conj);
+	for (int j = 0; j < x.size(); j++)
+	{
+		x[j] = std::conj(x[j]);
+	}
 
 	// scale the numbers
 	x /= x.size();
@@ -120,8 +127,57 @@ void hilbert(CArray& xi)
 	n = pow(2, n);
 
 	
+	CArray x(0,n);
 
-	CArray x =xi.apply(std::real);
+	for (int i = 0; i < xi.size(); i++)
+	{
+		x[i] = std::real(xi[i]);
+	}
+	
+	fft(x);
+
+	for (int j = 0; j < x.size(); j++)
+	{
+		x[j] = x[j] * sqrt(n);
+	}
+
+	std::valarray<double> h(0.0, n);
+
+	h[0] = 1.0;
+	h[std::slice(1, n / 2 - 1, 1)] = 2.0;
+	h[n / 2] = 1.0;
+	//Below is a redundant operation since h should be initialised with zeros
+	//h[std::slice(n / 2 + 1, n - (n / 2 + 1), 1)] = 0.0;
+
+	for (int j = 0; j < x.size(); j++)
+	{
+		x[j] = x[j]*h[j];
+	}
+
+	ifft(x);
+
+	//scale?
+	for (int j = 0; j < x.size(); j++)
+	{
+		x[j] = x[j] / sqrt(n);
+	}
+
+	for (int i = 0; i < xi.size(); i++)
+	{
+		xi[i] = x[i];
+	}
+
 
 }
 
+void flipiv(CArray &x)
+{
+	//flip of a vall array of complex upside down
+
+	CArray xf = x;
+	int m = x.size();
+	for (int j = 0; j < m; j++)
+	{
+		x[j] = xf[m - (j + 1)];
+	}
+}

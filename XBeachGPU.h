@@ -84,7 +84,7 @@ public:
 	double thetamin = -90 * pi / 180; //Need to sort this out when refurbishing the wave boundary stuff
 	double thetamax = 90 * pi / 180;
 	double dtheta=0.0; // Defaul values are insane so either one has to be specified/overruled the other will be calculated automatically
-	int ntheta=0.0; // Default for bnd that are cst or generated on the fly is ntheta =1 and dtheta = thetamax-thetamin
+	int ntheta=0; // Default for bnd that are cst or generated on the fly is ntheta =1 and dtheta = thetamax-thetamin
 	//Sediment parameters
 	double D50=0.00038, D90=0.00053; // sand grain size in m
 	double rhosed = 2650.0; // sand density in kg/m3
@@ -122,7 +122,7 @@ public:
 	double dtbc=1.0; //time step for wave group forcing (generation  and reading)
 	double rtlength = 3600; // duration of wave group chunks
 	double sprdthr = 0.08;
-	int random = 1;
+	int random = 0;
 	double offdepth;
 };
 
@@ -197,7 +197,7 @@ public:
 // additional functions
 void makjonswap(XBGPUParam Param, std::vector<Wavebndparam> wavebnd, int step, int &nfreq, int &ntheta, double * &HRfreq, double * &HRdir, double * &HRSpec);
 
-void GenWGnLBW(XBGPUParam Param, int nf, int ndir, double * HRfreq, double * HRdir, double * HRSpec, float Trep, double * qfile, double * Stfile);
+void GenWGnLBW(XBGPUParam Param, int nf, int ndir, double * HRfreq, double * HRdir, double * HRSpec, float Trep, double * &qfile, double * &Stfile);
 
 extern "C" void creatncfile(XBGPUParam XParam, DECNUM totaltime, DECNUM *zb, DECNUM *zs, DECNUM * uu, DECNUM * vv, DECNUM * H, DECNUM * Tp, DECNUM * Dp, DECNUM * D, DECNUM * Urms, DECNUM * ueu, DECNUM * vev, DECNUM * C, DECNUM *Fx, DECNUM *Fy, DECNUM * hh, DECNUM *Hmean, DECNUM *uumean, DECNUM *vvmean, DECNUM *hhmean, DECNUM *zsmean, DECNUM *Cmean);
 extern "C" void writestep2nc(XBGPUParam XParam, DECNUM totaltime, DECNUM *zb, DECNUM *zs, DECNUM * uu, DECNUM * vv, DECNUM * H, DECNUM * Tp, DECNUM * Dp, DECNUM * D, DECNUM * Urms, DECNUM *ueu, DECNUM * vev, DECNUM * C, DECNUM *dzb, DECNUM *Fx, DECNUM *Fy, DECNUM *hh, DECNUM *Hmean, DECNUM *uumean, DECNUM *vvmean, DECNUM *hhmean, DECNUM *zsmean, DECNUM *Cmean);
@@ -313,5 +313,7 @@ extern "C" void writenctimestep(XBGPUParam XParam, double totaltime);
 
 void ifft(CArray& x);
 void fft(CArray& x);
+void hilbert(CArray& xi);
+void flipiv(CArray &x);
 
 #endif

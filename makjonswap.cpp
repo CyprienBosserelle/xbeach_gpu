@@ -82,6 +82,7 @@ void makjonswap(XBGPUParam Param, std::vector<Wavebndparam> wavebnd, int step, i
 	double gam = wavebnd[step].gamma;
 	double scoeff = wavebnd[step].s;
 
+	
 	//printf("fp=%f\n",fp);
 	//// 
 
@@ -217,13 +218,13 @@ void makjonswap(XBGPUParam Param, std::vector<Wavebndparam> wavebnd, int step, i
 
 } 
 
-void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir, double * HRSpec, float Trep, double * qfile, double * Stfile)
+void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir, double * HRSpec, float Trep, double * &qfile, double * &Stfile)
 {
 	int ny = Param.ny;
 	int K; //Number of wave components
 
-	int nhf;
-	int nhd;
+	//int nhf;
+	//int nhd;
 
 	double * Sf; // size of nf
 
@@ -235,6 +236,7 @@ void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir
 	double fmax,Sfmax; // Should be in Param
 	int nspr = 0; // Should be in Param (need test for nspr ==1)
 	double * binedgeleft, * binedgeright; // size of ntheta
+	double * STT; //temp stuff
 
 	int Kmin = 200;
 
@@ -335,7 +337,7 @@ void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir
 	}
 
 
-	std::default_random_engine generator;
+	std::default_random_engine generator (seed);
 	std::uniform_real_distribution<double> distribution(0.0, 1.0);
 	//Determine a random phase for each wave train component between 0 and 2pi
 
@@ -395,7 +397,7 @@ void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir
 		//interp1D(double *x, double *y, double xx)
 		//thetagen[i] = interptime(HRdir[dprev + 1], HRdir[dprev], dtheta, dtheta*((number - cdf[dprev]) / (cdf[dprev + 1] - cdf[dprev])));
 		thetagen[i] = interp1D(ndir, cdf, HRdir, number);
-		printf("thetagen[i]=%f\n", thetagen[i]);
+		//printf("thetagen[i]=%f\n", thetagen[i]);
 	}
 
 	//determine wave number for each wave train component
@@ -554,9 +556,12 @@ void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir
 
 
 	std::complex<double> par_compi (0.0,1.0);
-	std::complex<double> tempcmplx;
+	//std::complex<double> tempcmplx;
+	CArray tempcmplx(tslen / 2-1);
 	//= 0.0 + 1.0*I;
 	TwoDee<std::complex<double>> CompFn(ny, tslen);
+
+	STT = (double *)malloc(ny*Param.ntheta*tslen*sizeof(double));
 
 
 	for (int i = 0; i < K; i++)
@@ -570,10 +575,18 @@ void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir
 			//!Determine Fourier coefficients beyond Nyquist frequency(equal to
 			//!coefficients at negative frequency axis) of relevant wave components for
 			//!first y - coordinate by mirroring
+			
+			
 			for (int n = 1; n < (tslen / 2); n++)
 			{
-				tempcmplx = std::conj(CompFn(j, n));
-				CompFn(j, tslen - (tslen / 2 + n)) = tempcmplx; //Not sure this is right
+				tempcmplx[n-1] = std::conj(CompFn(j, n));
+			}
+
+			flipiv(tempcmplx);
+
+			for (int n = tslen/2+1; n < tslen; n++)
+			{
+				CompFn(j, n) = tempcmplx[n - tslen / 2 + 1]; //Not sure this is right
 			}
 
 
@@ -614,7 +627,7 @@ void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir
 	
 	for (int i = 0; i < K; i++)
 	{
-		WDindex[i] = 0;
+		WDindex[i] = -1;
 		for (int itheta = 0; itheta < Param.ntheta; itheta++)
 		{
 			// special case if this bin spans 0 degrees
@@ -650,7 +663,7 @@ void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir
 	{
 		for (int i = 0; i < K; i++)
 		{
-			if (WDindex[i]>0)
+			if (WDindex[i]>=0)
 			{
 				thetagen[i] = binedgeleft[WDindex[i]] + Param.dtheta*0.5;
 			}
@@ -664,7 +677,7 @@ void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir
 	double keptvar = 0.0;
 	for (int i = 0; i < K; i++)
 	{
-		if (WDindex[i] == 0)
+		if (WDindex[i] < 0)
 		{
 			lostvar = lostvar + sqrt(2 * vargen[i] * dfgen);
 		}
@@ -697,9 +710,9 @@ void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir
 	/// current computational directional bin
 	
 	std::vector<int> wcompindx;
-	std::valarray<std::complex<double>> tempcplxarr;
+	std::valarray<std::complex<double>> tempcplxarr(tslen*0.5 - 1);
 
-	std::valarray<double> zeta(tslen);
+	//std::valarray<double> zeta(tslen);
 	std::valarray<std::complex<double>> Gn(tslen);
 
 
@@ -709,7 +722,7 @@ void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir
 		//directional bin
 		for (int i = 0; i < K; i++)
 		{
-			if (WDindex[i] != 0)
+			if (WDindex[i] >= 0)
 			{
 				wcompindx.push_back(i);
 			}
@@ -732,24 +745,33 @@ void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir
 			// y - coordinate in the current computational directional bin
 			for (int n = 0; n < wcompindx.size(); n++)
 			{
+				//printf("wcompindx[%d]=%d; Findex[%d]=%d\n", n, wcompindx[n], n, Findex[n]);
 				Gn[n]=(CompFn(j, Findex[wcompindx[n]]));
 			}
 
 			tempcplxarr = Gn[std::slice(1, tslen*0.5 - 1, 1)];
-			tempcplxarr = tempcplxarr.apply(std::conj);
-			
-			Gn[std::slice(tslen / 2 + 1, tslen - (tslen / 2 + 1), 1)] = tempcplxarr;
+			for (int jcplx = 0; jcplx < tempcplxarr.size(); jcplx++)
+			{
+				tempcplxarr[jcplx] = std::conj(tempcplxarr[jcplx]);
+			}
+			flipiv(tempcplxarr);
+			Gn[std::slice(tslen / 2 + 1, tempcplxarr.size(), 1)] = tempcplxarr;
 
 			// Inverse Discrete Fourier transformation to transform back to time
 			// domain from frequency domain
 
 			ifft(Gn);
 			//Scale the results??  or already scaled in ifft?
+			//for (int n = 0; n < Gn.size(); n++)
+			//{
+			//	Gn[n] = Gn[n] / sqrt(Gn.size());
+			//}
 
 			//store the results in zeta
 			for (int n = 0; n < tslen; n++)
 			{
-				zeta[n] = std::real(Gn[n])*tslen*taperw[n];
+				STT[j + itheta*ny + n*ny*Param.ntheta] = std::real(Gn[n])*tslen*taperw[n];
+				
 			}
 			
 
@@ -758,6 +780,23 @@ void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir
 
 		wcompindx.clear();
 	}
+
+	double * yyfx, *thetafx;
+
+	yyfx=(double *)malloc(ny*sizeof(double));
+	thetafx=(double *)malloc(Param.ntheta*sizeof(double));
+
+	for (int j = 0; j < Param.ny; j++)
+	{
+		yyfx[j] = j*Param.dx;
+	}
+
+	for (int itheta = 0; itheta < Param.ntheta; itheta++)
+	{
+		thetafx[itheta] = itheta*(Param.dtheta) + Param.thetamin + 0.5f*Param.dtheta;
+	}
+
+	create3dnc(tslen, ny, Param.ntheta, dtin, Param.dx, Param.dtheta, 0.0, tin, yyfx, thetafx, STT);
 
 	// Calculate energy envelope amplitude
 
