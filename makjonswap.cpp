@@ -710,10 +710,10 @@ void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir
 	/// current computational directional bin
 	
 	std::vector<int> wcompindx;
-	std::valarray<std::complex<double>> tempcplxarr(tslen*0.5 - 1);
+	CArray tempcplxarr(tslen*0.5 - 1);
 
 	//std::valarray<double> zeta(tslen);
-	std::valarray<std::complex<double>> Gn(tslen);
+	CArray Gn(tslen);
 
 
 	for (int itheta = 0; itheta < Param.ntheta; itheta++)
