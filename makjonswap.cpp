@@ -204,7 +204,7 @@ void makjonswap(XBGPUParam Param, std::vector<Wavebndparam> wavebnd, int step, i
 		
 		for (int ii=0; ii<nfreq; ii++)
 		{
-			HRSpec[ii + i*nfreq] = y[ii] * Dd[i];// m2/Hz/rad ?
+			HRSpec[ii + i*nfreq] = y[ii] * Dd[i]*pi/180.0;// m2/Hz/deg ? shopuld be per rad?
 			//printf("S_array[%d,%d]=%f\n",ii+1,i+1,S_array[ii+i*nfreq]);
 			
         
@@ -233,7 +233,7 @@ void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir
 	double trepfac = 0.01;
 	double temptrep;
 
-	double *fgen, *phigen, *thetagen, *kgen, *wgen, *vargen;
+	double *fgen, *phigen, *thetagen, *kgen, *wgen, *vargen,*vargenq;
 	int *Findex , *WDindex; // size of K
 	//double *CompFn;//size of ny*K // now as a 2D vector of complex
 	double *Sd,*pdf, *cdf; // size of ndir
@@ -327,6 +327,7 @@ void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir
 	kgen = (double *)malloc(K*sizeof(double));
 	wgen = (double *)malloc(K*sizeof(double));
 	vargen = (double *)malloc(K*sizeof(double));
+	vargenq = (double *)malloc(K*sizeof(double));
 	Findex = (int *)malloc(K*sizeof(int));
 	WDindex = (int *)malloc(K*sizeof(int));
 	//CompFn = (double *)malloc(K*Param.ny*sizeof(double));
@@ -555,7 +556,7 @@ void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir
 	for (int i = 0; i < K; i++)
 	{
 		dummy = interp1D(nf, HRfreq, Sf, fgen[i]);
-		vargen[i] = min(vargen[i] ,dummy);
+		vargenq[i] = min(vargen[i] ,dummy);
 	}
 
 	//////////////////////////////////////

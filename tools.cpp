@@ -220,6 +220,7 @@ void ifft(CArray& x)
 	}
 
 	// scale the numbers
+	///printf("tslen? = %d\n", x.size());
 	x /= x.size();
 }
 
