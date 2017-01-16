@@ -216,9 +216,11 @@ void makjonswap(XBGPUParam Param, std::vector<Wavebndparam> wavebnd, int step, i
 
 
 
+
+
 } 
 
-void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir, double * HRSpec, float Trep, double * &qfile, double * &Stfile)
+void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir, double * HRSpec, float &Trep, double * &qfile, double * &Stfile)
 {
 	int ny = Param.ny;
 	int K; //Number of wave components
@@ -227,6 +229,9 @@ void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir
 	//int nhd;
 
 	double * Sf; // size of nf
+
+	double trepfac = 0.01;
+	double temptrep;
 
 	double *fgen, *phigen, *thetagen, *kgen, *wgen, *vargen;
 	int *Findex , *WDindex; // size of K
@@ -273,6 +278,10 @@ void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir
 		}
 		Sd[d] = Sd[d] * dfreq;
 	}
+
+	
+
+
 
 	//////////////////////////////////////
 	// Generate wave train component
@@ -400,7 +409,7 @@ void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir
 		//interp1D(double *x, double *y, double xx)
 		//thetagen[i] = interptime(HRdir[dprev + 1], HRdir[dprev], dtheta, dtheta*((number - cdf[dprev]) / (cdf[dprev + 1] - cdf[dprev])));
 		thetagen[i] = interp1D(ndir, cdf, HRdir, number);
-		printf("thetagen[i]=%f\n", thetagen[i]);
+		//printf("thetagen[i]=%f\n", thetagen[i]);
 	}
 
 	//determine wave number for each wave train component
@@ -428,7 +437,23 @@ void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir
 		wgen[i] = w;
 	}
 
-	
+	//////////////////////////////////////
+	// Calculate Trep
+	//////////////////////////////////////
+	temptrep = 0.0;
+	double tempf = 0.0;
+	for (int n = 0; n < nf; n++)
+	{
+
+		if (Sf[n] = Sfmax*trepfac)
+		{
+			temptrep += (Sf[n] / max(HRfreq[n], 0.001));
+			tempf += Sf[n];
+
+		}
+	}
+	Trep = (float) (temptrep / tempf);
+
 
 
 	//////////////////////////////////////
@@ -909,6 +934,18 @@ void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir
 	//////////////////////////////////////
 	// Generate q (qfile)
 	//////////////////////////////////////
+
+	//Until ee is fully tested leave as qfile=0.0
+	for (int j = 0; j < Param.ny; j++)
+	{
+		for (int xi = 0; xi < 4; xi++)
+		{
+			for (int m = 0; m < tslenbc; m++)
+			{
+				qfile[j + xi*ny + m*ny * 4] = 0.0;
+			}
+		}
+	}
 
 	//////////////////////////////////////
 	//Save to Netcdf file

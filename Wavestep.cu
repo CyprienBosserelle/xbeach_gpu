@@ -143,6 +143,7 @@ XBGPUParam waveinitGPU(XBGPUParam Param, std::vector<Wavebndparam> wavebnd)
 		//Then generate wave group timeseries based on that spectra
 		//void GenWGnLBW(XBGPUParam Param, int nf, int ndir, double * HRfreq, double * HRdir, double * HRSpec, float Trep, double * qfile, double * Stfile)
 		GenWGnLBW(Param, nfHR, ndHR, HRfreq, HRdir, HRSpec, Trep, qfile, Stfile);
+		//Trep = 15.0;//
 
 
 
@@ -393,7 +394,7 @@ void wavebnd(XBGPUParam Param, std::vector<Wavebndparam> wavebndvec)
 		timesincelast = (totaltime - wavebndvec[WAVstepinbnd - 1].time);
 
 	}
-	if (Param.wavebndtype == 2)
+	if (Param.wavebndtype >= 2)
 	{
 		nwbndstep = floor((totaltime - wavebndvec[WAVstepinbnd - 1].time) / Param.dtbc);
 		timenext = Param.dtbc;

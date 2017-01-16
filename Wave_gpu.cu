@@ -1026,7 +1026,7 @@ void flowbnd(XBGPUParam Param, std::vector<SLBnd> slbnd, std::vector<WindBnd> wn
 		timesincelast = (totaltime - wavebndvec[WAVstepinbnd - 1].time);
 
 	}
-	if (Param.wavebndtype == 2)
+	if (Param.wavebndtype >= 2)
 	{
 		timenext = Param.dtbc;
 		timesincelast = totaltime - (nwbndstep*Param.dtbc + wavebndvec[WAVstepinbnd - 1].time);
