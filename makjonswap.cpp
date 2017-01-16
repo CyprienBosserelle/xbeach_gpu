@@ -236,7 +236,10 @@ void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir
 	double fmax,Sfmax; // Should be in Param
 	int nspr = 0; // Should be in Param (need test for nspr ==1)
 	double * binedgeleft, * binedgeright; // size of ntheta
-	double * STT; //temp stuff
+	double * zeta, *Ampzeta; //water elevation ny*ntheta*tslen
+	double *eta, *Amp; //water elevation integrated over directions ny*tslen
+	double *stdzeta; //size of ntheta
+	double *E_tdir; // tslen
 
 	int Kmin = 200;
 
@@ -397,7 +400,7 @@ void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir
 		//interp1D(double *x, double *y, double xx)
 		//thetagen[i] = interptime(HRdir[dprev + 1], HRdir[dprev], dtheta, dtheta*((number - cdf[dprev]) / (cdf[dprev + 1] - cdf[dprev])));
 		thetagen[i] = interp1D(ndir, cdf, HRdir, number);
-		//printf("thetagen[i]=%f\n", thetagen[i]);
+		printf("thetagen[i]=%f\n", thetagen[i]);
 	}
 
 	//determine wave number for each wave train component
@@ -445,7 +448,7 @@ void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir
 	//! The length of the internal time axis should be even (for Fourier transform) and
 	//depends on the internal time step needed and the internal duration(~1 / dfgen) :
 	int tslen = (int)(ceil(1 / dfgen / dtin) + 1);
-	if (ceil(tslen/2)-tslen/2>0)
+	if ((ceil(tslen/2)-tslen/2)>0)
 	{
 		tslen = tslen + 1;
 	}
@@ -544,7 +547,7 @@ void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir
 	int tempi = floor(fgen[0] / dfgen);
 	for (int i = 0; i < K; i++)
 	{
-		Findex[i] = tempi + i + 1; // why not simply i ??
+		Findex[i] = tempi + i; 
 	}
 	
 	//	! Determine first half of complex Fourier coefficients of wave train
@@ -561,8 +564,12 @@ void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir
 	//= 0.0 + 1.0*I;
 	TwoDee<std::complex<double>> CompFn(ny, tslen);
 
-	STT = (double *)malloc(ny*Param.ntheta*tslen*sizeof(double));
-
+	zeta = (double *)malloc(ny*Param.ntheta*tslen*sizeof(double));
+	Ampzeta = (double *)malloc(ny*Param.ntheta*tslen*sizeof(double));
+	eta = (double *)malloc(ny*tslen*sizeof(double));
+	Amp = (double *)malloc(ny*tslen*sizeof(double));
+	stdzeta = (double *)malloc(Param.ntheta*sizeof(double));
+	E_tdir = (double *)malloc(tslen*sizeof(double));
 
 	for (int i = 0; i < K; i++)
 	{
@@ -584,9 +591,9 @@ void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir
 
 			flipiv(tempcmplx);
 
-			for (int n = tslen/2+1; n < tslen; n++)
+			for (int n = (tslen/2+1); n < tslen; n++)
 			{
-				CompFn(j, n) = tempcmplx[n - tslen / 2 + 1]; //Not sure this is right
+				CompFn(j, n) = tempcmplx[n - (tslen / 2 + 1)]; //Not sure this is right
 			}
 
 
@@ -739,6 +746,7 @@ void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir
 
 		for (int j = 0; j < Param.ny; j++)
 		{
+			
 			Gn = 0;// Reset the whole array
 
 			// Determine Fourier coefficients of all wave components for current
@@ -746,7 +754,7 @@ void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir
 			for (int n = 0; n < wcompindx.size(); n++)
 			{
 				//printf("wcompindx[%d]=%d; Findex[%d]=%d\n", n, wcompindx[n], n, Findex[n]);
-				Gn[n]=(CompFn(j, Findex[wcompindx[n]]));
+				Gn[Findex[wcompindx[n]]] = (CompFn(j, Findex[wcompindx[n]]));
 			}
 
 			tempcplxarr = Gn[std::slice(1, tslen*0.5 - 1, 1)];
@@ -764,13 +772,13 @@ void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir
 			//Scale the results??  or already scaled in ifft?
 			//for (int n = 0; n < Gn.size(); n++)
 			//{
-			//	Gn[n] = Gn[n] / sqrt(Gn.size());
+			//	Gn[n] = Gn[n] / sqrt(tslen);
 			//}
 
 			//store the results in zeta
 			for (int n = 0; n < tslen; n++)
 			{
-				STT[j + itheta*ny + n*ny*Param.ntheta] = std::real(Gn[n])*tslen*taperw[n];
+				zeta[j + itheta*ny + n*ny*Param.ntheta] = std::real(Gn[n])*tslen*taperw[n];
 				
 			}
 			
@@ -781,6 +789,8 @@ void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir
 		wcompindx.clear();
 	}
 
+	//Temporarily output results for debugging
+	/*
 	double * yyfx, *thetafx;
 
 	yyfx=(double *)malloc(ny*sizeof(double));
@@ -796,10 +806,105 @@ void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir
 		thetafx[itheta] = itheta*(Param.dtheta) + Param.thetamin + 0.5f*Param.dtheta;
 	}
 
-	create3dnc(tslen, ny, Param.ntheta, dtin, Param.dx, Param.dtheta, 0.0, tin, yyfx, thetafx, STT);
-
+	create3dnc(ny, Param.ntheta,tslen,  Param.dx, Param.dtheta,dtin, 0.0,  yyfx, thetafx,tin, zeta);
+	*/
 	// Calculate energy envelope amplitude
+	
+	//Integrate instantaneous water level excitation of wave
+	//components over directions
+	double temp = 0.0;
+	CArray tmpcplx(tslen);
+	for (int j = 0; j < Param.ny; j++)
+	{
+		for (int n = 0; n < tslen; n++)
+		{
+			temp = 0.0;
+			for (int itheta = 0; itheta < Param.ntheta; itheta++)
+			{
+				temp = temp + zeta[j + itheta*ny + n*ny*Param.ntheta];
+			}
+			eta[j + n*ny] = temp;
+			tmpcplx[n] = temp;
+		}
 
+		hilbert(tmpcplx);
+		
+		for (int n = 0; n < tslen; n++)
+		{
+			Amp[j + n*ny] = abs(tmpcplx[n]);
+		}
+
+		double stdeta = 0.0;
+		for (int n = 0; n < tslen; n++)
+		{
+			stdeta = stdeta + eta[j + n*ny] * eta[j + n*ny];
+		}
+
+		stdeta = sqrt(stdeta / (tslen - 1));
+		for (int itheta = 0; itheta < Param.ntheta; itheta++)
+		{
+			temp = 0.0;
+
+			for (int n = 0; n < tslen; n++)
+			{
+				temp = temp + zeta[j + itheta*ny + n*ny*Param.ntheta] * zeta[j + itheta*ny + n*ny*Param.ntheta];
+
+			}
+			stdzeta[itheta] = sqrt(temp / (tslen - 1));
+
+			for (int n = 0; n < tslen; n++)
+			{
+				Ampzeta[j + itheta*ny + n*ny*Param.ntheta] = Amp[j + n*ny] * stdzeta[itheta] / stdeta;
+			}
+
+		}
+
+		//Calculate energy and interpolate to the output time step
+		// (Maybe dtin==dtbc or maybe not)
+		for (int itheta = 0; itheta < Param.ntheta; itheta++)
+		{
+			for (int n = 0; n < tslen; n++)
+			{
+				E_tdir[n] = Ampzeta[j + itheta*ny + n*ny*Param.ntheta] * Ampzeta[j + itheta*ny + n*ny*Param.ntheta] * 0.5*Param.rho*Param.g/Param.dtheta;
+			}
+			for (int m = 0; m < tslenbc; m++)
+			{
+				Stfile[j + itheta*ny + m*ny*Param.ntheta] = interp1D(tslen, tin, E_tdir, m*Param.dtbc);
+			}
+
+		}
+
+
+		
+
+
+	}
+
+	//Temporarily output results for debugging
+	
+	double * yyfx, *thetafx, *bctimin;
+
+	yyfx = (double *)malloc(ny*sizeof(double));
+	thetafx = (double *)malloc(Param.ntheta*sizeof(double));
+	bctimin = (double *)malloc(tslenbc*sizeof(double));
+
+	for (int j = 0; j < Param.ny; j++)
+	{
+	yyfx[j] = j*Param.dx;
+	}
+
+	for (int itheta = 0; itheta < Param.ntheta; itheta++)
+	{
+	thetafx[itheta] = itheta*(Param.dtheta) + Param.thetamin + 0.5f*Param.dtheta;
+	}
+
+	for (int m = 0; m < tslenbc; m++)
+	{
+		bctimin[m] = m*Param.dtbc;
+	}
+
+	create3dnc(ny, Param.ntheta, tslenbc, Param.dx, Param.dtheta, Param.dtbc, 0.0, yyfx, thetafx, bctimin, Stfile);
+	
 
 	//////////////////////////////////////
 	// Generate q (qfile)

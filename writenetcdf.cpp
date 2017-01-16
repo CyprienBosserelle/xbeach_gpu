@@ -527,7 +527,7 @@ extern "C" void create2dnc(int nx, int ny, double dx, double dy, double totaltim
 
 
 
-	status = nc_def_var(ncid, "3Dvar", NC_DOUBLE, 3, var_dimids, &tvar_id);
+	status = nc_def_var(ncid, "2Dvar", NC_DOUBLE, 3, var_dimids, &tvar_id);
 
 
 	status = nc_enddef(ncid);
