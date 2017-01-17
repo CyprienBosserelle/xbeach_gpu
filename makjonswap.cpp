@@ -16,7 +16,7 @@
 //////////////////////////////////////////////////////////////////////////////////
 
 #include "XBeachGPU.h"
-#include <fftw3.h>
+
 #define pi 3.14159265
 using DECNUM = float;
 
@@ -484,7 +484,7 @@ void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir
 		tslen = tslen + 1;
 	}
 	
-	int tsfft = pow(2,ceil(ceil(log(tslen) / log(2)))); /// for fft
+	//int tsfft = pow(2,ceil(ceil(log(tslen) / log(2)))); /// for fft
 
 	//Now we can make the internal time axis
 	double rtin = tslen * dtin;
@@ -551,7 +551,8 @@ void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir
 	}
 
 	// scale vargen so that 4*sqrt(sum(vargen)*dfgen)==4*sqrt(sum(Sf)*df)
-	double scalefactor = pow(Hm0 / (4.0 * sqrt(sumvargen*dfgen)),2); // squared
+	double Hm0post = 4.0 * sqrt(sumvargen*dfgen);
+	double scalefactor = pow(Hm0 / Hm0post, 2); // squared
 
 	for (int i = 0; i < K; i++)
 	{
@@ -608,7 +609,7 @@ void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir
 	{
 		for (int j = 0; j < Param.ny; j++)
 		{
-			CompFn(j,Findex[i]) = sqrt(2 * vargen[i] * dfgen) / 2 * exp(par_compi*phigen[i])*    //Bas: wp%Findex used in time dimension because t = j*dt in frequency space
+			CompFn(j,Findex[i]) = sqrt(2.0 * vargen[i] * dfgen) / 2 * exp(par_compi*phigen[i])*    //Bas: wp%Findex used in time dimension because t = j*dt in frequency space
 				exp(-par_compi*kgen[i] * (sin(thetagen[i])*(j*Param.dx))); //dsin
 				//+ cos(thetagen[i])*(xb[j] - x0))); //dcos
 
@@ -760,45 +761,7 @@ void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir
 	fftw_plan p;
 	p = fftw_plan_dft_1d(tslen, in, out, FFTW_BACKWARD, FFTW_ESTIMATE);
 
-	/*
-	write_text_to_log_file("test fft code");
-
-	CArray testin(8);
-	CArray testout(8);
-	CArray testiout(8);
-
-
-	for (int n = 0; n < 8; n++)
-	{
-		if (n < 4)
-		{
-			testin[n] = 1.0;
-		}
-		else
-		{
-			testin[n] = 0.0;
-		}
-		
-	}
-
-	testout = testin;
-	fft(testout);
-	printf(" FFT test:\n");
-	for (int n = 0; n < 8; n++)
-	{
-		printf("%f + %fi\n", std::real(testout[n]), std::imag(testout[n]));
-	}
-
-	testiout = testout;
-
-	ifft(testiout);
-	printf(" IFFT test:\n");
-	for (int n = 0; n < 8; n++)
-	{
-		printf("%f + %fi\n", std::real(testiout[n]), std::imag(testiout[n]));
-	}
-
-	*/
+	
 	for (int itheta = 0; itheta < Param.ntheta; itheta++)
 	{
 		//Check whether any wave components are in the current computational
@@ -840,49 +803,22 @@ void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir
 			}
 			flipiv(tempcplxarr);
 			Gn[std::slice(tslen / 2 + 1, tempcplxarr.size(), 1)] = tempcplxarr;
-
-			// Debug code
-			//if (j == 0)
-			//{
+						
 			for (int n = 0; n < tslen; n++)
 			{
 				in[n][0] = std::real(Gn[n]);
 				in[n][1] = std::imag(Gn[n]);
 			}
 
-			//}
-
 			
-			//GnForFFT[std::slice(0, tslen, 1)] = Gn;
-
 			// Inverse Discrete Fourier transformation to transform back to time
 			// domain from frequency domain
 			fftw_execute(p);
-			//ifft(GnForFFT);
-
-			//Gn = GnForFFT[std::slice(0, tslen, 1)];
-			//for (int n = 0; n < tslen; n++)
-			//{
-			//	Gn[n] = std::complex<double> (out[n][0],out[n][1]);
-			//	
-			//}
-
 			
-			//Scale the results??  or already scaled in ifft?
-			//for (int n = 0; n < Gn.size(); n++)
-			//{
-			//	Gn[n] = Gn[n] / sqrt(tslen);
-			//}
-
-
-
-
-			
-
 			//store the results in zeta
 			for (int n = 0; n < tslen; n++)
 			{
-				zeta[j + itheta*ny + n*ny*Param.ntheta] = out[n][0] / sqrt(tslen) * taperw[n];
+				zeta[j + itheta*ny + n*ny*Param.ntheta] = out[n][0]* taperw[n];
 				
 			}
 			
@@ -894,7 +830,7 @@ void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir
 	}
 
 	//Temporarily output results for debugging
-	
+	/*
 	double * yyfx, *thetafx;
 
 	yyfx=(double *)malloc(ny*sizeof(double));
@@ -911,7 +847,7 @@ void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir
 	}
 
 	create3dnc(ny, Param.ntheta,tslen,  Param.dx, Param.dtheta,dtin, 0.0,  yyfx, thetafx,tin, zeta);
-	
+	*/
 	// Calculate energy envelope amplitude
 	
 	//Integrate instantaneous water level excitation of wave
@@ -1009,6 +945,13 @@ void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir
 
 	create3dnc(ny, Param.ntheta, tslenbc, Param.dx, Param.dtheta, Param.dtbc, 0.0, yyfx, thetafx, bctimin, Stfile);
 	*/
+
+	//////////////////////////////////////
+	// Bound long waves
+	//////////////////////////////////////
+
+	//Run loop over wave-wave interaction components
+
 
 	//////////////////////////////////////
 	// Generate q (qfile)

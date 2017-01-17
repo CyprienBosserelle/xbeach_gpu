@@ -226,29 +226,39 @@ void ifft(CArray& x)
 
 void hilbert(CArray& xi)
 {
-	int n,m;
+	int n, m;
 	double p;
 
 	m = xi.size();
-	n =ceil( log(m*1.0) / log(2.0));
+	n = ceil(log(m*1.0) / log(2.0));
 	n = pow(2, n);
 
-	
-	CArray x(n);
-	x = 0.0;
+	fftw_complex *out, *in;
+	out = (fftw_complex*)fftw_malloc(sizeof(fftw_complex) * n);
+	in = (fftw_complex*)fftw_malloc(sizeof(fftw_complex) * n);
+	fftw_plan pifft,pfft;
+	pifft = fftw_plan_dft_1d(n, out, in, FFTW_BACKWARD, FFTW_ESTIMATE);
+	pfft = fftw_plan_dft_1d(n, in, out, FFTW_FORWARD, FFTW_ESTIMATE);
+
+		
+	for (int i = 0; i < n; i++)
+	{
+		in[i][0] = 0.0;
+		in[i][1] = 0.0;
+	}
 
 	for (int i = 0; i < xi.size(); i++)
 	{
-		x[i] = std::real(xi[i]);
+		//x[i] = std::real(xi[i]);
+		in[i][0] = std::real(xi[i]);
+		
+		
 	}
 	
-	fft(x);
+	//fft(x);
+	fftw_execute(pfft);
 
-	for (int j = 0; j < x.size(); j++)
-	{
-		x[j] = x[j] * sqrt(n);
-	}
-
+	
 	std::valarray<double> h(0.0, n);
 
 	h[0] = 1.0;
@@ -257,22 +267,24 @@ void hilbert(CArray& xi)
 	//Below is a redundant operation since h should be initialised with zeros
 	//h[std::slice(n / 2 + 1, n - (n / 2 + 1), 1)] = 0.0;
 
-	for (int j = 0; j < x.size(); j++)
+	for (int j = 0; j < n; j++)
 	{
-		x[j] = x[j]*h[j];
+		out[j][0] = out[j][0] * h[j];
+		out[j][1] = out[j][1] * h[j];
 	}
 
-	ifft(x);
-
-	//scale?
-	for (int j = 0; j < x.size(); j++)
+	//ifft(x);
+	fftw_execute(pifft);
+	//scaling why is this needed here but not when generating zeta?? 
+	for (int j = 0; j < n; j++)
 	{
-		x[j] = x[j] / sqrt(n);
+		in[j][0] = in[j][0] /n ;
+		in[j][1] = in[j][1] /n ;
 	}
 
 	for (int i = 0; i < xi.size(); i++)
 	{
-		xi[i] = x[i];
+		xi[i] = std::complex<double>(in[i][0], in[i][1]);
 	}
 
 
