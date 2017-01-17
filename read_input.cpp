@@ -1390,6 +1390,16 @@ void SaveParamtolog(XBGPUParam XParam)
 	write_text_to_log_file("fwsand = " + std::to_string(XParam.fwsand) + ";");
 	write_text_to_log_file("fwreef = " + std::to_string(XParam.fwreef) + ";");
 	write_text_to_log_file("roller = " + std::to_string(XParam.roller) + ";");
+	write_text_to_log_file("thetamin = " + std::to_string(XParam.thetamin) + ";");
+	write_text_to_log_file("thetamax = " + std::to_string(XParam.thetamax) + ";");
+	write_text_to_log_file("dtheta = " + std::to_string(XParam.dtheta) + "; ");
+	write_text_to_log_file("ntheta = " + std::to_string(XParam.ntheta) + "; ");
+	write_text_to_log_file("\n");
+	write_text_to_log_file("# Wave boundary parameters");
+	write_text_to_log_file("dtbc = " + std::to_string(XParam.dtbc) + "; ");
+	write_text_to_log_file("rtlength = " + std::to_string(XParam.rtlength) + "; ");
+	write_text_to_log_file("sprdthr = " + std::to_string(XParam.sprdthr) + "; ");
+	write_text_to_log_file("random = " + std::to_string(XParam.random) + "; ");
 	write_text_to_log_file("\n");
 	write_text_to_log_file("# Sediment parameters");
 	write_text_to_log_file("D50 = " + std::to_string(XParam.D50) + ";");
@@ -1410,6 +1420,14 @@ void SaveParamtolog(XBGPUParam XParam)
 	write_text_to_log_file("CFL = " + std::to_string(XParam.CFL) + ";");
 	write_text_to_log_file("sedstart = " + std::to_string(XParam.sedstart) + ";");
 	write_text_to_log_file("outputtimestep = " + std::to_string(XParam.outputtimestep) + ";");
+	std::string alloutvars= "";
+	for (int nvar = 0; nvar < XParam.outvars.size(); nvar++)
+	{
+		alloutvars = alloutvars + "," + XParam.outvars[nvar];
+	}
+	write_text_to_log_file("outvars = " + alloutvars + ";");
+
+
 	write_text_to_log_file("endtime = " + std::to_string(XParam.endtime) + ";");
 	write_text_to_log_file("\n");
 	write_text_to_log_file("# Files");
