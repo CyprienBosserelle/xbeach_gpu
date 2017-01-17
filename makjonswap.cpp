@@ -16,7 +16,7 @@
 //////////////////////////////////////////////////////////////////////////////////
 
 #include "XBeachGPU.h"
-
+#include <fftw3.h>
 #define pi 3.14159265
 using DECNUM = float;
 
@@ -204,7 +204,7 @@ void makjonswap(XBGPUParam Param, std::vector<Wavebndparam> wavebnd, int step, i
 		
 		for (int ii=0; ii<nfreq; ii++)
 		{
-			HRSpec[ii + i*nfreq] = y[ii] * Dd[i]*pi/180.0;// m2/Hz/deg ? shopuld be per rad?
+			HRSpec[ii + i*nfreq] = y[ii] * Dd[i];// m2/Hz/rad
 			//printf("S_array[%d,%d]=%f\n",ii+1,i+1,S_array[ii+i*nfreq]);
 			
         
@@ -268,6 +268,9 @@ void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir
 		Hm0 = Hm0 + Sf[n];
 	}
 	Hm0 = 4.0*sqrt(Hm0*dfreq);
+	//printf("Hm0=%f\n", Hm0); 
+
+	//Need a sanity check here!
 
 	for (int d = 0; d < ndir; d++)
 	{
@@ -337,6 +340,7 @@ void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir
 	{
 		//
 		fgen[i] = HRfreq[ind1] + i*dfgen;
+		
 	}
 
 	unsigned seed;
@@ -441,12 +445,13 @@ void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir
 	//////////////////////////////////////
 	// Calculate Trep
 	//////////////////////////////////////
+	
 	temptrep = 0.0;
 	double tempf = 0.0;
 	for (int n = 0; n < nf; n++)
 	{
 
-		if (Sf[n] = Sfmax*trepfac)
+		if (Sf[n] >= Sfmax*trepfac)
 		{
 			temptrep += (Sf[n] / max(HRfreq[n], 0.001));
 			tempf += Sf[n];
@@ -479,6 +484,8 @@ void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir
 		tslen = tslen + 1;
 	}
 	
+	int tsfft = pow(2,ceil(ceil(log(tslen) / log(2)))); /// for fft
+
 	//Now we can make the internal time axis
 	double rtin = tslen * dtin;
 	double * tin, *taperf, *taperw;
@@ -747,8 +754,51 @@ void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir
 
 	//std::valarray<double> zeta(tslen);
 	CArray Gn(tslen);
+	fftw_complex *out, *in;
+	out = (fftw_complex*)fftw_malloc(sizeof(fftw_complex) * tslen);
+	in = (fftw_complex*)fftw_malloc(sizeof(fftw_complex) * tslen);
+	fftw_plan p;
+	p = fftw_plan_dft_1d(tslen, in, out, FFTW_BACKWARD, FFTW_ESTIMATE);
+
+	/*
+	write_text_to_log_file("test fft code");
+
+	CArray testin(8);
+	CArray testout(8);
+	CArray testiout(8);
 
 
+	for (int n = 0; n < 8; n++)
+	{
+		if (n < 4)
+		{
+			testin[n] = 1.0;
+		}
+		else
+		{
+			testin[n] = 0.0;
+		}
+		
+	}
+
+	testout = testin;
+	fft(testout);
+	printf(" FFT test:\n");
+	for (int n = 0; n < 8; n++)
+	{
+		printf("%f + %fi\n", std::real(testout[n]), std::imag(testout[n]));
+	}
+
+	testiout = testout;
+
+	ifft(testiout);
+	printf(" IFFT test:\n");
+	for (int n = 0; n < 8; n++)
+	{
+		printf("%f + %fi\n", std::real(testiout[n]), std::imag(testiout[n]));
+	}
+
+	*/
 	for (int itheta = 0; itheta < Param.ntheta; itheta++)
 	{
 		//Check whether any wave components are in the current computational
@@ -774,7 +824,7 @@ void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir
 		{
 			
 			Gn = 0;// Reset the whole array
-
+			//GnForFFT = 0;
 			// Determine Fourier coefficients of all wave components for current
 			// y - coordinate in the current computational directional bin
 			for (int n = 0; n < wcompindx.size(); n++)
@@ -791,20 +841,48 @@ void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir
 			flipiv(tempcplxarr);
 			Gn[std::slice(tslen / 2 + 1, tempcplxarr.size(), 1)] = tempcplxarr;
 
+			// Debug code
+			//if (j == 0)
+			//{
+			for (int n = 0; n < tslen; n++)
+			{
+				in[n][0] = std::real(Gn[n]);
+				in[n][1] = std::imag(Gn[n]);
+			}
+
+			//}
+
+			
+			//GnForFFT[std::slice(0, tslen, 1)] = Gn;
+
 			// Inverse Discrete Fourier transformation to transform back to time
 			// domain from frequency domain
+			fftw_execute(p);
+			//ifft(GnForFFT);
 
-			ifft(Gn);
+			//Gn = GnForFFT[std::slice(0, tslen, 1)];
+			//for (int n = 0; n < tslen; n++)
+			//{
+			//	Gn[n] = std::complex<double> (out[n][0],out[n][1]);
+			//	
+			//}
+
+			
 			//Scale the results??  or already scaled in ifft?
 			//for (int n = 0; n < Gn.size(); n++)
 			//{
 			//	Gn[n] = Gn[n] / sqrt(tslen);
 			//}
 
+
+
+
+			
+
 			//store the results in zeta
 			for (int n = 0; n < tslen; n++)
 			{
-				zeta[j + itheta*ny + n*ny*Param.ntheta] = std::real(Gn[n])*tslen*taperw[n];
+				zeta[j + itheta*ny + n*ny*Param.ntheta] = out[n][0] / sqrt(tslen) * taperw[n];
 				
 			}
 			
@@ -816,7 +894,7 @@ void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir
 	}
 
 	//Temporarily output results for debugging
-	/*
+	
 	double * yyfx, *thetafx;
 
 	yyfx=(double *)malloc(ny*sizeof(double));
@@ -833,7 +911,7 @@ void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir
 	}
 
 	create3dnc(ny, Param.ntheta,tslen,  Param.dx, Param.dtheta,dtin, 0.0,  yyfx, thetafx,tin, zeta);
-	*/
+	
 	// Calculate energy envelope amplitude
 	
 	//Integrate instantaneous water level excitation of wave
@@ -907,7 +985,7 @@ void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir
 	}
 
 	//Temporarily output results for debugging
-	
+	/*
 	double * yyfx, *thetafx, *bctimin;
 
 	yyfx = (double *)malloc(ny*sizeof(double));
@@ -930,7 +1008,7 @@ void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir
 	}
 
 	create3dnc(ny, Param.ntheta, tslenbc, Param.dx, Param.dtheta, Param.dtbc, 0.0, yyfx, thetafx, bctimin, Stfile);
-	
+	*/
 
 	//////////////////////////////////////
 	// Generate q (qfile)
