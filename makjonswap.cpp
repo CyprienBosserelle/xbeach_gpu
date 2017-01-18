@@ -414,7 +414,7 @@ void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir
 		//interp1D(double *x, double *y, double xx)
 		//thetagen[i] = interptime(HRdir[dprev + 1], HRdir[dprev], dtheta, dtheta*((number - cdf[dprev]) / (cdf[dprev + 1] - cdf[dprev])));
 		thetagen[i] = interp1D(ndir, cdf, HRdir, number);
-		//printf("thetagen[i]=%f\n", thetagen[i]);
+		printf("thetagen[i]=%f\n", thetagen[i]);
 	}
 
 	//determine wave number for each wave train component
@@ -645,8 +645,8 @@ void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir
 	
 	for (int i = 0; i < Param.ntheta; i++)
 	{
-		binedgeleft[i] = fmod(i*Param.dtheta + Param.thetamin,2*pi);
-		binedgeright[i] = fmod((i+1)*Param.dtheta + Param.thetamin,2*pi);
+		binedgeleft[i] = fmod((i*Param.dtheta + Param.thetamin)*pi/180.0,2*pi);
+		binedgeright[i] = fmod(((i+1)*Param.dtheta + Param.thetamin)*pi/180.0,2*pi);
 	}
 
 
@@ -768,7 +768,7 @@ void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir
 		//directional bin
 		for (int i = 0; i < K; i++)
 		{
-			if (WDindex[i] >= 0)
+			if (WDindex[i] == itheta)
 			{
 				wcompindx.push_back(i);
 			}
@@ -905,7 +905,7 @@ void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir
 		{
 			for (int n = 0; n < tslen; n++)
 			{
-				E_tdir[n] = Ampzeta[j + itheta*ny + n*ny*Param.ntheta] * Ampzeta[j + itheta*ny + n*ny*Param.ntheta] * 0.5*Param.rho*Param.g/Param.dtheta;
+				E_tdir[n] = Ampzeta[j + itheta*ny + n*ny*Param.ntheta] * Ampzeta[j + itheta*ny + n*ny*Param.ntheta] * 0.5*Param.rho*Param.g/(Param.dtheta*pi/180);
 			}
 			for (int m = 0; m < tslenbc; m++)
 			{

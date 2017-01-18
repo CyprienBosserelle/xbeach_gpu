@@ -1423,7 +1423,11 @@ void SaveParamtolog(XBGPUParam XParam)
 	std::string alloutvars= "";
 	for (int nvar = 0; nvar < XParam.outvars.size(); nvar++)
 	{
-		alloutvars = alloutvars + "," + XParam.outvars[nvar];
+		if (nvar > 0)
+		{
+			alloutvars = alloutvars + ", ";
+		}
+		alloutvars = alloutvars + XParam.outvars[nvar];
 	}
 	write_text_to_log_file("outvars = " + alloutvars + ";");
 
