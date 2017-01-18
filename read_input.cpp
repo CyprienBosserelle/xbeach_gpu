@@ -357,7 +357,7 @@ std::vector<Wavebndparam> ReadCstBnd(XBGPUParam XParam)
 			waveline.Hs = std::stod(lineelements[1]);
 			waveline.Tp = std::stod(lineelements[2]);
 			// make bnd normal wave direction
-			waveline.Dp = (1.5*pi - XParam.grdalpha) - std::stod(lineelements[3])*pi / 180; // Why make it in degree?
+			waveline.Dp = (1.5*pi - XParam.grdalpha) - std::stod(lineelements[3])*pi / 180; // convert to rad
 			waveline.s = std::stod(lineelements[4]);
 			wavebnd.push_back(waveline);
 		}
@@ -904,21 +904,21 @@ XBGPUParam readparamstr(std::string line, XBGPUParam param)
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
-		param.thetamin = std::stod(parametervalue);
+		param.thetamin = std::stod(parametervalue)*pi / 180.0;
 	}
 
 	parameterstr = "thetamax =";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
-		param.thetamax = std::stod(parametervalue);
+		param.thetamax = std::stod(parametervalue)*pi / 180.0;
 	}
 
 	parameterstr = "dtheta =";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
-		param.dtheta = std::stod(parametervalue);
+		param.dtheta = std::stod(parametervalue)*pi / 180.0;
 	}
 
 	parameterstr = "dtbc =";

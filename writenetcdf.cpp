@@ -522,8 +522,8 @@ extern "C" void create2dnc(int nx, int ny, double dx, double dy, double totaltim
 
 
 	status = nc_def_var(ncid, "time", NC_DOUBLE, 1, tdim, &time_id);
-	status = nc_def_var(ncid, "x", NC_DOUBLE, 1, xdim, &xx_id);
-	status = nc_def_var(ncid, "y", NC_DOUBLE, 1, ydim, &yy_id);
+	status = nc_def_var(ncid, "xx", NC_DOUBLE, 1, xdim, &xx_id);
+	status = nc_def_var(ncid, "yy", NC_DOUBLE, 1, ydim, &yy_id);
 
 
 
@@ -592,8 +592,8 @@ extern "C" void create3dnc(int nx, int ny, int nt, double dx, double dy, double 
 	
 	
     status = nc_def_var (ncid, "time", NC_DOUBLE,1,tdim, &time_id);
-	status = nc_def_var(ncid, "x", NC_DOUBLE, 1, xdim, &xx_id);
-	status = nc_def_var(ncid, "y", NC_DOUBLE, 1, ydim, &yy_id);
+	status = nc_def_var(ncid, "xx", NC_DOUBLE, 1, xdim, &xx_id);
+	status = nc_def_var(ncid, "yy", NC_DOUBLE, 1, ydim, &yy_id);
 	status = nc_def_var(ncid, "theta", NC_DOUBLE, 1, pdim, &tt_id);
 
 
