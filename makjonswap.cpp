@@ -415,8 +415,7 @@ void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir
 		//thetagen[i] = interptime(HRdir[dprev + 1], HRdir[dprev], dtheta, dtheta*((number - cdf[dprev]) / (cdf[dprev + 1] - cdf[dprev])));
 		thetagen[i] = interp1D(ndir, cdf, HRdir, number);
 
-		//correct thetagen to the 
-		printf("thetagen[i]=%f\n", thetagen[i]);
+		//printf("thetagen[i]=%f\n", thetagen[i]);
 	}
 
 	//determine wave number for each wave train component
@@ -470,7 +469,7 @@ void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir
 
 	//First assume that internal and bc - writing time step is the same
 	double dtin = Param.dtbc;
-	int tslenbc = (int)(Param.rtlength / Param.dtbc) + 1;
+	int tslenbc = ceil(Param.rtlength / Param.dtbc);// (int)(Param.rtlength / Param.dtbc) + 1;
 	
 	//Check whether the internal frequency is high enough to describe the highest frequency
 	//wave train returned from frange(which can be used in the boundary conditions)
@@ -606,6 +605,32 @@ void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir
 	Amp = (double *)malloc(ny*tslen*sizeof(double));
 	stdzeta = (double *)malloc(Param.ntheta*sizeof(double));
 	E_tdir = (double *)malloc(tslen*sizeof(double));
+
+	//initialise the variables
+	for (int n = 0; n < ny*Param.ntheta*tslen;n++)
+	{
+		zeta[n] = 0.0;
+		Ampzeta[n] = 0.0;
+	}
+	for (int n = 0; n < ny*tslen; n++)
+	{
+		eta[n] = 0.0;
+		Amp[n] = 0.0;
+	}
+
+	for (int n = 0; n < Param.ntheta; n++)
+	{
+		stdzeta[n] = 0.0;
+	}
+
+	for (int n = 0; n <tslen; n++)
+	{
+		E_tdir[n] = 0.0;
+	}
+
+
+
+
 
 	for (int i = 0; i < K; i++)
 	{
@@ -832,7 +857,7 @@ void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir
 	}
 
 	//Temporarily output results for debugging
-	/*
+	
 	double * yyfx, *thetafx;
 
 	yyfx=(double *)malloc(ny*sizeof(double));
@@ -849,7 +874,7 @@ void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir
 	}
 
 	create3dnc(ny, Param.ntheta,tslen,  Param.dx, Param.dtheta,dtin, 0.0,  yyfx, thetafx,tin, zeta);
-	*/
+	
 	// Calculate energy envelope amplitude
 	
 	//Integrate instantaneous water level excitation of wave
@@ -858,6 +883,7 @@ void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir
 	CArray tmpcplx(tslen);
 	for (int j = 0; j < Param.ny; j++)
 	{
+		tmpcplx = 0.0; //need to reset 
 		for (int n = 0; n < tslen; n++)
 		{
 			temp = 0.0;
@@ -907,8 +933,9 @@ void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir
 		{
 			for (int n = 0; n < tslen; n++)
 			{
-				E_tdir[n] = Ampzeta[j + itheta*ny + n*ny*Param.ntheta] * Ampzeta[j + itheta*ny + n*ny*Param.ntheta] * 0.5*Param.rho*Param.g/(Param.dtheta);
+				E_tdir[n] = Ampzeta[j + itheta*ny + n*ny*Param.ntheta] * Ampzeta[j + itheta*ny + n*ny*Param.ntheta] * 0.5*Param.rho*Param.g / (Param.dtheta);
 			}
+			//interpolate to boundary timeseries
 			for (int m = 0; m < tslenbc; m++)
 			{
 				Stfile[j + itheta*ny + m*ny*Param.ntheta] = interp1D(tslen, tin, E_tdir, m*Param.dtbc);
