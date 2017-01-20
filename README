@@ -1,2 +1,0 @@
-XBeach_GPU README file
-Lightweight version of XBeach that uses CUDA C to run on the GPU. The code is used to simulate coastal waves, currents, sediment transport and beach morphology changes. 
