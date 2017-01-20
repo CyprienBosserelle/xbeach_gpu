@@ -989,14 +989,35 @@ XBGPUParam readparamstr(std::string line, XBGPUParam param)
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
-		param.dx = std::stod(parametervalue);
+		param.g = std::stod(parametervalue);
 	}
 
 	parameterstr = "rho =";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
-		param.dx = std::stod(parametervalue);
+		param.rho = std::stod(parametervalue);
+	}
+
+	parameterstr = "nmax =";
+	parametervalue = findparameter(parameterstr, line);
+	if (!parametervalue.empty())
+	{
+		param.nmax = std::stod(parametervalue);
+	}
+
+	parameterstr = "fcutoff =";
+	parametervalue = findparameter(parameterstr, line);
+	if (!parametervalue.empty())
+	{
+		param.fcutoff = std::stod(parametervalue);
+	}
+
+	parameterstr = "nspr =";
+	parametervalue = findparameter(parameterstr, line);
+	if (!parametervalue.empty())
+	{
+		param.nspr = std::stoi(parametervalue);
 	}
 
 	return param;

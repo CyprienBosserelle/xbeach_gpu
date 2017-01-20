@@ -96,6 +96,7 @@ public:
 	double morfac=1.0; // morphological factor 0 no changes in morphology 1 normal changes in morpho >1 accelerated morphological changes (beware this doesn't accelerate the bnd you have to do this manually)
 	double sus=1.0, bed=1.0; // calibration coeff for suspended load and bed load
 	double facsk=0.2, facas=0.2;// calibration factor for wave skewness and Asymetry
+	
 
 	// File
 	std::string Bathymetryfile;// bathymetry file name
@@ -125,6 +126,9 @@ public:
 	double sprdthr = 0.08;
 	int random = 0;
 	double offdepth;
+	double nmax = 0.8;
+	double fcutoff = 0.0; // max 40.0;
+	int nspr = 0;
 };
 
 

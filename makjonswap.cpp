@@ -239,7 +239,7 @@ void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir
 	double *Sd,*pdf, *cdf; // size of ndir
 
 	double fmax,Sfmax; // Should be in Param
-	int nspr = 0; // Should be in Param (need test for nspr ==1)
+	//int nspr = 0; // Should be in Param (need test for nspr ==1)
 	double * binedgeleft, * binedgeright; // size of ntheta
 	double * zeta, *Ampzeta; //water elevation ny*ntheta*tslen
 	double *eta, *Amp; //water elevation integrated over directions ny*tslen
@@ -727,7 +727,7 @@ void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir
 	// Also move all wave energy falling outside the computational bins, into
 	// the computational domain(in the outer wave direction bins)
 
-	if (nspr == 1)
+	if (Param.nspr == 1)
 	{
 		for (int i = 0; i < K; i++)
 		{
@@ -978,10 +978,103 @@ void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir
 	//////////////////////////////////////
 	// Bound long waves
 	//////////////////////////////////////
+	double deltaf, deltatheta, k3;
+	double *KKx, *KKy, *dphi3, *cg3, *theta3, *D;
 
+	//deltatheta = (double *)malloc(K*(K-1)*sizeof(double));
+	KKx = (double *)malloc(K*(K - 1)*sizeof(double));
+	KKy = (double *)malloc(K*(K - 1)*sizeof(double));
+	//k3 = (double *)malloc(K*(K - 1)*sizeof(double));
+	cg3 = (double *)malloc(K*(K - 1)*sizeof(double));
+	D = (double *)malloc(K*(K - 1)*sizeof(double));
+	theta3 = (double *)malloc(K*(K - 1)*sizeof(double));
+
+	double t1, t2, t2n, dift, chk1, chk2;
+	std::complex<double> Comptemp, Comptemp2;
 	//Run loop over wave-wave interaction components
+	for (int i = 0; i < (K-1); i++)
+	{
+		// Determine difference frequency
+		deltaf = i*dfgen;
+
+		for (int m = 0; m < (K-i); m++)
+		{
+			//! Determine difference frequency
+			deltatheta = abs(thetagen[i+1] - thetagen[m]) + pi;
+
+			//Determine x- and y-components of wave numbers of difference waves
+			KKy[i + m*(K - 1)] = kgen[i + 1] * sin(thetagen[i + 1]) - kgen[m] * sin(thetagen[m]);
+			KKy[i + m*(K - 1)] = kgen[i + 1] * cos(thetagen[i + 1]) - kgen[m] * cos(thetagen[m]);
+
+			// Determine difference wave numbers according to Van Dongeren et al. 2003
+			//	eq. 19
+			k3 = sqrt(kgen[m] * kgen[m] + kgen[i + 1] * kgen[i + 1] + 2 * kgen[m] * kgen[i + 1] * cos(deltatheta));
+
+			//Determine group velocity of difference waves
+			cg3[i + m*(K - 1)] = 2 * pi*deltaf / k3;
+			//Modification Robert + Jaap: make sure that the bound long wave amplitude does not
+			//	!explode when offshore boundary is too close to shore,
+			//	!by limiting the interaction group velocity
+			cg3[i + m*(K - 1)] = min(cg3[i + m*(K - 1)], Param.nmax*sqrt(Param.g / k3*tanh(k3*Param.offdepth)));
+
+			//Determine difference - interaction coefficient according to Herbers 1994
+			//	!eq.A5
+			t1 = (-1.0*wgen[m])*wgen[i];
+			t2 = (-1.0*wgen[m])+wgen[i];
+			t2n = cg3[i + m*(K - 1)] * k3;
+			dift = abs(t2 - t2n);
+
+			chk1 = cosh(kgen[m] * Param.offdepth);
+			chk2 = cosh(kgen[i + 1] * Param.offdepth);
+
+			D[i + m*(K - 1)] = -1.0*Param.g*kgen[m] * kgen[i + 1] * cos(deltatheta)*0.5 / t1 +
+				Param.g*t2*(chk1*chk2) / ((Param.g*k3*tanh(k3*Param.offdepth) - t2n*t2n)*t1*cosh(k3*Param.offdepth))*
+				(t2*(t1*t1 / (Param.g*Param.g) - kgen[m] * kgen[i + 1] * cos(deltaf))
+				- 0.5*((-1.0*wgen[m])*kgen[i + 1] * kgen[i + 1] / (chk2*chk2) + wgen[i + 1] * kgen[m] * kgen[m] / (chk1*chk1)));
+
+			//Correct for surface elevation input and output instead of bottom pressure
+			//	!so it is consistent with Van Dongeren et al 2003 eq. 18
+			D[i + m*(K - 1)] = D[i + m*(K - 1)] * cosh(k3*Param.offdepth) / (cosh(kgen[m] * Param.g)*cosh(kgen[i + 1] * Param.g));
+
+			// Exclude interactions with components smaller than or equal to current
+			// component according to lower limit Herbers 1994 eq. 1
+			if (fgen[m] <= deltaf)
+			{
+				D[i + m*(K - 1)] = 0.0;
+			}
+
+			// Exclude interactions with components that are cut - off by the fcutoff
+			// parameter
+			if (deltaf<=Param.fcutoff)
+			{
+				D[i + m*(K - 1)] = 0.0;
+			}
+
+			// Determine phase of bound long wave assuming a local equilibrium with
+			// forcing of interacting primary waves according to Van Dongeren et al.
+			// 2003 eq. 21 (the angle is the imaginary part of the natural log of a
+			// complex number as long as the complex number is not zero)
+			Comptemp = std::conj(CompFn(1, Findex[0] + i + 1 )); //i or i+1
+			Comptemp2 = std::conj(CompFn(1, Findex[0] + m )); //m or m-1
+			dphi3[i + m*(K - 1)] = pi + std::imag(log(Comptemp)) - std::imag(log(Comptemp2));
+
+			// Determine angle of bound long wave according to Van Dongeren et al. 2003 eq. 22
+			theta3[i + m*(K - 1)] = atan2(KKy[i + m*(K - 1)], KKx[i + m*(K - 1)]);
+
+		}
+		
+	}
+	// Run a loop over the offshore boundary
+	for (int j = 0; j < Param.ny; j++)
+	{
+		// Determine energy of bound long wave according to Herbers 1994 eq. 1 based
+		// on difference - interaction coefficient and energy density spectra of
+		// primary waves
+		// Robert: E = 2 * D**2 * S**2 * dtheta**2 * df can be rewritten as
+		// E = 2 * D**2 * Sf**2 * df
 
 
+	}
 	//////////////////////////////////////
 	// Generate q (qfile)
 	//////////////////////////////////////
