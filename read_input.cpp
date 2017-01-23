@@ -989,7 +989,9 @@ XBGPUParam readparamstr(std::string line, XBGPUParam param)
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
-		param.g = std::stod(parametervalue);
+//		param.g = std::stod(parametervalue);
+		//conflict with smag = 0
+		// not allowing user to specify g is acceptable for now
 	}
 
 	parameterstr = "rho =";

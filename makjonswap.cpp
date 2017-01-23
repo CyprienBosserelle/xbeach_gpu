@@ -245,6 +245,7 @@ void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir
 	double *eta, *Amp; //water elevation integrated over directions ny*tslen
 	double *stdzeta; //size of ntheta
 	double *E_tdir; // tslen
+	double *qx, *qy, *qtot, *qtempx, *qtempy;
 
 	int Kmin = 200;
 
@@ -605,6 +606,11 @@ void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir
 	Amp = (double *)malloc(ny*tslen*sizeof(double));
 	stdzeta = (double *)malloc(Param.ntheta*sizeof(double));
 	E_tdir = (double *)malloc(tslen*sizeof(double));
+	qx = (double *)malloc(ny*tslen*sizeof(double));
+	qy = (double *)malloc(ny*tslen*sizeof(double));
+	qtot = (double *)malloc(ny*tslen*sizeof(double));
+	qtempx = (double *)malloc(tslen*sizeof(double));
+	qtempy = (double *)malloc(tslen*sizeof(double));
 
 	//initialise the variables
 	for (int n = 0; n < ny*Param.ntheta*tslen;n++)
@@ -978,8 +984,8 @@ void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir
 	//////////////////////////////////////
 	// Bound long waves
 	//////////////////////////////////////
-	double deltaf, deltatheta, k3;
-	double *KKx, *KKy, *dphi3, *cg3, *theta3, *D;
+	double deltaf, deltatheta, k3, Eforc;
+	double *KKx, *KKy, *dphi3, *cg3, *theta3, *D, *Abnd;
 
 	//deltatheta = (double *)malloc(K*(K-1)*sizeof(double));
 	KKx = (double *)malloc(K*(K - 1)*sizeof(double));
@@ -987,30 +993,53 @@ void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir
 	//k3 = (double *)malloc(K*(K - 1)*sizeof(double));
 	cg3 = (double *)malloc(K*(K - 1)*sizeof(double));
 	D = (double *)malloc(K*(K - 1)*sizeof(double));
+	Abnd = (double *)malloc(K*(K - 1)*sizeof(double));
 	theta3 = (double *)malloc(K*(K - 1)*sizeof(double));
-
+	dphi3 = (double *)malloc(K*(K - 1)*sizeof(double));
 	double t1, t2, t2n, dift, chk1, chk2;
 	std::complex<double> Comptemp, Comptemp2;
+
+
+	//initiallise all variables 
+	for (int n = 0; n < K*(K - 1); n++)
+	{
+		KKx[n] = 0.0;
+		KKy[n] = 0.0;
+		cg3[n] = 0.0;
+		D[n] = 0.0;
+		Abnd[n] = 0.0;
+		theta3[n] = 0.0;
+		dphi3[n] = 0.0;
+
+	}
+
+
+
+
 	//Run loop over wave-wave interaction components
 	for (int i = 0; i < (K-1); i++)
 	{
 		// Determine difference frequency
 		deltaf = i*dfgen;
 
-		for (int m = 0; m < (K-i); m++)
+		for (int m = 0; m < (K-i-1); m++)
 		{
+			int mi = i + 1 + m;
 			//! Determine difference frequency
-			deltatheta = abs(thetagen[i+1] - thetagen[m]) + pi;
+			deltatheta = abs(thetagen[mi] - thetagen[m]) + pi;
 
 			//Determine x- and y-components of wave numbers of difference waves
-			KKy[i + m*(K - 1)] = kgen[i + 1] * sin(thetagen[i + 1]) - kgen[m] * sin(thetagen[m]);
-			KKy[i + m*(K - 1)] = kgen[i + 1] * cos(thetagen[i + 1]) - kgen[m] * cos(thetagen[m]);
+			KKy[i + m*(K - 1)] = kgen[mi] * sin(thetagen[mi]) - kgen[m] * sin(thetagen[m]);
+			KKy[i + m*(K - 1)] = kgen[mi] * cos(thetagen[mi]) - kgen[m] * cos(thetagen[m]);
 
 			// Determine difference wave numbers according to Van Dongeren et al. 2003
 			//	eq. 19
-			k3 = sqrt(kgen[m] * kgen[m] + kgen[i + 1] * kgen[i + 1] + 2 * kgen[m] * kgen[i + 1] * cos(deltatheta));
+			k3 = sqrt(kgen[m] * kgen[m] + kgen[mi] * kgen[mi] + 2 * kgen[m] * kgen[mi] * cos(deltatheta));
+
+			
 
 			//Determine group velocity of difference waves
+
 			cg3[i + m*(K - 1)] = 2 * pi*deltaf / k3;
 			//Modification Robert + Jaap: make sure that the bound long wave amplitude does not
 			//	!explode when offshore boundary is too close to shore,
@@ -1019,22 +1048,22 @@ void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir
 
 			//Determine difference - interaction coefficient according to Herbers 1994
 			//	!eq.A5
-			t1 = (-1.0*wgen[m])*wgen[i];
-			t2 = (-1.0*wgen[m])+wgen[i];
+			t1 = (-1.0*wgen[m])*wgen[mi];
+			t2 = (-1.0*wgen[m])+wgen[mi];
 			t2n = cg3[i + m*(K - 1)] * k3;
 			dift = abs(t2 - t2n);
 
 			chk1 = cosh(kgen[m] * Param.offdepth);
-			chk2 = cosh(kgen[i + 1] * Param.offdepth);
+			chk2 = cosh(kgen[mi] * Param.offdepth);
 
-			D[i + m*(K - 1)] = -1.0*Param.g*kgen[m] * kgen[i + 1] * cos(deltatheta)*0.5 / t1 +
+			D[i + m*(K - 1)] = -1.0*Param.g*kgen[m] * kgen[mi] * cos(deltatheta)*0.5 / t1 +
 				Param.g*t2*(chk1*chk2) / ((Param.g*k3*tanh(k3*Param.offdepth) - t2n*t2n)*t1*cosh(k3*Param.offdepth))*
-				(t2*(t1*t1 / (Param.g*Param.g) - kgen[m] * kgen[i + 1] * cos(deltaf))
-				- 0.5*((-1.0*wgen[m])*kgen[i + 1] * kgen[i + 1] / (chk2*chk2) + wgen[i + 1] * kgen[m] * kgen[m] / (chk1*chk1)));
+				(t2*(t1*t1 / (Param.g*Param.g) - kgen[m] * kgen[mi] * cos(deltaf))
+				- 0.5*((-1.0*wgen[m])*kgen[mi] * kgen[mi] / (chk2*chk2) + wgen[mi] * kgen[m] * kgen[m] / (chk1*chk1)));
 
 			//Correct for surface elevation input and output instead of bottom pressure
 			//	!so it is consistent with Van Dongeren et al 2003 eq. 18
-			D[i + m*(K - 1)] = D[i + m*(K - 1)] * cosh(k3*Param.offdepth) / (cosh(kgen[m] * Param.g)*cosh(kgen[i + 1] * Param.g));
+			D[i + m*(K - 1)] = D[i + m*(K - 1)] * cosh(k3*Param.offdepth) / (cosh(kgen[m] * Param.g)*cosh(kgen[mi] * Param.g));
 
 			// Exclude interactions with components smaller than or equal to current
 			// component according to lower limit Herbers 1994 eq. 1
@@ -1054,27 +1083,221 @@ void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir
 			// forcing of interacting primary waves according to Van Dongeren et al.
 			// 2003 eq. 21 (the angle is the imaginary part of the natural log of a
 			// complex number as long as the complex number is not zero)
-			Comptemp = std::conj(CompFn(1, Findex[0] + i + 1 )); //i or i+1
+			Comptemp = std::conj(CompFn(1, Findex[0] + mi)); //i or i+1 or m+i+1 or m+i ??
 			Comptemp2 = std::conj(CompFn(1, Findex[0] + m )); //m or m-1
 			dphi3[i + m*(K - 1)] = pi + std::imag(log(Comptemp)) - std::imag(log(Comptemp2));
 
 			// Determine angle of bound long wave according to Van Dongeren et al. 2003 eq. 22
 			theta3[i + m*(K - 1)] = atan2(KKy[i + m*(K - 1)], KKx[i + m*(K - 1)]);
 
+			// Determine energy of bound long wave according to Herbers 1994 eq. 1 based
+			// on difference - interaction coefficient and energy density spectra of
+			// primary waves
+			// Robert: E = 2 * D**2 * S**2 * dtheta**2 * df can be rewritten as
+			// E = 2 * D**2 * Sf**2 * df
+			Eforc = 2 * D[i + m*(K - 1)] * D[i + m*(K - 1)] * vargenq[m] * vargenq[mi] * dfgen;
+			Abnd[i + m*(K - 1)] = sqrt(2 * Eforc*dfgen);
+			if (!(Abnd[i + m*(K - 1)] == Abnd[i + m*(K - 1)])) // is nan
+			{
+				printf("Arggg!");
+			}
+
 		}
 		
 	}
+
+	TwoDee<std::complex<double>> Ftempx(K,(K - 1));
+	TwoDee<std::complex<double>> Ftempy(K, (K - 1));
+	TwoDee<std::complex<double>> Ftemptot(K, (K - 1));
+
 	// Run a loop over the offshore boundary
 	for (int j = 0; j < Param.ny; j++)
 	{
-		// Determine energy of bound long wave according to Herbers 1994 eq. 1 based
-		// on difference - interaction coefficient and energy density spectra of
-		// primary waves
-		// Robert: E = 2 * D**2 * S**2 * dtheta**2 * df can be rewritten as
-		// E = 2 * D**2 * Sf**2 * df
+		
+		for (int i = 0; i < (K - 1); i++)
+		{
 
+			for (int m = 0; m < (K - i); m++)
+			{
+				//qx
+				Ftempx(i, m) = Abnd[i + m*(K - 1)] * 0.50 * exp(-1.0 * par_compi* dphi3[i + m*(K - 1)])*cg3[i + m*(K - 1)] * cos(theta3[i + m*(K - 1)]);
+				
+				
+
+				//qy
+				Ftempy(i, m) = Abnd[i + m*(K - 1)] * 0.50 * exp(-1.0 * par_compi* dphi3[i + m*(K - 1)])*cg3[i + m*(K - 1)] * sin(theta3[i + m*(K - 1)]);
+				//eta
+				Ftemptot(i, m) = Abnd[i + m*(K - 1)] * 0.50 * exp(-1.0 * par_compi* dphi3[i + m*(K - 1)]);
+			}
+		}
+
+		Gn = 0.0;
+		tempcplxarr = 0.0;
+
+		//! Unroll wave component to correct place along the offshore boundary
+		for (int i = 0; i < (K - 1); i++)
+		{
+
+			for (int m = 0; m < (K - i); m++)
+			{
+				//qx
+				Ftempx(i, m) = Ftempx(i, m) * exp(-1.0*par_compi*(KKy[i + m*(K - 1)] * (j*Param.dx) + KKx[i + m*(K - 1)] * (0.0*Param.dx)));
+			}
+		}
+		for (int i = 0; i < (K - 1); i++)
+		{
+
+			std::complex<double> sume = 0.0;
+			for (int m = 0; m < (K - 1); m++)
+			{
+				sume = sume + Ftempx(i, m);
+			}
+			Gn[i] = sume;
+		}
+
+		tempcplxarr = Gn[std::slice(1, tslen*0.5 - 1, 1)];
+		for (int jcplx = 0; jcplx < tempcplxarr.size(); jcplx++)
+		{
+			tempcplxarr[jcplx] = std::conj(tempcplxarr[jcplx]);
+		}
+		flipiv(tempcplxarr);
+		Gn[std::slice(tslen / 2 + 1, tempcplxarr.size(), 1)] = tempcplxarr;
+
+		for (int n = 0; n < tslen; n++)
+		{
+			in[n][0] = std::real(Gn[n]);
+			in[n][1] = std::imag(Gn[n]);
+		}
+
+
+		// Inverse Discrete Fourier transformation to transform back to time
+		// domain from frequency domain
+		fftw_execute(p);
+
+		//fft function takes care of the scaling here?
+		//store the results in qx
+		for (int n = 0; n < tslen; n++)
+		{
+			qx[j + n*ny] = out[n][0] * taperf[n];
+
+		}
+		
+
+
+
+		Gn = 0.0;
+		tempcplxarr = 0.0;
+
+		//! Unroll wave component to correct place along the offshore boundary
+		for (int i = 0; i < (K - 1); i++)
+		{
+
+			for (int m = 0; m < (K - i); m++)
+			{
+				//qx
+				Ftempy(i, m) = Ftempy(i, m) * exp(-1.0*par_compi*(KKy[i + m*(K - 1)] * (j*Param.dx) + KKx[i + m*(K - 1)] * (0.0*Param.dx)));
+			}
+		}
+		for (int i = 0; i < (K - 1); i++)
+		{
+
+			std::complex<double> sume = 0.0;
+			for (int m = 0; m < (K - 1); m++)
+			{
+				sume = sume + Ftempy(i, m);
+			}
+			Gn[i] = sume;
+		}
+
+		tempcplxarr = Gn[std::slice(1, tslen*0.5 - 1, 1)];
+		for (int jcplx = 0; jcplx < tempcplxarr.size(); jcplx++)
+		{
+			tempcplxarr[jcplx] = std::conj(tempcplxarr[jcplx]);
+		}
+		flipiv(tempcplxarr);
+		Gn[std::slice(tslen / 2 + 1, tempcplxarr.size(), 1)] = tempcplxarr;
+
+		for (int n = 0; n < tslen; n++)
+		{
+			in[n][0] = std::real(Gn[n]);
+			in[n][1] = std::imag(Gn[n]);
+		}
+
+
+		// Inverse Discrete Fourier transformation to transform back to time
+		// domain from frequency domain
+		fftw_execute(p);
+
+		//fft function takes care of the scaling here?
+		//store the results in qx
+		for (int n = 0; n < tslen; n++)
+		{
+			qy[j + n*ny] = out[n][0] * taperf[n];
+
+		}
+
+		Gn = 0.0;
+		tempcplxarr = 0.0;
+
+		//! Unroll wave component to correct place along the offshore boundary
+		for (int i = 0; i < (K - 1); i++)
+		{
+
+			for (int m = 0; m < (K - i); m++)
+			{
+				//qx
+				Ftemptot(i, m) = Ftemptot(i, m) * exp(-1.0*par_compi*(KKy[i + m*(K - 1)] * (j*Param.dx) + KKx[i + m*(K - 1)] * (0.0*Param.dx)));
+			}
+		}
+		for (int i = 0; i < (K - 1); i++)
+		{
+
+			std::complex<double> sume = 0.0;
+			for (int m = 0; m < (K - 1); m++)
+			{
+				sume = sume + Ftemptot(i, m);
+			}
+			Gn[i] = sume;
+		}
+
+		tempcplxarr = Gn[std::slice(1, tslen*0.5 - 1, 1)];
+		for (int jcplx = 0; jcplx < tempcplxarr.size(); jcplx++)
+		{
+			tempcplxarr[jcplx] = std::conj(tempcplxarr[jcplx]);
+		}
+		flipiv(tempcplxarr);
+		Gn[std::slice(tslen / 2 + 1, tempcplxarr.size(), 1)] = tempcplxarr;
+
+		for (int n = 0; n < tslen; n++)
+		{
+			in[n][0] = std::real(Gn[n]);
+			in[n][1] = std::imag(Gn[n]);
+		}
+
+
+		// Inverse Discrete Fourier transformation to transform back to time
+		// domain from frequency domain
+		fftw_execute(p);
+
+		//fft function takes care of the scaling here?
+		//store the results in qx
+		for (int n = 0; n < tslen; n++)
+		{
+			qtot[j + n*ny] = out[n][0] * taperf[n];
+
+		}
 
 	}
+
+	yyfx = (double *)malloc(ny*sizeof(double));
+	
+	for (int j = 0; j < Param.ny; j++)
+	{
+		yyfx[j] = j*Param.dx;
+	}
+	create2dnc(tslen, ny, dtin, Param.dx, 0.0, tin, yyfx, qx);
+
+
 	//////////////////////////////////////
 	// Generate q (qfile)
 	//////////////////////////////////////
@@ -1082,13 +1305,21 @@ void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir
 	//Until ee is fully tested leave as qfile=0.0
 	for (int j = 0; j < Param.ny; j++)
 	{
-		for (int xi = 0; xi < 4; xi++)
+
+		for (int n = 0; n < tslen; n++)
 		{
-			for (int m = 0; m < tslenbc; m++)
-			{
-				qfile[j + xi*ny + m*ny * 4] = 0.0;
-			}
+			qtempx[n] = qx[j + n*ny];
+			qtempy[n] = qy[j + n*ny];
 		}
+
+		for (int m = 0; m < tslenbc; m++)
+		{
+			qfile[j + 0 * ny + m*ny * 4] = interp1D(tslen, tin, qtempx, m*Param.dtbc); 
+			qfile[j + 1 * ny + m*ny * 4] = interp1D(tslen, tin, qtempy, m*Param.dtbc);
+			qfile[j + 2 * ny + m*ny * 4] = 0.0;
+			qfile[j + 3 * ny + m*ny * 4] = 0.0;// qtot[j + m*ny];
+		}
+		
 	}
 
 	//////////////////////////////////////
