@@ -1020,7 +1020,7 @@ void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir
 	for (int i = 0; i < (K-1); i++)
 	{
 		// Determine difference frequency
-		deltaf = i*dfgen;
+		deltaf = (i+1)*dfgen;
 
 		for (int m = 0; m < (K-i-1); m++)
 		{
@@ -1030,7 +1030,7 @@ void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir
 
 			//Determine x- and y-components of wave numbers of difference waves
 			KKy[i + m*(K - 1)] = kgen[mi] * sin(thetagen[mi]) - kgen[m] * sin(thetagen[m]);
-			KKy[i + m*(K - 1)] = kgen[mi] * cos(thetagen[mi]) - kgen[m] * cos(thetagen[m]);
+			KKx[i + m*(K - 1)] = kgen[mi] * cos(thetagen[mi]) - kgen[m] * cos(thetagen[m]);
 
 			// Determine difference wave numbers according to Van Dongeren et al. 2003
 			//	eq. 19
@@ -1058,12 +1058,12 @@ void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir
 
 			D[i + m*(K - 1)] = -1.0*Param.g*kgen[m] * kgen[mi] * cos(deltatheta)*0.5 / t1 +
 				Param.g*t2*(chk1*chk2) / ((Param.g*k3*tanh(k3*Param.offdepth) - t2n*t2n)*t1*cosh(k3*Param.offdepth))*
-				(t2*(t1*t1 / (Param.g*Param.g) - kgen[m] * kgen[mi] * cos(deltaf))
+				(t2*(t1*t1 / (Param.g*Param.g) - kgen[m] * kgen[mi] * cos(deltatheta))
 				- 0.5*((-1.0*wgen[m])*kgen[mi] * kgen[mi] / (chk2*chk2) + wgen[mi] * kgen[m] * kgen[m] / (chk1*chk1)));
 
 			//Correct for surface elevation input and output instead of bottom pressure
 			//	!so it is consistent with Van Dongeren et al 2003 eq. 18
-			D[i + m*(K - 1)] = D[i + m*(K - 1)] * cosh(k3*Param.offdepth) / (cosh(kgen[m] * Param.g)*cosh(kgen[mi] * Param.g));
+			D[i + m*(K - 1)] = D[i + m*(K - 1)] * cosh(k3*Param.offdepth) / (cosh(kgen[m] * Param.offdepth)*cosh(kgen[mi] * Param.offdepth));
 
 			// Exclude interactions with components smaller than or equal to current
 			// component according to lower limit Herbers 1994 eq. 1
@@ -1097,10 +1097,10 @@ void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir
 			// E = 2 * D**2 * Sf**2 * df
 			Eforc = 2 * D[i + m*(K - 1)] * D[i + m*(K - 1)] * vargenq[m] * vargenq[mi] * dfgen;
 			Abnd[i + m*(K - 1)] = sqrt(2 * Eforc*dfgen);
-			if (!(Abnd[i + m*(K - 1)] == Abnd[i + m*(K - 1)])) // is nan
-			{
-				printf("Arggg!");
-			}
+			//if (!(Abnd[i + m*(K - 1)] == Abnd[i + m*(K - 1)])) // is nan
+			//{
+			//	printf("Arggg!");
+			//}
 
 		}
 		
@@ -1114,20 +1114,18 @@ void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir
 	for (int j = 0; j < Param.ny; j++)
 	{
 		
-		for (int i = 0; i < (K - 1); i++)
+		for (int i = 0; i < K; i++)
 		{
 
-			for (int m = 0; m < (K - i); m++)
+			for (int m = 0; m < (K - 1); m++)
 			{
 				//qx
-				Ftempx(i, m) = Abnd[i + m*(K - 1)] * 0.50 * exp(-1.0 * par_compi* dphi3[i + m*(K - 1)])*cg3[i + m*(K - 1)] * cos(theta3[i + m*(K - 1)]);
+				Ftempx(i, m) = Abnd[i + m*K] * 0.50 * exp(-1.0 * par_compi* dphi3[i + m*K])*cg3[i + m*K] * cos(theta3[i + m*K]);
 				
-				
-
 				//qy
-				Ftempy(i, m) = Abnd[i + m*(K - 1)] * 0.50 * exp(-1.0 * par_compi* dphi3[i + m*(K - 1)])*cg3[i + m*(K - 1)] * sin(theta3[i + m*(K - 1)]);
+				Ftempy(i, m) = Abnd[i + m*K] * 0.50 * exp(-1.0 * par_compi* dphi3[i + m*K])*cg3[i + m*K] * sin(theta3[i + m*K]);
 				//eta
-				Ftemptot(i, m) = Abnd[i + m*(K - 1)] * 0.50 * exp(-1.0 * par_compi* dphi3[i + m*(K - 1)]);
+				Ftemptot(i, m) = Abnd[i + m*K] * 0.50 * exp(-1.0 * par_compi* dphi3[i + m*K]);
 			}
 		}
 
@@ -1135,16 +1133,16 @@ void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir
 		tempcplxarr = 0.0;
 
 		//! Unroll wave component to correct place along the offshore boundary
-		for (int i = 0; i < (K - 1); i++)
+		for (int i = 0; i < K; i++)
 		{
 
-			for (int m = 0; m < (K - i); m++)
+			for (int m = 0; m < (K - 1); m++)
 			{
 				//qx
-				Ftempx(i, m) = Ftempx(i, m) * exp(-1.0*par_compi*(KKy[i + m*(K - 1)] * (j*Param.dx) + KKx[i + m*(K - 1)] * (0.0*Param.dx)));
+				Ftempx(i, m) = Ftempx(i, m) * exp(-1.0*par_compi*(KKy[i + m*K] * (j*Param.dx) + KKx[i + m*K] * (0.0*Param.dx)));
 			}
 		}
-		for (int i = 0; i < (K - 1); i++)
+		for (int i = 0; i < K; i++)
 		{
 
 			std::complex<double> sume = 0.0;
@@ -1189,16 +1187,16 @@ void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir
 		tempcplxarr = 0.0;
 
 		//! Unroll wave component to correct place along the offshore boundary
-		for (int i = 0; i < (K - 1); i++)
+		for (int i = 0; i < K; i++)
 		{
 
-			for (int m = 0; m < (K - i); m++)
+			for (int m = 0; m < (K - 1); m++)
 			{
 				//qx
-				Ftempy(i, m) = Ftempy(i, m) * exp(-1.0*par_compi*(KKy[i + m*(K - 1)] * (j*Param.dx) + KKx[i + m*(K - 1)] * (0.0*Param.dx)));
+				Ftempy(i, m) = Ftempy(i, m) * exp(-1.0*par_compi*(KKy[i + m*K] * (j*Param.dx) + KKx[i + m*K] * (0.0*Param.dx)));
 			}
 		}
-		for (int i = 0; i < (K - 1); i++)
+		for (int i = 0; i < K; i++)
 		{
 
 			std::complex<double> sume = 0.0;
@@ -1240,16 +1238,16 @@ void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir
 		tempcplxarr = 0.0;
 
 		//! Unroll wave component to correct place along the offshore boundary
-		for (int i = 0; i < (K - 1); i++)
+		for (int i = 0; i < K; i++)
 		{
 
 			for (int m = 0; m < (K - i); m++)
 			{
 				//qx
-				Ftemptot(i, m) = Ftemptot(i, m) * exp(-1.0*par_compi*(KKy[i + m*(K - 1)] * (j*Param.dx) + KKx[i + m*(K - 1)] * (0.0*Param.dx)));
+				Ftemptot(i, m) = Ftemptot(i, m) * exp(-1.0*par_compi*(KKy[i + m*K] * (j*Param.dx) + KKx[i + m*K] * (0.0*Param.dx)));
 			}
 		}
-		for (int i = 0; i < (K - 1); i++)
+		for (int i = 0; i < K; i++)
 		{
 
 			std::complex<double> sume = 0.0;
@@ -1295,8 +1293,8 @@ void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir
 	{
 		yyfx[j] = j*Param.dx;
 	}
-	create2dnc(tslen, ny, dtin, Param.dx, 0.0, tin, yyfx, qx);
-
+	create2dnc(ny,tslen, Param.dx ,dtin, 0.0,  yyfx,tin, qy);
+	//create3dnc(ny, Param.ntheta, tslenbc, Param.dx, Param.dtheta, Param.dtbc, 0.0, yyfx, thetafx, bctimin, Stfile);
 
 	//////////////////////////////////////
 	// Generate q (qfile)
