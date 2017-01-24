@@ -1227,7 +1227,7 @@ void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir
 		fftw_execute(p);
 
 		//fft function takes care of the scaling here?
-		//store the results in qx
+		//store the results in qi
 		for (int n = 0; n < tslen; n++)
 		{
 			qy[j + n*ny] = out[n][0] * taperf[n];
@@ -1294,8 +1294,7 @@ void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir
 		yyfx[j] = j*Param.dx;
 	}
 	create2dnc(ny,tslen, Param.dx ,dtin, 0.0,  yyfx,tin, qy);
-	//create3dnc(ny, Param.ntheta, tslenbc, Param.dx, Param.dtheta, Param.dtbc, 0.0, yyfx, thetafx, bctimin, Stfile);
-
+	
 	//////////////////////////////////////
 	// Generate q (qfile)
 	//////////////////////////////////////
