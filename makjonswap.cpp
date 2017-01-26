@@ -864,7 +864,7 @@ void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir
 
 	//Temporarily output results for debugging
 	
-	double * yyfx, *thetafx;
+	/*double * yyfx, *thetafx;
 
 	yyfx=(double *)malloc(ny*sizeof(double));
 	thetafx=(double *)malloc(Param.ntheta*sizeof(double));
@@ -878,8 +878,8 @@ void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir
 	{
 		thetafx[itheta] = itheta*(Param.dtheta) + Param.thetamin + 0.5f*Param.dtheta;
 	}
-
-	create3dnc(ny, Param.ntheta,tslen,  Param.dx, Param.dtheta,dtin, 0.0,  yyfx, thetafx,tin, zeta);
+	*/
+	
 	
 	// Calculate energy envelope amplitude
 	
@@ -1305,13 +1305,7 @@ void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir
 
 	}
 
-	yyfx = (double *)malloc(ny*sizeof(double));
 	
-	for (int j = 0; j < Param.ny; j++)
-	{
-		yyfx[j] = j*Param.dx;
-	}
-	create2dnc(ny,tslen, Param.dx ,dtin, 0.0,  yyfx,tin, qx);
 	
 	//////////////////////////////////////
 	// Generate q (qfile)
@@ -1340,6 +1334,52 @@ void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir
 	//////////////////////////////////////
 	//Save to Netcdf file
 	//////////////////////////////////////
+	double * yyfx, *ttfx, *thetafx;
+	double * qxtemp, *qytemp, *eetemp;
+
+	qxtemp = (double *)malloc(ny*tslenbc*sizeof(double));
+	qytemp = (double *)malloc(ny*tslenbc*sizeof(double));
+	eetemp = (double *)malloc(ny*Param.ntheta*tslenbc*sizeof(double));
+
+	yyfx = (double *)malloc(ny*sizeof(double));
+	ttfx = (double *)malloc(tslenbc*sizeof(double));
+	thetafx = (double *)malloc(Param.ntheta*sizeof(double));
+	
+	for (int j = 0; j < Param.ny; j++)
+	{
+		yyfx[j] = j*Param.dx;
+	}
+
+	for (int m = 0; m < tslenbc; m++)
+	{
+		ttfx[m] = m*Param.dtbc;
+	}
+
+	for (int itheta = 0; itheta < Param.ntheta; itheta++)
+	{
+		thetafx[itheta] = itheta*(Param.dtheta) + Param.thetamin + 0.5f*Param.dtheta;
+	}
+
+	//for Debugging
+	create2dnc(ny, tslen, Param.dx, dtin, 0.0, yyfx, tin, qx);
+	create3dnc(ny, Param.ntheta, tslen, Param.dx, Param.dtheta, dtin, 0.0, yyfx, thetafx, tin, zeta);
+
+	for (int j = 0; j < Param.ny; j++)
+	{
+		for (int m = 0; m < tslenbc; m++)
+		{
+			qxtemp[m + j*tslenbc] = qfile[j + 0 * ny + m*ny * 4];
+			qytemp[m + j*tslenbc] = qfile[j + 1 * ny + m*ny * 4];
+
+			for (int itheta = 0; itheta < Param.ntheta; itheta++)
+			{
+				eetemp[m + j*tslenbc + itheta*ny*tslenbc] = Stfile[j + itheta*ny + m*ny*Param.ntheta];
+			}
+		}
+	}
+
+
+	createbndnc(tslenbc, ny, Param.ntheta, Param.dx, Param.dtheta, 0.0, ttfx, yyfx,thetafx, eetemp, qxtemp, qytemp);
 
 	//////////////////////////////////////
 	//Clean up and desallocate all that memory

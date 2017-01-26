@@ -216,6 +216,8 @@ extern "C" void write2varnc(int nx, int ny, double totaltime, double * var);
 extern "C" void read3Dnc(int nx, int ny,int ntheta,char ncfile[],DECNUM * &ee);
 extern "C" void read2Dnc(int nx, int ny,char ncfile[],DECNUM * &hh);
 
+void createbndnc(int tslen, int ny, int ntheta, double dy, double dtheta, double totaltime, double * timevec, double *yy, double *theta, double * ee, double * qx, double * qy);
+
 void GenCstWave(XBGPUParam Param, std::vector<Wavebndparam> wavebnd, float * theta, double * &Stfile, double * &qfile, double * &Tpfile);
 
 //extern "C" void readXbbndhead(const char * wavebndfile,DECNUM &thetamin,DECNUM &thetamax,DECNUM &dtheta,DECNUM &dtwavbnd,int &nwavbnd,int &nwavfile);

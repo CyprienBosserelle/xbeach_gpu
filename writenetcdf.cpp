@@ -624,6 +624,7 @@ extern "C" void create3dnc(int nx, int ny, int nt, double dx, double dy, double 
 	status = nc_close(ncid);
 
 }
+
 extern "C" void write3dvarnc(int nx,int ny,int nt,double totaltime,double * var)
 {
 	int status;
@@ -906,3 +907,88 @@ void readgridncsize(std::string ncfile, int &nx, int &ny, double &dx)
 
 }
 
+void createbndnc(int tslen, int ny, int ntheta, double dy, double dtheta, double totaltime, double * timevec, double *yy, double *theta, double * ee, double * qx, double * qy)
+{
+	int status;
+	int ncid, xx_dim, yy_dim, time_dim, p_dim, ee_var_id, qx_var_id, qy_var_id;
+	
+	size_t nxx,nyy,ntt;
+	static size_t start_ee[] = {0, 0, 0, 0}; // start at first value 
+    static size_t count_ee[] = {1, ntheta, ny, tslen};
+	static size_t start_q[] = { 0, 0, 0 }; // start at first value 
+	static size_t count_q[] = { 1, ny, tslen };
+	int time_id,xx_id,yy_id,tt_id;	//
+	nxx=tslen;
+	nyy=ny;
+	ntt=ntheta;
+
+	//create the netcdf dataset
+	status = nc_create("XBG_bnd_reuse.nc", NC_NOCLOBBER, &ncid);
+	
+	//Define dimensions: Name and length
+	
+	status = nc_def_dim(ncid, "tt", nxx, &xx_dim);
+	status = nc_def_dim(ncid, "yy", nyy, &yy_dim);
+	status = nc_def_dim(ncid, "theta",ntt,&p_dim);
+	status = nc_def_dim(ncid, "time", NC_UNLIMITED, &time_dim);
+	int tdim[]={time_dim};
+	int xdim[]={xx_dim};
+	int ydim[]={yy_dim};
+	int pdim[]={p_dim};
+
+	//define variables: Name, Type,...
+	int  var_dimids_ee[4];
+	var_dimids_ee[0] = time_dim;
+    var_dimids_ee[1] = p_dim;
+	var_dimids_ee[2] = yy_dim;
+    var_dimids_ee[3] = xx_dim;
+	
+
+	int var_dimids_q[3];
+	var_dimids_q[0] = time_dim;
+	var_dimids_q[1] = yy_dim;
+	var_dimids_q[2] = xx_dim;
+	
+    status = nc_def_var (ncid, "time", NC_DOUBLE,1,tdim, &time_id);
+	status = nc_def_var(ncid, "tt", NC_DOUBLE, 1, xdim, &xx_id);
+	status = nc_def_var(ncid, "yy", NC_DOUBLE, 1, ydim, &yy_id);
+	status = nc_def_var(ncid, "theta", NC_DOUBLE, 1, pdim, &tt_id);
+
+
+	status = nc_def_var(ncid, "ee_bnd", NC_DOUBLE, 4, var_dimids_ee, &ee_var_id);
+	status = nc_def_var(ncid, "qx_bnd", NC_DOUBLE, 3, var_dimids_q, &qx_var_id);
+	status = nc_def_var(ncid, "qy_bnd", NC_DOUBLE, 3, var_dimids_q, &qy_var_id);
+
+
+
+	status = nc_enddef(ncid); 
+
+
+	static size_t tst[]={0};
+	static size_t xstart[] = {0}; // start at first value 
+    static size_t xcount[] = {tslen};
+	
+	static size_t ystart[] = {0}; // start at first value 
+    static size_t ycount[] = {ny};
+
+	static size_t tstart[] = {0}; // start at first value 
+    static size_t tcount[] = {ntheta};
+	
+
+	//Provide values for variables
+	status = nc_put_var1_double(ncid, time_id,tst,&totaltime);
+	status = nc_put_vara_double(ncid, xx_id, xstart, xcount, timevec);
+	status = nc_put_vara_double(ncid, yy_id,ystart,ycount, yy);
+	status = nc_put_vara_double(ncid, tt_id,tstart,tcount, theta);
+
+	status = nc_put_vara_double(ncid, ee_var_id, start_ee, count_ee, ee);
+	status = nc_put_vara_double(ncid, qx_var_id, start_q, count_q, qx);
+	status = nc_put_vara_double(ncid, qy_var_id, start_q, count_q, qy);
+
+
+	//close file
+	status = nc_close(ncid);
+
+
+
+}
