@@ -21,6 +21,7 @@
 using DECNUM = float;
 
 
+
 XBGPUParam readXbbndhead(XBGPUParam Param)
 {
 	std::ifstream fs(Param.wavebndfile);
@@ -106,6 +107,8 @@ std::vector<Wavebndparam> readXbbndfile(XBGPUParam Param)
 	}
 	return wavebndvec;
 }
+
+
 
 extern "C" void readbndhead(const char * wavebnd, DECNUM &thetamin, DECNUM &thetamax, DECNUM &dtheta, DECNUM &dtwavbnd, int &nwavbnd)
 {

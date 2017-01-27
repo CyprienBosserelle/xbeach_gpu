@@ -1753,7 +1753,8 @@ int main(int argc, char **argv)
 		if (XParam.wavebndtype == 3)
 		{
 			//Reuse XBeach_GPU boundary. Similar to XBeach but in netcdf format and all self explanatory
-			//Not implemented yet
+			XParam = read_reuse_bndnc_head(XParam);
+			wavebnd = read_reuse_bndnc_vec(XParam);
 		}
 		if (XParam.wavebndtype == 4)
 		{

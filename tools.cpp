@@ -27,6 +27,8 @@ double interptime(double next, double prev, double timenext, double time)
 
 double interp1D(int nx, double *x, double *y, double xx)
 {
+	// non monotonic 1D interpolation
+	// This can be pretty slow so use interp1DMono for faster interpolation if x is monotonic (i.e. the spacing is constant)
 	double yy;
 	double prevx = x[0];
 	double nextx = x[1];
@@ -58,6 +60,36 @@ double interp1D(int nx, double *x, double *y, double xx)
 	yy = prevy + (xx - prevx) / (nextx - prevx)*(nexty - prevy);
 	return yy;
 }
+
+double interp1DMono(int nx, double *x, double *y, double xx)
+{
+	//  interpolation if x is monotonically increasing (i.e. the spacing is constant)
+	double yy;
+	double prevx = x[0];
+	double nextx = x[1];
+	double prevy = y[0];
+	double nexty = y[1];
+	double dx = nextx - prevx; 
+	int indx = 0;
+	int indxp;
+
+	double diffx = max(xx-x[0],0.0);//This has to be positive!
+
+	indx = (int)floor(diffx / dx);
+
+
+
+	indxp = (int)min(indx*1.0 + 1, nx*1.0 - 1);
+	prevx = x[indx];
+	nextx = x[indxp];
+	prevy = y[indx];
+	nexty = y[indxp];
+
+
+	yy = prevy + (xx - prevx) / (nextx - prevx)*(nexty - prevy);
+	return yy;
+}
+
 double Interp2(int nx, int ny, double *x, double *y, double *z, double xx, double yy)
 //double BilinearInterpolation(double q11, double q12, double q21, double q22, double x1, double x2, double y1, double y2, double x, double y)
 {

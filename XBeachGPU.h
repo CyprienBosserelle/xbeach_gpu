@@ -217,6 +217,8 @@ extern "C" void read3Dnc(int nx, int ny,int ntheta,char ncfile[],DECNUM * &ee);
 extern "C" void read2Dnc(int nx, int ny,char ncfile[],DECNUM * &hh);
 
 void createbndnc(int tslen, int ny, int ntheta, double dy, double dtheta, double totaltime, double * timevec, double *yy, double *theta, double * ee, double * qx, double * qy);
+void writebndnc(int tslen, int ny, int ntheta, double dy, double dtheta, double totaltime, double * timevec, double *yy, double *theta, double * ee, double * qx, double * qy);
+void read_reuse_bndnc(XBGPUParam Param, int rec, float &Trep, double * &qfile, double * &Stfile);
 
 void GenCstWave(XBGPUParam Param, std::vector<Wavebndparam> wavebnd, float * theta, double * &Stfile, double * &qfile, double * &Tpfile);
 
@@ -228,6 +230,9 @@ extern "C" void readStatbnd(int nx, int ny,int ntheta,DECNUM rho,DECNUM g,const 
 extern "C" void readbndhead(const char * wavebndfile,DECNUM &thetamin,DECNUM &thetamax,DECNUM &dtheta,DECNUM &dtwavbnd,int &nwavbnd);
 
 std::vector<Wavebndparam> ReadJSWPBnd(XBGPUParam XParam);
+
+XBGPUParam read_reuse_bndnc_head(XBGPUParam Param);
+std::vector<Wavebndparam> read_reuse_bndnc_vec(XBGPUParam Param);
 
 //Below is for the new CPU routine
 extern "C" int mminusC(int ix,int nx);
@@ -285,6 +290,7 @@ std::vector<WindBnd> readWNDfile(std::string WNDfilename, double grdalpha);
 std::vector<Wavebndparam> ReadCstBnd(XBGPUParam XParam);
 double interptime(double next, double prev, double timenext, double time);
 double interp1D(int nx, double *x, double *y, double xx);
+double interp1DMono(int nx, double *x, double *y, double xx);
 double Interp2(int nx, int ny, double *x, double *y, double *z, double xx, double yy);
 
 extern "C" void readbathyHead(std::string filename, int &nx, int &ny, double &dx, double &grdalpha);

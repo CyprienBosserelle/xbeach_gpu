@@ -83,7 +83,8 @@ void makjonswap(XBGPUParam Param, std::vector<Wavebndparam> wavebnd, int step, i
 	double scoeff = wavebnd[step].s;
 
 	
-	//printf("fp=%f\n",fp);
+	printf("Generating JONSWAP spectrum: Hs=%f, Tp=%f, Dp=%f, gam=%f, s=%f\n",Hs,Tp,Dp,gam,scoeff);
+	write_text_to_log_file("Generating JONSWAP spectrum: Hs=" + std::to_string(Hs) + " Tp=" + std::to_string(Tp) + " Dp=" + std::to_string(Dp) + " gam=" + std::to_string(gam) + " s=" + std::to_string(scoeff) + ";");
 	//// 
 
 	double fnyq = 3.0f*fp;
@@ -222,6 +223,11 @@ void makjonswap(XBGPUParam Param, std::vector<Wavebndparam> wavebnd, int step, i
 
 void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir, double * HRSpec, float &Trep, double * &qfile, double * &Stfile)
 {
+	// Generating Boundary condition: Energy from wave group and Long bound waves
+
+	printf("Generating Boundary condition: Energy from wave group and Long bound waves.\n");
+	write_text_to_log_file("Generating Boundary condition: Energy from wave group and Long bound waves");
+
 	int ny = Param.ny;
 	int K; //Number of wave components
 
@@ -414,6 +420,8 @@ void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir
 		//}
 		//interp1D(double *x, double *y, double xx)
 		//thetagen[i] = interptime(HRdir[dprev + 1], HRdir[dprev], dtheta, dtheta*((number - cdf[dprev]) / (cdf[dprev + 1] - cdf[dprev])));
+		
+		//Cannot use interp1DMono here because cdf is not monotonic
 		thetagen[i] = interp1D(ndir, cdf, HRdir, number);
 
 		//printf("thetagen[i]=%f\n", thetagen[i]);
@@ -470,7 +478,7 @@ void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir
 
 	//First assume that internal and bc - writing time step is the same
 	double dtin = Param.dtbc;
-	int tslenbc = ceil(Param.rtlength / Param.dtbc);// (int)(Param.rtlength / Param.dtbc) + 1;
+	int tslenbc = ceil(Param.rtlength / Param.dtbc) + 1;// (int)(Param.rtlength / Param.dtbc) + 1;
 	
 	//Check whether the internal frequency is high enough to describe the highest frequency
 	//wave train returned from frange(which can be used in the boundary conditions)
@@ -565,7 +573,7 @@ void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir
 	double dummy;
 	for (int i = 0; i < K; i++)
 	{
-		dummy = interp1D(nf, HRfreq, Sf, fgen[i]);
+		dummy = interp1DMono(nf, HRfreq, Sf, fgen[i]);
 		vargenq[i] = min(vargen[i] ,dummy);
 	}
 
@@ -944,7 +952,7 @@ void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir
 			//interpolate to boundary timeseries
 			for (int m = 0; m < tslenbc; m++)
 			{
-				Stfile[j + itheta*ny + m*ny*Param.ntheta] = interp1D(tslen, tin, E_tdir, m*Param.dtbc);
+				Stfile[j + itheta*ny + m*ny*Param.ntheta] = interp1DMono(tslen, tin, E_tdir, m*Param.dtbc);
 			}
 
 		}
@@ -1323,63 +1331,15 @@ void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir
 
 		for (int m = 0; m < tslenbc; m++)
 		{
-			qfile[j + 0 * ny + m*ny * 4] = interp1D(tslen, tin, qtempx, m*Param.dtbc); 
-			qfile[j + 1 * ny + m*ny * 4] = interp1D(tslen, tin, qtempy, m*Param.dtbc);
+			qfile[j + 0 * ny + m*ny * 4] = interp1DMono(tslen, tin, qtempx, m*Param.dtbc); 
+			qfile[j + 1 * ny + m*ny * 4] = interp1DMono(tslen, tin, qtempy, m*Param.dtbc);
 			qfile[j + 2 * ny + m*ny * 4] = 0.0;
 			qfile[j + 3 * ny + m*ny * 4] = 0.0;// qtot[j + m*ny];
 		}
 		
 	}
 
-	//////////////////////////////////////
-	//Save to Netcdf file
-	//////////////////////////////////////
-	double * yyfx, *ttfx, *thetafx;
-	double * qxtemp, *qytemp, *eetemp;
-
-	qxtemp = (double *)malloc(ny*tslenbc*sizeof(double));
-	qytemp = (double *)malloc(ny*tslenbc*sizeof(double));
-	eetemp = (double *)malloc(ny*Param.ntheta*tslenbc*sizeof(double));
-
-	yyfx = (double *)malloc(ny*sizeof(double));
-	ttfx = (double *)malloc(tslenbc*sizeof(double));
-	thetafx = (double *)malloc(Param.ntheta*sizeof(double));
 	
-	for (int j = 0; j < Param.ny; j++)
-	{
-		yyfx[j] = j*Param.dx;
-	}
-
-	for (int m = 0; m < tslenbc; m++)
-	{
-		ttfx[m] = m*Param.dtbc;
-	}
-
-	for (int itheta = 0; itheta < Param.ntheta; itheta++)
-	{
-		thetafx[itheta] = itheta*(Param.dtheta) + Param.thetamin + 0.5f*Param.dtheta;
-	}
-
-	//for Debugging
-	create2dnc(ny, tslen, Param.dx, dtin, 0.0, yyfx, tin, qx);
-	create3dnc(ny, Param.ntheta, tslen, Param.dx, Param.dtheta, dtin, 0.0, yyfx, thetafx, tin, zeta);
-
-	for (int j = 0; j < Param.ny; j++)
-	{
-		for (int m = 0; m < tslenbc; m++)
-		{
-			qxtemp[m + j*tslenbc] = qfile[j + 0 * ny + m*ny * 4];
-			qytemp[m + j*tslenbc] = qfile[j + 1 * ny + m*ny * 4];
-
-			for (int itheta = 0; itheta < Param.ntheta; itheta++)
-			{
-				eetemp[m + j*tslenbc + itheta*ny*tslenbc] = Stfile[j + itheta*ny + m*ny*Param.ntheta];
-			}
-		}
-	}
-
-
-	createbndnc(tslenbc, ny, Param.ntheta, Param.dx, Param.dtheta, 0.0, ttfx, yyfx,thetafx, eetemp, qxtemp, qytemp);
 
 	//////////////////////////////////////
 	//Clean up and desallocate all that memory

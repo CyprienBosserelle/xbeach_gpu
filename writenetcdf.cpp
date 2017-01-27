@@ -22,6 +22,7 @@ using DECNUM = float;
 void handle_error(int status) {
 	if (status != NC_NOERR) {
 		fprintf(stderr, "Netcdf %s\n", nc_strerror(status));
+		write_text_to_log_file("Netcdf " + std::string(nc_strerror(status)));
 		//fprintf(logfile, "Netcdf: %s\n", nc_strerror(status));
 		exit(-1);
 	}
@@ -990,5 +991,256 @@ void createbndnc(int tslen, int ny, int ntheta, double dy, double dtheta, double
 	status = nc_close(ncid);
 
 
+
+}
+
+void writebndnc(int tslen, int ny, int ntheta, double dy, double dtheta, double totaltime, double * timevec, double *yy, double *theta, double * ee, double * qx, double * qy)
+{
+	int status;
+	int ncid, xx_dim, yy_dim, time_dim, p_dim, ee_var_id, qx_var_id, qy_var_id, recid;
+
+	size_t nxx, nyy, ntt;
+	static size_t nrec;
+	static size_t start_ee[] = { 0, 0, 0, 0 }; // start at first value 
+	static size_t count_ee[] = { 1, ntheta, ny, tslen };
+	static size_t start_q[] = { 0, 0, 0 }; // start at first value 
+	static size_t count_q[] = { 1, ny, tslen };
+	int time_id, xx_id, yy_id, tt_id;	//
+	nxx = tslen;
+	nyy = ny;
+	ntt = ntheta;
+
+	//create the netcdf dataset
+	status = nc_open("XBG_bnd_reuse.nc", NC_WRITE, &ncid);
+
+	//read id from time dimension
+	status = nc_inq_unlimdim(ncid, &recid);
+	status = nc_inq_dimlen(ncid, recid, &nrec);
+	//printf("nrec=%d\n",nrec);
+
+	//read file for variable ids
+	status = nc_inq_varid(ncid, "time", &time_id);
+	status = nc_inq_varid(ncid, "ee_bnd", &ee_var_id);
+	status = nc_inq_varid(ncid, "qx_bnd", &qx_var_id);
+	status = nc_inq_varid(ncid, "qy_bnd", &qy_var_id);
+
+	start_ee[0] = nrec;//
+	start_q[0] = nrec;//
+	
+	
+	static size_t tst[] = { nrec };
+	
+
+
+	//Provide values for variables
+	status = nc_put_var1_double(ncid, time_id, tst, &totaltime);
+	
+
+	status = nc_put_vara_double(ncid, ee_var_id, start_ee, count_ee, ee);
+	status = nc_put_vara_double(ncid, qx_var_id, start_q, count_q, qx);
+	status = nc_put_vara_double(ncid, qy_var_id, start_q, count_q, qy);
+
+
+	//close file
+	status = nc_close(ncid);
+
+
+
+}
+
+XBGPUParam read_reuse_bndnc_head(XBGPUParam Param)
+{
+	//read the dimentions of grid, levels and time 
+	int status;
+	int ncid, recid, theta_dimid, theta_varid, tt_dimid, tt_varid;
+	
+	static size_t nrec, ntheta, ntt;
+	status = nc_open(Param.wavebndfile.c_str(), NC_NOWRITE, &ncid);
+
+	//read id from time dimension
+	status = nc_inq_unlimdim(ncid, &recid);
+	status = nc_inq_dimlen(ncid, recid, &nrec);
+	if (status != NC_NOERR)	handle_error(status);
+
+	status = nc_inq_dimid(ncid, "theta", &theta_dimid);
+	if (status != NC_NOERR)	handle_error(status);
+
+	status = nc_inq_dimlen(ncid, theta_dimid, &ntheta);
+	if (status != NC_NOERR)	handle_error(status);
+
+	status = nc_inq_varid(ncid, "theta", &theta_varid);
+	if (status != NC_NOERR)	handle_error(status);
+
+	double thetamin, thetamax, dtheta;
+
+
+	size_t start[] = { 0 };
+	size_t count[] = { 1 };
+	status = nc_get_vara_double(ncid, theta_varid, start, count, &thetamin);
+	start[0] = ntheta-1;
+	status = nc_get_vara_double(ncid, theta_varid, start, count, &thetamax);
+
+	Param.ntheta = ntheta;
+	Param.thetamin = thetamin;
+	Param.thetamax = thetamax;
+	
+	Param.dtheta = (Param.thetamax - Param.thetamin) / Param.ntheta;
+
+	status = nc_inq_dimid(ncid, "tt", &tt_dimid);
+	if (status != NC_NOERR)	handle_error(status);
+
+	status = nc_inq_dimlen(ncid, tt_dimid, &ntt);
+	if (status != NC_NOERR)	handle_error(status);
+
+	status = nc_inq_varid(ncid, "tt", &tt_varid);
+	if (status != NC_NOERR)	handle_error(status);
+
+	double rtl,rtlp;
+
+	start[0] = ntt - 1;
+	status = nc_get_vara_double(ncid, tt_varid, start, count, &rtl);
+	start[0] = ntt - 2;
+	status = nc_get_vara_double(ncid, tt_varid, start, count, &rtlp);
+	
+	
+	//close file
+	status = nc_close(ncid);
+
+	Param.rtlength = ntt*(rtl - rtlp); // Not totally sure why this is bigger than rtl...
+	Param.dtbc = rtl - rtlp;
+	
+	return Param;
+}
+
+std::vector<Wavebndparam> read_reuse_bndnc_vec(XBGPUParam Param)
+{
+	std::vector<Wavebndparam> wavebndvec;
+
+	Wavebndparam wavebndline;
+
+	//read the dimentions of grid, levels and time 
+	int status;
+	int ncid, recid, theta_dimid, theta_varid, tt_dimid, tt_varid;
+
+	static size_t nrec, ntheta, ntt;
+	status = nc_open(Param.wavebndfile.c_str(), NC_NOWRITE, &ncid);
+
+	//read id from time dimension
+	status = nc_inq_unlimdim(ncid, &recid);
+	status = nc_inq_dimlen(ncid, recid, &nrec);
+	if (status != NC_NOERR)	handle_error(status);
+	
+	//close file
+	status = nc_close(ncid);
+
+	//rtlength has just been calculated by teh previous function
+
+	for (int i = 0; i < nrec; i++)
+	{
+		wavebndline.time = (Param.rtlength)*i;
+		
+		//slbndline = readBSHline(line);
+		wavebndvec.push_back(wavebndline);
+	}
+
+
+	return wavebndvec;
+}
+
+
+void read_reuse_bndnc(XBGPUParam Param, int rec, float &Trep, double * &qfile, double * &Stfile)
+{
+	//read the dimentions of grid, levels and time 
+	int status;
+	int ncid, theta_dimid, tt_dimid, yy_dimid, ee_varid,qx_varid, qy_varid;
+
+	static size_t nrec, ntheta, ntt,nyy; 
+	status = nc_open(Param.wavebndfile.c_str(), NC_NOWRITE, &ncid);
+
+
+	status = nc_inq_dimid(ncid, "theta", &theta_dimid);
+	if (status != NC_NOERR)	handle_error(status);
+
+	status = nc_inq_dimlen(ncid, theta_dimid, &ntheta);
+	if (status != NC_NOERR)	handle_error(status);
+
+	status = nc_inq_dimid(ncid, "tt", &tt_dimid);
+	if (status != NC_NOERR)	handle_error(status);
+
+	status = nc_inq_dimlen(ncid, tt_dimid, &ntt);
+	if (status != NC_NOERR)	handle_error(status);
+
+	status = nc_inq_dimid(ncid, "yy", &yy_dimid);
+	if (status != NC_NOERR)	handle_error(status);
+
+	status = nc_inq_dimlen(ncid, yy_dimid, &nyy);
+	if (status != NC_NOERR)	handle_error(status);
+
+	status = nc_inq_varid(ncid, "ee_bnd", &ee_varid);
+	if (status != NC_NOERR)	handle_error(status);
+
+	status = nc_inq_varid(ncid, "qx_bnd", &qx_varid);
+	if (status != NC_NOERR)	handle_error(status);
+
+	status = nc_inq_varid(ncid, "qy_bnd", &qy_varid);
+	if (status != NC_NOERR)	handle_error(status);
+
+	int tslenbc = ceil(Param.rtlength / Param.dtbc);
+
+	//Sanity check
+	if (nyy > Param.ny)
+	{
+		// Error
+		//exit
+	}
+	if (ntt > tslenbc)
+	{
+		// Error
+		//exit
+	}
+	
+	double * qxtemp, *qytemp, *eetemp;
+	//Allocate the temporary array
+	qxtemp = (double *)malloc(nyy*ntt*sizeof(double));
+	qytemp = (double *)malloc(nyy*ntt*sizeof(double));
+	eetemp = (double *)malloc(nyy*ntheta*ntt*sizeof(double));
+	
+	static size_t start_ee[] = { rec, 0, 0, 0 }; // start at first value 
+	static size_t count_ee[] = { 1, ntheta, nyy, ntt };
+	static size_t start_q[] = { rec, 0, 0 }; // start at first value 
+	static size_t count_q[] = { 1, nyy, ntt };
+
+	status = nc_get_vara_double(ncid, ee_varid, start_ee, count_ee, eetemp);
+	if (status != NC_NOERR)	handle_error(status);
+
+	status = nc_get_vara_double(ncid, qx_varid, start_q, count_q, qxtemp);
+	if (status != NC_NOERR)	handle_error(status);
+
+	status = nc_get_vara_double(ncid, qy_varid, start_q, count_q, qytemp);
+	if (status != NC_NOERR)	handle_error(status);
+
+	
+	//close file
+	status = nc_close(ncid);
+
+	for (int j = 0; j < nyy; j++)
+	{
+		for (int m = 0; m < ntt; m++)
+		{
+			 qfile[j + 0 * nyy + m*nyy * 4]=qxtemp[m + j*ntt] ;
+			 qfile[j + 1 * nyy + m*nyy * 4]=qytemp[m + j*ntt] ;
+
+			for (int itheta = 0; itheta < Param.ntheta; itheta++)
+			{
+				  Stfile[j + itheta*nyy + m*nyy*Param.ntheta] = eetemp[m + j*ntt + itheta*nyy*ntt];
+			}
+		}
+	}
+
+	Trep = 15.0; /// Temporary debug
+
+	free(qxtemp);
+	free(qytemp);
+	free(eetemp);
 
 }
