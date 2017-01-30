@@ -40,9 +40,27 @@ XBGPUParam readXbbndhead(XBGPUParam Param)
 	lineelements = split(line, '\t');
 	if (lineelements.size() < 5) // Expecting 5 parameters
 	{
+		// Maybe it is space delimited
 		lineelements.clear();
 		lineelements = split(line, ' ');
 	}
+	if (lineelements.size() < 5) // Expecting 5 parameters
+	{
+		// Maybe it is comma delimited
+		lineelements.clear();
+		lineelements = split(line, ',');
+	}
+
+	if (lineelements.size() < 5)
+	{
+		// Giving up now! Could not read the files
+		//issue a warning and exit
+		std::cerr << Param.wavebndfile << "ERROR Wave bnd file, header format error. only " << lineelements.size() << " where 5 were expected. Exiting." << std::endl;
+		write_text_to_log_file("ERROR:  Wind bnd file (" + Param.wavebndfile + "), header format error. only " + std::to_string(lineelements.size()) + " where 5 were expected. Exiting.");
+		exit(1);
+	}
+
+
 	
 	Param.thetamin = std::stod(lineelements[0]);
 	Param.thetamax = std::stod(lineelements[1]);
@@ -90,8 +108,23 @@ std::vector<Wavebndparam> readXbbndfile(XBGPUParam Param)
 				lineelements = split(line, '\t');
 				if (lineelements.size() < 4)
 				{
+					// Hum must be space delimited
 					lineelements.clear();
 					lineelements = split(line, ' ');
+				}
+				if (lineelements.size() < 4)
+				{
+					// Then must be comma delimited
+					lineelements.clear();
+					lineelements = split(line, ',');
+				}
+				if (lineelements.size() < 5)
+				{
+					// Giving up now! Could not read the files
+					//issue a warning and exit
+					std::cerr << Param.wavebndfile << "ERROR Wave bnd file format error. only " << lineelements.size() << " where 4 were expected. Exiting." << std::endl;
+					write_text_to_log_file("ERROR:  Wind bnd file (" + Param.wavebndfile + ") format error. only " + std::to_string(lineelements.size()) + " where 4 were expected. Exiting.");
+					exit(1);
 				}
 				wavebndline.time = std::stod(lineelements[0]);
 				wavebndline.Trep = std::stod(lineelements[1]);
