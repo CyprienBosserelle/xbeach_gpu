@@ -5,7 +5,7 @@
 
 #include <stdio.h>
 #include <math.h>
-
+#include <cmath>
 
 #include <iostream>
 #include <fstream>
@@ -284,7 +284,7 @@ std::string findparameter(std::string parameterstr, std::string line);
 void split(const std::string &s, char delim, std::vector<std::string> &elems);
 std::vector<std::string> split(const std::string &s, char delim);
 std::string trim(const std::string& str, const std::string& whitespace);
-XBGPUParam checkparamsanity(XBGPUParam XParam, std::vector<SLBnd> slbnd, std::vector<WindBnd> wndbnd);
+XBGPUParam checkparamsanity(XBGPUParam XParam, std::vector<SLBnd> slbnd, std::vector<WindBnd> wndbnd, std::vector<Wavebndparam> wavbnd);
 std::vector<SLBnd> readWLfile(std::string WLfilename);
 std::vector<WindBnd> readWNDfile(std::string WNDfilename, double grdalpha);
 std::vector<Wavebndparam> ReadCstBnd(XBGPUParam XParam);

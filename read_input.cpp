@@ -105,6 +105,9 @@ std::vector<Wavebndparam> readXbbndfile(XBGPUParam Param)
 		}
 		linenumber++;
 	}
+	//Add a dummy line at the end to predict when the last time step will end
+	wavebndline.time = wavebndvec.back().time+Param.rtlength;
+	wavebndvec.push_back(wavebndline);
 	return wavebndvec;
 }
 
@@ -247,9 +250,27 @@ std::vector<SLBnd> readWLfile(std::string WLfilename)
 			lineelements = split(line, '\t');
 			if (lineelements.size() < 2)
 			{
+				// Is it space delimited?
 				lineelements.clear();
 				lineelements = split(line, ' ');
 			}
+
+			if (lineelements.size() < 2)
+			{
+				//Well it has to be comma delimited then
+				lineelements.clear();
+				lineelements = split(line, ',');
+			}
+			if (lineelements.size() < 2)
+			{
+					// Giving up now! Could not read the files
+					//issue a warning and exit
+					std::cerr << WLfilename << "ERROR Water level bnd file format error. only " << lineelements.size() << " where 2 were expected. Exiting."  << std::endl;
+					write_text_to_log_file("ERROR:  Water level bnd file (" + WLfilename + ") format error. only " + std::to_string(lineelements.size())+ " where 2 were expected. Exiting.");
+					exit(1);
+			}
+
+			
 			slbndline.time = std::stod(lineelements[0]);
 			slbndline.wlev = std::stod(lineelements[1]);
 			
@@ -294,6 +315,28 @@ std::vector<WindBnd> readWNDfile(std::string WNDfilename, double grdalpha)
 
 			//by default we expect tab delimitation
 			lineelements = split(line, '\t');
+			if (lineelements.size() < 3)
+			{
+				// Is it space delimited?
+				lineelements.clear();
+				lineelements = split(line, ' ');
+			}
+
+			if (lineelements.size() < 3)
+			{
+				//Well it has to be comma delimited then
+				lineelements.clear();
+				lineelements = split(line, ',');
+			}
+			if (lineelements.size() < 3)
+			{
+				// Giving up now! Could not read the files
+				//issue a warning and exit
+				std::cerr << WNDfilename << "ERROR Wind bnd file format error. only " << lineelements.size() << " where 2 were expected. Exiting." << std::endl;
+				write_text_to_log_file("ERROR:  Wind bnd file (" + WNDfilename + ") format error. only " + std::to_string(lineelements.size()) + " where 2 were expected. Exiting.");
+				exit(1);
+			}
+
 			wndbndline.time = std::stod(lineelements[0]);
 			wndbndline.spd = std::stod(lineelements[1]);
 			wndbndline.dir = std::stod(lineelements[2]);
@@ -416,6 +459,9 @@ std::vector<Wavebndparam> ReadJSWPBnd(XBGPUParam XParam)
 	}
 	fs.close();
 
+	waveline.time = wavebnd.back().time + XParam.rtlength;
+	wavebnd.push_back(waveline);
+
 	return wavebnd;
 }
 
@@ -427,7 +473,7 @@ XBGPUParam readparamstr(std::string line, XBGPUParam param)
 
 	///////////////////////////////////////////////////////
 	// General parameters
-	parameterstr = "bathy =";
+	parameterstr = "bathy";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
@@ -436,7 +482,7 @@ XBGPUParam readparamstr(std::string line, XBGPUParam param)
 	}
 	
 	//
-	parameterstr = "depfile =";
+	parameterstr = "depfile";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
@@ -445,7 +491,7 @@ XBGPUParam readparamstr(std::string line, XBGPUParam param)
 		
 	
 	//
-	parameterstr = "swave =";
+	parameterstr = "swave";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
@@ -453,7 +499,7 @@ XBGPUParam readparamstr(std::string line, XBGPUParam param)
 	}
 
 	//
-	parameterstr = "flow =";
+	parameterstr = "flow";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
@@ -461,7 +507,7 @@ XBGPUParam readparamstr(std::string line, XBGPUParam param)
 	}
 
 	//
-	parameterstr = "sedtrans =";
+	parameterstr = "sedtrans";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
@@ -469,7 +515,7 @@ XBGPUParam readparamstr(std::string line, XBGPUParam param)
 	}
 
 	//
-	parameterstr = "morphology =";
+	parameterstr = "morphology";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
@@ -477,14 +523,14 @@ XBGPUParam readparamstr(std::string line, XBGPUParam param)
 	}
 
 	//
-	parameterstr = "gpudevice =";
+	parameterstr = "gpudevice";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
 		param.GPUDEVICE = std::stoi(parametervalue);
 	}
 
-	parameterstr = "roller =";
+	parameterstr = "roller";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
@@ -494,91 +540,91 @@ XBGPUParam readparamstr(std::string line, XBGPUParam param)
 	///////////////////////////////////////////////////////
 	// Flow parameters
 	//
-	parameterstr = "eps =";
+	parameterstr = "eps";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
 		param.eps = std::stod(parametervalue);
 	}
 	
-	parameterstr = "cf =";
+	parameterstr = "cf";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
 		param.cf = std::stod(parametervalue);
 	}
 
-	parameterstr = "cfsand =";
+	parameterstr = "cfsand";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
 		param.cfsand = std::stod(parametervalue);
 	}
 
-	parameterstr = "cfreef =";
+	parameterstr = "cfreef";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
 		param.cfreef = std::stod(parametervalue);
 	}
 
-	parameterstr = "nuh =";
+	parameterstr = "nuh";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
 		param.nuh = std::stod(parametervalue);
 	}
 
-	parameterstr = "nuhfac =";
+	parameterstr = "nuhfac";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
 		param.nuhfac = std::stod(parametervalue);
 	}
 
-	parameterstr = "usesmago =";
+	parameterstr = "usesmago";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
 		param.usesmago = std::stoi(parametervalue);
 	}
 
-	parameterstr = "smag =";
+	parameterstr = "smag";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
 		param.smag = std::stod(parametervalue);
 	}
 
-	parameterstr = "lat =";
+	parameterstr = "lat";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
 		param.lat = std::stod(parametervalue);
 	}
 
-	parameterstr = "Cd =";
+	parameterstr = "Cd";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
 		param.Cd = std::stod(parametervalue);
 	}
 
-	parameterstr = "wci =";
+	parameterstr = "wci";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
 		param.wci = std::stod(parametervalue);
 	}
 
-	parameterstr = "hwci =";
+	parameterstr = "hwci";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
 		param.hwci = std::stod(parametervalue);
 	}
 
-	parameterstr = "fc =";
+	parameterstr = "fc";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
@@ -588,63 +634,63 @@ XBGPUParam readparamstr(std::string line, XBGPUParam param)
 	///////////////////////////////////////////////////////
 	// Wave parameters
 	//
-	parameterstr = "breakmodel =";
+	parameterstr = "breakmodel";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
 		param.breakmodel = std::stoi(parametervalue);
 	}
 
-	parameterstr = "gamma =";
+	parameterstr = "gamma";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
 		param.gammaa = std::stod(parametervalue);
 	}
 
-	parameterstr = "n =";
+	parameterstr = "n";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
 		param.n = std::stod(parametervalue);
 	}
 
-	parameterstr = "alpha =";
+	parameterstr = "alpha";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
 		param.alpha = std::stod(parametervalue);
 	}
 
-	parameterstr = "gammax =";
+	parameterstr = "gammax";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
 		param.gammax = std::stod(parametervalue);
 	}
 
-	parameterstr = "beta =";
+	parameterstr = "beta";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
 		param.beta = std::stod(parametervalue);
 	}
 
-	parameterstr = "fw =";
+	parameterstr = "fw";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
 		param.fw = std::stod(parametervalue);
 	}
 
-	parameterstr = "fwsand =";
+	parameterstr = "fwsand";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
 		param.fwsand = std::stod(parametervalue);
 	}
 
-	parameterstr = "fwreef =";
+	parameterstr = "fwreef";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
@@ -654,28 +700,28 @@ XBGPUParam readparamstr(std::string line, XBGPUParam param)
 	///////////////////////////////////////////////////////
 	// Sediment parameters
 	//
-	parameterstr = "D50 =";
+	parameterstr = "D50";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
 		param.D50 = std::stod(parametervalue);
 	}
 
-	parameterstr = "D90 =";
+	parameterstr = "D90";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
 		param.D90 = std::stod(parametervalue);
 	}
 
-	parameterstr = "rhosed =";
+	parameterstr = "rhosed";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
 		param.rhosed = std::stod(parametervalue);
 	}
 
-	parameterstr = "wws =";
+	parameterstr = "wws";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
@@ -683,7 +729,7 @@ XBGPUParam readparamstr(std::string line, XBGPUParam param)
 		// Value should be calculated in the sanity check
 	}
 
-	parameterstr = "drydzmax =";
+	parameterstr = "drydzmax";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
@@ -691,7 +737,7 @@ XBGPUParam readparamstr(std::string line, XBGPUParam param)
 		// Value should be calculated in the sanity check
 	}
 
-	parameterstr = "wetdzmax =";
+	parameterstr = "wetdzmax";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
@@ -699,7 +745,7 @@ XBGPUParam readparamstr(std::string line, XBGPUParam param)
 		// Value should be calculated in the sanity check
 	}
 
-	parameterstr = "maxslpchg =";
+	parameterstr = "maxslpchg";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
@@ -707,7 +753,7 @@ XBGPUParam readparamstr(std::string line, XBGPUParam param)
 		// Value should be calculated in the sanity check
 	}
 
-	parameterstr = "por =";
+	parameterstr = "por";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
@@ -715,7 +761,7 @@ XBGPUParam readparamstr(std::string line, XBGPUParam param)
 		// Value should be calculated in the sanity check
 	}
 
-	parameterstr = "morfac =";
+	parameterstr = "morfac";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
@@ -723,7 +769,7 @@ XBGPUParam readparamstr(std::string line, XBGPUParam param)
 		// Value should be calculated in the sanity check
 	}
 
-	parameterstr = "sus =";
+	parameterstr = "sus";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
@@ -731,7 +777,7 @@ XBGPUParam readparamstr(std::string line, XBGPUParam param)
 		// Value should be calculated in the sanity check
 	}
 
-	parameterstr = "bed =";
+	parameterstr = "bed";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
@@ -740,7 +786,7 @@ XBGPUParam readparamstr(std::string line, XBGPUParam param)
 	}
 
 
-	parameterstr = "facsk =";
+	parameterstr = "facsk";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
@@ -748,7 +794,7 @@ XBGPUParam readparamstr(std::string line, XBGPUParam param)
 		// Value should be calculated in the sanity check
 	}
 
-	parameterstr = "facas =";
+	parameterstr = "facas";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
@@ -759,7 +805,7 @@ XBGPUParam readparamstr(std::string line, XBGPUParam param)
 	///////////////////////////////////////////////////////
 	// Timekeeping parameters
 	//
-	parameterstr = "dt =";
+	parameterstr = "dt";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
@@ -767,7 +813,7 @@ XBGPUParam readparamstr(std::string line, XBGPUParam param)
 
 	}
 
-	parameterstr = "CFL =";
+	parameterstr = "CFL";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
@@ -775,7 +821,7 @@ XBGPUParam readparamstr(std::string line, XBGPUParam param)
 
 	}
 
-	parameterstr = "sedstart =";
+	parameterstr = "sedstart";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
@@ -783,7 +829,7 @@ XBGPUParam readparamstr(std::string line, XBGPUParam param)
 
 	}
 
-	parameterstr = "outputtimestep =";
+	parameterstr = "outputtimestep";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
@@ -791,7 +837,7 @@ XBGPUParam readparamstr(std::string line, XBGPUParam param)
 
 	}
 
-	parameterstr = "endtime =";
+	parameterstr = "endtime";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
@@ -803,7 +849,7 @@ XBGPUParam readparamstr(std::string line, XBGPUParam param)
 	// Input and output files
 	//
 	
-	parameterstr = "outfile =";
+	parameterstr = "outfile";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
@@ -811,7 +857,7 @@ XBGPUParam readparamstr(std::string line, XBGPUParam param)
 		//std::cerr << "Bathymetry file found!" << std::endl;
 	}
 
-	parameterstr = "SedThkfile =";
+	parameterstr = "SedThkfile";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
@@ -819,7 +865,7 @@ XBGPUParam readparamstr(std::string line, XBGPUParam param)
 		//std::cerr << "Bathymetry file found!" << std::endl;
 	}
 
-	parameterstr = "wavebndfile =";
+	parameterstr = "wavebndfile";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
@@ -827,7 +873,7 @@ XBGPUParam readparamstr(std::string line, XBGPUParam param)
 		//std::cerr << "Bathymetry file found!" << std::endl;
 	}
 
-	parameterstr = "slbndfile =";
+	parameterstr = "slbndfile";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
@@ -835,7 +881,7 @@ XBGPUParam readparamstr(std::string line, XBGPUParam param)
 		//std::cerr << "Bathymetry file found!" << std::endl;
 	}
 
-	parameterstr = "windbndfile =";
+	parameterstr = "windbndfile";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
@@ -846,7 +892,7 @@ XBGPUParam readparamstr(std::string line, XBGPUParam param)
 	
 
 	// Below is a bit more complex than usual because more than 1 node can be outputed as a timeseries
-	parameterstr = "TSOfile =";
+	parameterstr = "TSOfile";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
@@ -854,7 +900,7 @@ XBGPUParam readparamstr(std::string line, XBGPUParam param)
 		//std::cerr << "Bathymetry file found!" << std::endl;
 	}
 
-	parameterstr = "TSnode =";
+	parameterstr = "TSnode";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
@@ -868,7 +914,7 @@ XBGPUParam readparamstr(std::string line, XBGPUParam param)
 	}
 
 	//outvars
-	parameterstr = "outvars =";
+	parameterstr = "outvars";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
@@ -896,56 +942,56 @@ XBGPUParam readparamstr(std::string line, XBGPUParam param)
 		//std::cerr << "Bathymetry file found!" << std::endl;
 	}
 
-	parameterstr = "wavebndtype =";
+	parameterstr = "wavebndtype";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
 		param.wavebndtype = std::stoi(parametervalue);
 	}
 
-	parameterstr = "thetamin =";
+	parameterstr = "thetamin";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
 		param.thetamin = std::stod(parametervalue)*pi / 180.0;
 	}
 
-	parameterstr = "thetamax =";
+	parameterstr = "thetamax";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
 		param.thetamax = std::stod(parametervalue)*pi / 180.0;
 	}
 
-	parameterstr = "dtheta =";
+	parameterstr = "dtheta";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
 		param.dtheta = std::stod(parametervalue)*pi / 180.0;
 	}
 
-	parameterstr = "dtbc =";
+	parameterstr = "dtbc";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
 		param.dtbc = std::stod(parametervalue);
 	}
 
-	parameterstr = "rtlength =";
+	parameterstr = "rtlength";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
 		param.rtlength = std::stod(parametervalue);
 	}
 
-	parameterstr = "sprdthr =";
+	parameterstr = "sprdthr";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
 		param.sprdthr = std::stod(parametervalue);
 	}
 
-	parameterstr = "random =";
+	parameterstr = "random";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
@@ -953,42 +999,42 @@ XBGPUParam readparamstr(std::string line, XBGPUParam param)
 	}
 
 	//Other parameters
-	parameterstr = "GPUDEVICE =";
+	parameterstr = "GPUDEVICE";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
 		param.GPUDEVICE= std::stoi(parametervalue);
 	}
 
-	parameterstr = "nx =";
+	parameterstr = "nx";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
 		param.nx = std::stoi(parametervalue);
 	}
 
-	parameterstr = "ny =";
+	parameterstr = "ny";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
 		param.ny = std::stoi(parametervalue);
 	}
 
-	parameterstr = "dx =";
+	parameterstr = "dx";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
 		param.dx = std::stod(parametervalue);
 	}
 
-	parameterstr = "grdalpha =";
+	parameterstr = "grdalpha";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
 		param.grdalpha = std::stod(parametervalue);
 	}
 
-	parameterstr = "g =";
+	parameterstr = "g";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
@@ -997,28 +1043,28 @@ XBGPUParam readparamstr(std::string line, XBGPUParam param)
 		// not allowing user to specify g is acceptable for now
 	}
 
-	parameterstr = "rho =";
+	parameterstr = "rho";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
 		param.rho = std::stod(parametervalue);
 	}
 
-	parameterstr = "nmax =";
+	parameterstr = "nmax";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
 		param.nmax = std::stod(parametervalue);
 	}
 
-	parameterstr = "fcutoff =";
+	parameterstr = "fcutoff";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
 		param.fcutoff = std::stod(parametervalue);
 	}
 
-	parameterstr = "nspr =";
+	parameterstr = "nspr";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
@@ -1028,7 +1074,7 @@ XBGPUParam readparamstr(std::string line, XBGPUParam param)
 	return param;
 }
 
-XBGPUParam checkparamsanity(XBGPUParam XParam, std::vector<SLBnd> slbnd, std::vector<WindBnd> wndbnd)
+XBGPUParam checkparamsanity(XBGPUParam XParam, std::vector<SLBnd> slbnd, std::vector<WindBnd> wndbnd, std::vector<Wavebndparam> wavbnd)
 {
 	XBGPUParam DefaultParams;
 
@@ -1065,23 +1111,34 @@ XBGPUParam checkparamsanity(XBGPUParam XParam, std::vector<SLBnd> slbnd, std::ve
 
 
 	// Check whether endtime was specified by the user
+	//No; i.e. endtimne =0.0
+	//so the following conditions are useless
+	
+	
+	
 	if (abs(XParam.endtime - DefaultParams.endtime) <= tiny)
 	{
 		//No; i.e. endtimne =0.0
-		if (slbnd.back().time>0.0 && wndbnd.back().time > 0.0)
-		{
-			XParam.endtime = min(slbnd.back().time, wndbnd.back().time);
-		}
-
-		
+		XParam.endtime = 1 / tiny; //==huge
+	//	if (slbnd.back().time>0.0 && wndbnd.back().time > 0.0)
+	//	{
+	//		XParam.endtime = min(slbnd.back().time, wndbnd.back().time);
+	//	}
+	//
+	//	
 	}
-	else
-	{
-		//Check that endtime is no longer than the shortest boundary
-		double endbnd = min(slbnd.back().time, wndbnd.back().time);
+	
+	//Check that endtime is no longer than the shortest boundary
+	double endbnd = min(slbnd.back().time, wndbnd.back().time);
 
-		XParam.endtime = min(XParam.endtime, endbnd);
-	}
+	
+	endbnd = min(endbnd, wavbnd.back().time);
+	
+
+	XParam.endtime = min(XParam.endtime, endbnd);
+	
+	// Issue a warning?
+
 
 
 	// Check that a wave bnd file was specified otherwise kill the app
@@ -1230,24 +1287,29 @@ XBGPUParam checkparamsanity(XBGPUParam XParam, std::vector<SLBnd> slbnd, std::ve
 std::string findparameter(std::string parameterstr, std::string line)
 {
 	std::size_t found, Numberstart, Numberend;
-	std::string parameternumber;
-	found = line.find(parameterstr);
-	if (found != std::string::npos) // found a line that has Lonmin
+	std::string parameternumber,left,right;
+	std::vector<std::string> splittedstr;
+	
+	// first look fo an equal sign
+	// No equal sign mean not a valid line so skip
+	splittedstr=split(line, '=' );
+	if (splittedstr.size()>1)
 	{
-		//std::cout <<"found LonMin at : "<< found << std::endl;
-		Numberstart = found + parameterstr.length();
-		found = line.find(";");
-		if (found != std::string::npos) // found a line that has Lonmin
+		left = trim(splittedstr[0]," ");
+		right = splittedstr[1]; // if there are more than one equal sign in the line the second one is ignored
+		found = left.compare(parameterstr);// it needs to strictly compare
+		if (found == 0) // found the parameter
 		{
-			Numberend = found;
-		}
-		else
-		{
-			Numberend = line.length();
-		}
-		parameternumber = line.substr(Numberstart, Numberend - Numberstart);
-		//std::cout << parameternumber << std::endl;
+			//std::cout <<"found LonMin at : "<< found << std::endl;
+			//Numberstart = found + parameterstr.length();
+			splittedstr = split(right, ';');
+			if (splittedstr.size() >= 1)
+			{
+				parameternumber = splittedstr[0];
+			}
+			//std::cout << parameternumber << std::endl;
 
+		}
 	}
 	return trim(parameternumber, " ");
 }

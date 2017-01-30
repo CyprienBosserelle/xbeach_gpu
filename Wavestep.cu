@@ -521,6 +521,7 @@ void wavebnd(XBGPUParam Param, std::vector<Wavebndparam> wavebndvec)
 
 		}
 	}
+	//spetial treatment when difft == 0.0
 
 	if (Param.wavebndtype == 1)
 	{
@@ -531,7 +532,7 @@ void wavebnd(XBGPUParam Param, std::vector<Wavebndparam> wavebndvec)
 	}
 	if (Param.wavebndtype >= 2)
 	{
-		nwbndstep = floor((totaltime - wavebndvec[WAVstepinbnd - 1].time) / Param.dtbc);
+		nwbndstep = min(floor((totaltime - wavebndvec[WAVstepinbnd - 1].time) / Param.dtbc),ceil(Param.rtlength/Param.dtbc)-1);
 		timenext = Param.dtbc;
 		timesincelast = totaltime - (nwbndstep*Param.dtbc + wavebndvec[WAVstepinbnd - 1].time);
 	}

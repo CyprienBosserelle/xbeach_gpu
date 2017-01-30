@@ -1106,7 +1106,7 @@ XBGPUParam read_reuse_bndnc_head(XBGPUParam Param)
 	//close file
 	status = nc_close(ncid);
 
-	Param.rtlength = ntt*(rtl - rtlp); // Not totally sure why this is bigger than rtl...
+	Param.rtlength = rtl;//ntt*(rtl - rtlp); // Not totally sure why this is bigger than rtl...
 	Param.dtbc = rtl - rtlp;
 	
 	return Param;
@@ -1135,7 +1135,7 @@ std::vector<Wavebndparam> read_reuse_bndnc_vec(XBGPUParam Param)
 
 	//rtlength has just been calculated by teh previous function
 
-	for (int i = 0; i < nrec; i++)
+	for (int i = 0; i < (nrec+1); i++)
 	{
 		wavebndline.time = (Param.rtlength)*i;
 		
@@ -1185,7 +1185,7 @@ void read_reuse_bndnc(XBGPUParam Param, int rec, float &Trep, double * &qfile, d
 	status = nc_inq_varid(ncid, "qy_bnd", &qy_varid);
 	if (status != NC_NOERR)	handle_error(status);
 
-	int tslenbc = ceil(Param.rtlength / Param.dtbc);
+	int tslenbc = ceil(Param.rtlength / Param.dtbc)+1; // should be equal to ntt!
 
 	//Sanity check
 	if (nyy > Param.ny)

@@ -632,6 +632,14 @@ void mainloopGPU(XBGPUParam Param, std::vector<SLBnd> slbnd, std::vector<WindBnd
 
 		dt = arrmin[0] * 0.5; // Not sure why this is but it is in the original XBeach!!
 
+		// Sanity check here if hh contains a NaN or inf then the model crashed??
+		if (dt == 0.0 || std::isinf(dt) || std::isnan(dt))
+		{
+			printf("Model crashed! Exciting now\n");
+			write_text_to_log_file("Model crashed!. Exiting.");
+			exit(1);
+		}
+
 		
 		
 		if ((Param.swave == 1 ) && totaltime>0.0)
@@ -1743,6 +1751,7 @@ int main(int argc, char **argv)
 		{
 			//Constant wave boundary (no wave group)
 			wavebnd = ReadCstBnd(XParam);
+			//Need to set rtlength?
 		}
 		if (XParam.wavebndtype == 2)
 		{
@@ -1797,7 +1806,7 @@ int main(int argc, char **argv)
 
 	///////////////////////////////////////////////////////////////////
 	// Check input sanity
-	XParam = checkparamsanity(XParam, slbnd, wndbnd);
+	XParam = checkparamsanity(XParam, slbnd, wndbnd,wavebnd);
 
 
 	nx = XParam.nx;
