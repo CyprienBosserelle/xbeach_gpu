@@ -219,9 +219,9 @@ DECNUM * dhdx_g, *dhdy_g, *dudx_g, *dudy_g, *dvdx_g, *dvdy_g;
 DECNUM *dzsdx_g, *dzsdy_g;
 DECNUM *zeros;
 
-DECNUM * Hmean_g, *uumean_g, *vvmean_g, *hhmean_g, *zsmean_g, *Cmean_g;
+DECNUM * Hmean_g, *uumean_g, *vvmean_g, *hhmean_g, *zsmean_g, *Cmean_g,*zsmax_g;
 DECNUM *dtflow_g;
-DECNUM *Hmean, *uumean, *vvmean, *hhmean, *zsmean, *Cmean;
+DECNUM *Hmean, *uumean, *vvmean, *hhmean, *zsmean, *Cmean, *zsmax;
 
 
 
@@ -435,6 +435,10 @@ void mainloopGPU(XBGPUParam Param, std::vector<SLBnd> slbnd, std::vector<WindBnd
 	OutputVarMapCPU["zsmean"] = zsmean;
 	OutputVarMapGPU["zsmean"] = zsmean_g;
 	OutputVarMaplen["zsmean"] = nx*ny;
+
+	//OutputVarMapCPU["zsmax"] = zsmax;
+	//OutputVarMapGPU["zsmax"] = zsmax_g;
+	//OutputVarMaplen["zsmax"] = nx*ny;
 
 	OutputVarMapCPU["Hmean"] = Hmean;
 	OutputVarMapGPU["Hmean"] = Hmean_g;
@@ -741,6 +745,10 @@ void mainloopGPU(XBGPUParam Param, std::vector<SLBnd> slbnd, std::vector<WindBnd
 		addavg_var << <gridDim, blockDim, 0 >> >(nx, ny, zsmean_g, zs_g);
 		//CUT_CHECK_ERROR("Add avg execution failed\n");
 		CUDA_CHECK(cudaDeviceSynchronize());
+
+		//max_var << <gridDim, blockDim, 0 >> >(nx, ny, zsmax_g, zs_g);
+		//CUT_CHECK_ERROR("Add avg execution failed\n");
+		//CUDA_CHECK(cudaDeviceSynchronize());
 
 		addavg_var << <gridDim, blockDim, 0 >> >(nx, ny, Cmean_g, Cc_g);
 		//CUT_CHECK_ERROR("Add avg execution failed\n");

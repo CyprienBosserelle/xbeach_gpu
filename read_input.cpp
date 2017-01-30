@@ -56,15 +56,16 @@ XBGPUParam readXbbndhead(XBGPUParam Param)
 		// Giving up now! Could not read the files
 		//issue a warning and exit
 		std::cerr << Param.wavebndfile << "ERROR Wave bnd file, header format error. only " << lineelements.size() << " where 5 were expected. Exiting." << std::endl;
-		write_text_to_log_file("ERROR:  Wind bnd file (" + Param.wavebndfile + "), header format error. only " + std::to_string(lineelements.size()) + " where 5 were expected. Exiting.");
+		write_text_to_log_file("ERROR:  Wave bnd file (" + Param.wavebndfile + "), header format error. only " + std::to_string(lineelements.size()) + " field found where 5 were expected. Exiting.");
+		write_text_to_log_file(line);
 		exit(1);
 	}
 
 
 	
-	Param.thetamin = std::stod(lineelements[0]);
-	Param.thetamax = std::stod(lineelements[1]);
-	Param.dtheta = std::stod(lineelements[2]);
+	Param.thetamin = std::stod(lineelements[0])*pi / 180.0;
+	Param.thetamax = std::stod(lineelements[1])*pi / 180.0;
+	Param.dtheta = std::stod(lineelements[2])*pi / 180.0;
 	Param.dtbc = std::stod(lineelements[3]);
 	Param.rtlength = std::stod(lineelements[4]);
 
@@ -118,12 +119,13 @@ std::vector<Wavebndparam> readXbbndfile(XBGPUParam Param)
 					lineelements.clear();
 					lineelements = split(line, ',');
 				}
-				if (lineelements.size() < 5)
+				if (lineelements.size() < 4)
 				{
 					// Giving up now! Could not read the files
 					//issue a warning and exit
 					std::cerr << Param.wavebndfile << "ERROR Wave bnd file format error. only " << lineelements.size() << " where 4 were expected. Exiting." << std::endl;
-					write_text_to_log_file("ERROR:  Wind bnd file (" + Param.wavebndfile + ") format error. only " + std::to_string(lineelements.size()) + " where 4 were expected. Exiting.");
+					write_text_to_log_file("ERROR:  Wave bnd file (" + Param.wavebndfile + ") format error. only " + std::to_string(lineelements.size()) + " where 4 were expected. Exiting.");
+					write_text_to_log_file(line);
 					exit(1);
 				}
 				wavebndline.time = std::stod(lineelements[0]);
@@ -300,6 +302,7 @@ std::vector<SLBnd> readWLfile(std::string WLfilename)
 					//issue a warning and exit
 					std::cerr << WLfilename << "ERROR Water level bnd file format error. only " << lineelements.size() << " where 2 were expected. Exiting."  << std::endl;
 					write_text_to_log_file("ERROR:  Water level bnd file (" + WLfilename + ") format error. only " + std::to_string(lineelements.size())+ " where 2 were expected. Exiting.");
+					write_text_to_log_file(line);
 					exit(1);
 			}
 
@@ -367,6 +370,7 @@ std::vector<WindBnd> readWNDfile(std::string WNDfilename, double grdalpha)
 				//issue a warning and exit
 				std::cerr << WNDfilename << "ERROR Wind bnd file format error. only " << lineelements.size() << " where 2 were expected. Exiting." << std::endl;
 				write_text_to_log_file("ERROR:  Wind bnd file (" + WNDfilename + ") format error. only " + std::to_string(lineelements.size()) + " where 2 were expected. Exiting.");
+				write_text_to_log_file(line);
 				exit(1);
 			}
 
