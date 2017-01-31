@@ -2834,6 +2834,8 @@ int main(int argc, char **argv)
 	write_text_to_log_file("End Computation");
 	write_text_to_log_file("#################################");
 	write_text_to_log_file("Total runtime= " + std::to_string((endcputime - startcputime) / CLOCKS_PER_SEC) + " seconds");
+		
+	
 	cudaDeviceReset();
 
 	//CUT_EXIT(argc, argv);

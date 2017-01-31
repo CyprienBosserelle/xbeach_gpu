@@ -10,7 +10,8 @@ void CUDA_CHECK(cudaError CUDerr)
 		fprintf(stderr, "Cuda error in file '%s' in line %i : %s.\n", \
 
 			__FILE__, __LINE__, cudaGetErrorString(CUDerr));
-
+		
+		write_text_to_log_file("Cuda error in file " + std::string(__FILE__) + " in line " + std::to_string(__LINE__) + std::string(cudaGetErrorString(CUDerr)));
 		exit(EXIT_FAILURE);
 
 	}
@@ -200,6 +201,12 @@ XBGPUParam waveinitGPU(XBGPUParam Param, std::vector<Wavebndparam> wavebnd)
 		free(HRfreq);
 		free(HRdir);
 
+		free(qxtemp);
+		free(qytemp);
+		free(eetemp);
+		free(yyfx);
+		free(ttfx);
+		free(thetafx);
 
 
 	}
@@ -608,6 +615,8 @@ void wavestep(XBGPUParam Param)
 	//	CUDA_CHECK( cudaMalloc((void **)&c_g, nx*ny*sizeof(DECNUM )) );
 	//CUDA_CHECK( cudaMalloc((void **)&cy_g, nx*ny*ntheta*sizeof(DECNUM )) );
 	//CUDA_CHECK( cudaMalloc((void **)&k_g, nx*ny*sizeof(DECNUM )) );
+
+	// not sure this is worth it we'd rather allocate from main and kill when it is all done...
 	CUDA_CHECK(cudaMalloc((void **)&kh_g, nx*ny*sizeof(DECNUM)));
 	CUDA_CHECK(cudaMalloc((void **)&sinh2kh_g, nx*ny*sizeof(DECNUM)));
 

@@ -99,6 +99,10 @@ extern "C" void creatncfileUD(XBGPUParam XParam, double totaltime,int ntheta,flo
 	status = nc_put_vara_float(ncid, th_id, thstart, thcount, thetaval);
 	//close and save new file
 	status = nc_close(ncid);
+
+	free(xval);
+	free(yval);
+	free(thetaval);
 }
 
 extern "C" void defncvar(XBGPUParam XParam, std::string varst, int vdim, float * var)
@@ -228,6 +232,10 @@ extern "C" void writencvarstep(XBGPUParam XParam, std::string varst, float * var
 	status = nc_put_vara_float(ncid, var_id, start, count, var);
 	//close and save
 	status = nc_close(ncid);
+
+	free(ddim);
+	free(start);
+	free(count);
 }
 
 
@@ -381,7 +389,11 @@ extern "C" void creatncfile(XBGPUParam XParam, DECNUM totaltime, DECNUM *zb, DEC
 	status = nc_put_vara_float(ncid, Cmean_id, start, count, Cmean);
 
 	//close and save new file
-	status = nc_close(ncid);  
+	status = nc_close(ncid); 
+
+
+	free(xval);
+	free(yval);
 }
 extern "C" void writestep2nc(XBGPUParam XParam, DECNUM totaltime,DECNUM *zb,DECNUM *zs,DECNUM * uu, DECNUM * vv, DECNUM * H,DECNUM * Tp,DECNUM * Dp,DECNUM * D,DECNUM * Urms,DECNUM *ueu,DECNUM * vev,DECNUM * C,DECNUM *dzb, DECNUM *Fx, DECNUM *Fy,DECNUM *hh,DECNUM *Hmean,DECNUM *uumean,DECNUM *vvmean,DECNUM *hhmean,DECNUM *zsmean,DECNUM *Cmean)
 {
@@ -832,7 +844,7 @@ void readgridncsize(std::string ncfile, int &nx, int &ny, double &dx)
 	if (ndims < 2)
 	{
 		double * ytempvar;
-		ytempvar = (double *)malloc(ny*sizeof(double));
+		ytempvar = (double *)malloc(ny*sizeof(double)); 
 		size_t start[] = { 0 };
 		size_t count[] = { ny };
 		status = nc_get_vara_double(ncid, varid, start, count, ytempvar);
@@ -847,6 +859,7 @@ void readgridncsize(std::string ncfile, int &nx, int &ny, double &dx)
 
 			}
 		}
+		free(ytempvar);
 	}
 	else
 	{
@@ -884,6 +897,7 @@ void readgridncsize(std::string ncfile, int &nx, int &ny, double &dx)
 
 			}
 		}
+		free(xtempvar);
 	}
 	else
 	{
@@ -904,6 +918,10 @@ void readgridncsize(std::string ncfile, int &nx, int &ny, double &dx)
 
 
 	status = nc_close(ncid);
+
+	free(ddimhh);
+	free(xcoord);
+	free(ycoord);
 
 
 }

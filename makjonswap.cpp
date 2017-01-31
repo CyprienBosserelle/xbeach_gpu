@@ -65,6 +65,7 @@ void GenCstWave(XBGPUParam Param, std::vector<Wavebndparam> wavebnd, float * the
 			}
 
 		}
+		free(scaledir);
 	}
 }
 	
@@ -214,7 +215,10 @@ void makjonswap(XBGPUParam Param, std::vector<Wavebndparam> wavebnd, int step, i
 	}
 
 
-
+	free(x);
+	free(y);
+	free(theta);
+	free(Dd);
 
 
 
@@ -1144,6 +1148,7 @@ void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir
 				if (Ftempx(i-1, m) != Ftempx(i-1, m))
 				{
 					printf("Arggg!");
+					exit(EXIT_FAILURE);
 				}
 				//qy
 				Ftempy(i-1, m) = Abnd[i + m*(K - 1)] * 0.50 * exp(-1.0 * par_compi* dphi3[i + m*(K - 1)])*cg3[i + m*(K - 1)] * sin(theta3[i + m*(K - 1)]);
@@ -1344,4 +1349,49 @@ void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir
 	//////////////////////////////////////
 	//Clean up and desallocate all that memory
 	//////////////////////////////////////
+
+	free(Sf);
+	free(Sd);
+	free(pdf);
+	free(cdf);
+
+	free(fgen);
+	free(phigen);
+	free(thetagen);
+	free(kgen);
+	free(wgen);
+	free(vargen);
+	free(vargenq);
+	free(Findex);
+	free(WDindex);
+
+	free(tin);
+	free(zeta);
+	free(Ampzeta);
+	free(eta);
+	free(Amp);
+	free(stdzeta);
+	free(E_tdir);
+	free(qx);
+	free(qy);
+	free(qtot);
+
+	free(taperf);
+	free(taperw);
+
+	free(binedgeleft);
+	free(binedgeright);
+	free(KKx);
+	free(KKy);
+	free(cg3);
+	free(D);
+	free(Abnd);
+	free(theta3);
+	free(dphi3);
+	free(qtempx);
+	free(qtempy);
+	
+	fftw_free(in);
+	fftw_free(out);
+
 }
