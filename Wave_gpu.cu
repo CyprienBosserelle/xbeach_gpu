@@ -248,11 +248,11 @@ int wxstep = 1;
 #include "Flow_kernel.cu"
 #include "Sediment_kernel.cu"
 #include "Wavestep.cu"
+
+
 template <class T> const T& min(const T& a, const T& b) {
 	return !(b < a) ? a : b;     // or: return !comp(b,a)?a:b; for version (2)
 }
-
-
 
 
 
@@ -436,9 +436,9 @@ void mainloopGPU(XBGPUParam Param, std::vector<SLBnd> slbnd, std::vector<WindBnd
 	OutputVarMapGPU["zsmean"] = zsmean_g;
 	OutputVarMaplen["zsmean"] = nx*ny;
 
-	//OutputVarMapCPU["zsmax"] = zsmax;
-	//OutputVarMapGPU["zsmax"] = zsmax_g;
-	//OutputVarMaplen["zsmax"] = nx*ny;
+	OutputVarMapCPU["zsmax"] = zsmax;
+	OutputVarMapGPU["zsmax"] = zsmax_g;
+	OutputVarMaplen["zsmax"] = nx*ny;
 
 	OutputVarMapCPU["Hmean"] = Hmean;
 	OutputVarMapGPU["Hmean"] = Hmean_g;
@@ -746,9 +746,9 @@ void mainloopGPU(XBGPUParam Param, std::vector<SLBnd> slbnd, std::vector<WindBnd
 		//CUT_CHECK_ERROR("Add avg execution failed\n");
 		CUDA_CHECK(cudaDeviceSynchronize());
 
-		//max_var << <gridDim, blockDim, 0 >> >(nx, ny, zsmax_g, zs_g);
+		max_var << <gridDim, blockDim, 0 >> >(nx, ny, zsmax_g, zs_g);
 		//CUT_CHECK_ERROR("Add avg execution failed\n");
-		//CUDA_CHECK(cudaDeviceSynchronize());
+		CUDA_CHECK(cudaDeviceSynchronize());
 
 		addavg_var << <gridDim, blockDim, 0 >> >(nx, ny, Cmean_g, Cc_g);
 		//CUT_CHECK_ERROR("Add avg execution failed\n");
@@ -757,7 +757,7 @@ void mainloopGPU(XBGPUParam Param, std::vector<SLBnd> slbnd, std::vector<WindBnd
 
 		//////////////////////////////////////////
 		//BIG
-		//WARNING HERE -- NEED TO MAKE ASYNC
+		//WARNING HERE -- NEED TO MAKE ASYNC to hide latency 
 		/////////////////////////////////////////
 		if (!Param.TSnodesout.empty())
 		{
@@ -913,6 +913,10 @@ void mainloopGPU(XBGPUParam Param, std::vector<SLBnd> slbnd, std::vector<WindBnd
 			CUDA_CHECK(cudaDeviceSynchronize());
 
 			resetavg_var << <gridDim, blockDim, 0 >> >(nx, ny, zsmean_g);
+			//CUT_CHECK_ERROR("Reset avg execution failed\n");
+			CUDA_CHECK(cudaDeviceSynchronize());
+
+			resetavg_var << <gridDim, blockDim, 0 >> >(nx, ny, zsmax_g);
 			//CUT_CHECK_ERROR("Reset avg execution failed\n");
 			CUDA_CHECK(cudaDeviceSynchronize());
 
@@ -1974,9 +1978,11 @@ int main(int argc, char **argv)
 	vvmean = (DECNUM *)malloc(nx*ny*sizeof(DECNUM));
 	hhmean = (DECNUM *)malloc(nx*ny*sizeof(DECNUM));
 	zsmean = (DECNUM *)malloc(nx*ny*sizeof(DECNUM));
+	zsmax = (DECNUM *)malloc(nx*ny*sizeof(DECNUM));
 	Cmean = (DECNUM *)malloc(nx*ny*sizeof(DECNUM));
 	arrmax = (DECNUM *)malloc(nx*ny*sizeof(DECNUM));
 	arrmin = (DECNUM *)malloc(nx*ny*sizeof(DECNUM));
+
 
 	
 
@@ -2119,6 +2125,7 @@ int main(int argc, char **argv)
 		CUDA_CHECK(cudaMalloc((void **)&vvmean_g, nx*ny*sizeof(DECNUM)));
 		CUDA_CHECK(cudaMalloc((void **)&hhmean_g, nx*ny*sizeof(DECNUM)));
 		CUDA_CHECK(cudaMalloc((void **)&zsmean_g, nx*ny*sizeof(DECNUM)));
+		CUDA_CHECK(cudaMalloc((void **)&zsmax_g, nx*ny*sizeof(DECNUM)));
 		CUDA_CHECK(cudaMalloc((void **)&Cmean_g, nx*ny*sizeof(DECNUM)));
 		CUDA_CHECK(cudaMalloc((void **)&ceqsg_g, nx*ny*sizeof(DECNUM)));
 		CUDA_CHECK(cudaMalloc((void **)&arrmin_g, nx*ny*sizeof(DECNUM)));
@@ -2226,6 +2233,7 @@ int main(int argc, char **argv)
 		vvmean_g = (DECNUM *)malloc(nx*ny*sizeof(DECNUM));
 		hhmean_g = (DECNUM *)malloc(nx*ny*sizeof(DECNUM));
 		zsmean_g = (DECNUM *)malloc(nx*ny*sizeof(DECNUM));
+		zsmax_g = (DECNUM *)malloc(nx*ny*sizeof(DECNUM));
 		Cmean_g = (DECNUM *)malloc(nx*ny*sizeof(DECNUM));
 		ceqsg_g = (DECNUM *)malloc(nx*ny*sizeof(DECNUM));
 		kh_g = (DECNUM *)malloc(nx*ny*sizeof(DECNUM));
@@ -2253,7 +2261,9 @@ int main(int argc, char **argv)
 		////////////////////////////////////////////////////////////////////////////////////////////
 		// Copy CPU array to the GPU                                                       /////////
 		////////////////////////////////////////////////////////////////////////////////////////////
+		
 
+		//Should be replaced by cudaMemset
 
 
 		CUDA_CHECK(cudaMemcpy(hh_g, hh, nx*ny*sizeof(DECNUM), cudaMemcpyHostToDevice));
@@ -2317,6 +2327,7 @@ int main(int argc, char **argv)
 		CUDA_CHECK(cudaMemcpy(zsmean_g, uu, nx*ny*sizeof(DECNUM), cudaMemcpyHostToDevice));
 		CUDA_CHECK(cudaMemcpy(Cmean_g, uu, nx*ny*sizeof(DECNUM), cudaMemcpyHostToDevice));
 
+		CUDA_CHECK(cudaMemset(zsmax_g, 0.0f, nx*ny*sizeof(DECNUM)));
 
 		/*CUDA_CHECK( cudaMemcpy(xxp_g, xxp, npart*sizeof(DECNUM ), cudaMemcpyHostToDevice) );
 		CUDA_CHECK( cudaMemcpy(yyp_g, yyp, npart*sizeof(DECNUM ), cudaMemcpyHostToDevice) );
@@ -2394,6 +2405,8 @@ int main(int argc, char **argv)
 				hhmean_g[ii + jj*nx] = uu[ii + jj*nx];
 				zsmean_g[ii + jj*nx] = uu[ii + jj*nx];
 				Cmean_g[ii + jj*nx] = uu[ii + jj*nx];
+
+				zsmean_g[ii + jj*nx] = 0.0f;
 			}
 		}
 	}
@@ -2625,6 +2638,9 @@ int main(int argc, char **argv)
 
 	OutputVarMapCPU["zsmean"] = zsmean;
 	OutputVarMapndim["zsmean"] = 3;
+
+	OutputVarMapCPU["zsmax"] = zsmax;
+	OutputVarMapndim["zsmax"] = 3;
 
 	OutputVarMapCPU["Hmean"] = Hmean;
 	OutputVarMapndim["Hmean"] = 3;
