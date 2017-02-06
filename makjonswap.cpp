@@ -81,7 +81,7 @@ void makjonswap(XBGPUParam Param, std::vector<Wavebndparam> wavebnd, int step, i
 	double mainang = Dp;
 	double fp = 1 / Tp;
 	double gam = wavebnd[step].gamma;
-	double scoeff = wavebnd[step].s;
+	double scoeff = max(round(min(wavebnd[step].s,1000.0)),10.0);
 
 	
 	printf("Generating JONSWAP spectrum: Hs=%f, Tp=%f, Dp=%f, gam=%f, s=%f\n",Hs,Tp,Dp,gam,scoeff);
@@ -180,7 +180,7 @@ void makjonswap(XBGPUParam Param, std::vector<Wavebndparam> wavebnd, int step, i
 	{
 		theta[i]=i*dtheta-pi; // cover the full circle
 		HRdir[i] = theta[i];
-		Dd[i] = pow(cos((theta[i]-mainang)/2.0f),2.0f*scoeff);
+		Dd[i] = pow(cos((theta[i]-mainang)/2.0f),2.0*scoeff);
 		ddsum=ddsum+Dd[i];
 		//printf("theta[%d]=%f\n",i,theta[i]);
 	}
@@ -208,7 +208,14 @@ void makjonswap(XBGPUParam Param, std::vector<Wavebndparam> wavebnd, int step, i
 		{
 			HRSpec[ii + i*nfreq] = y[ii] * Dd[i];// m2/Hz/rad
 			//printf("S_array[%d,%d]=%f\n",ii+1,i+1,S_array[ii+i*nfreq]);
-			
+
+
+			if (HRSpec[ii + i*nfreq] != HRSpec[ii + i*nfreq])
+			{
+				printf("Error in generating JONSWAP Spectrum: #NAN or #IND detected");
+				write_text_to_log_file("Error in generating JONSWAP Spectrum: #NAN or #IND detected");
+				exit(EXIT_FAILURE);
+			}
         
 		}
 		
@@ -613,7 +620,7 @@ void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir
 	TwoDee<std::complex<double>> CompFn(ny, tslen);
 
 	zeta = (double *)malloc(ny*Param.ntheta*tslen*sizeof(double));
-	Ampzeta = (double *)malloc(ny*Param.ntheta*tslen*sizeof(double));
+	//Ampzeta = (double *)malloc(ny*Param.ntheta*tslen*sizeof(double));
 	eta = (double *)malloc(ny*tslen*sizeof(double));
 	Amp = (double *)malloc(ny*tslen*sizeof(double));
 	stdzeta = (double *)malloc(Param.ntheta*sizeof(double));
@@ -628,7 +635,7 @@ void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir
 	for (int n = 0; n < ny*Param.ntheta*tslen;n++)
 	{
 		zeta[n] = 0.0;
-		Ampzeta[n] = 0.0;
+		//Ampzeta[n] = 0.0;
 	}
 	for (int n = 0; n < ny*tslen; n++)
 	{
@@ -940,7 +947,7 @@ void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir
 
 			for (int n = 0; n < tslen; n++)
 			{
-				Ampzeta[j + itheta*ny + n*ny*Param.ntheta] = Amp[j + n*ny] * stdzeta[itheta] / stdeta;
+				zeta[j + itheta*ny + n*ny*Param.ntheta] = Amp[j + n*ny] * stdzeta[itheta] / stdeta;
 			}
 
 		}
@@ -951,7 +958,7 @@ void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir
 		{
 			for (int n = 0; n < tslen; n++)
 			{
-				E_tdir[n] = Ampzeta[j + itheta*ny + n*ny*Param.ntheta] * Ampzeta[j + itheta*ny + n*ny*Param.ntheta] * 0.5*Param.rho*Param.g / (Param.dtheta);
+				E_tdir[n] = zeta[j + itheta*ny + n*ny*Param.ntheta] * zeta[j + itheta*ny + n*ny*Param.ntheta] * 0.5*Param.rho*Param.g / (Param.dtheta);
 			}
 			//interpolate to boundary timeseries
 			for (int m = 0; m < tslenbc; m++)
@@ -1147,7 +1154,8 @@ void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir
 				
 				if (Ftempx(i-1, m) != Ftempx(i-1, m))
 				{
-					printf("Arggg!");
+					printf("Error in generating Waave component: #NAN or #IND detected");
+					write_text_to_log_file("Error in generating JONSWAP Spectrum: #NAN or #IND detected");
 					exit(EXIT_FAILURE);
 				}
 				//qy
@@ -1367,7 +1375,7 @@ void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir
 
 	free(tin);
 	free(zeta);
-	free(Ampzeta);
+	//free(Ampzeta);//Reused zeta
 	free(eta);
 	free(Amp);
 	free(stdzeta);
