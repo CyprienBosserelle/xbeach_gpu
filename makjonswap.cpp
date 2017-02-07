@@ -76,7 +76,7 @@ void makjonswap(XBGPUParam Param, std::vector<Wavebndparam> wavebnd, int step, i
 	double * x, *y;
 
 	double Hs = wavebnd[step].Hs;
-	double Tp = wavebnd[step].Tp;
+	double Tp = max(wavebnd[step].Tp,1.5); // for very small Tp the wave group generator will request a Giant amount of memory so we need to cap it here
 	double Dp = wavebnd[step].Dp; // converted to the main angle already
 	double mainang = Dp;
 	double fp = 1 / Tp;
@@ -493,9 +493,9 @@ void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir
 	
 	//Check whether the internal frequency is high enough to describe the highest frequency
 	//wave train returned from frange(which can be used in the boundary conditions)
-	if (dtin > 0.1 / fgen[K - 1])
+	if (dtin > 0.5 / fgen[K - 1])
 	{
-		dtin = 0.1 / fgen[K - 1];
+		dtin = 0.5 / fgen[K - 1];
 	}
 	//! The length of the internal time axis should be even (for Fourier transform) and
 	//depends on the internal time step needed and the internal duration(~1 / dfgen) :
@@ -959,6 +959,12 @@ void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir
 			for (int n = 0; n < tslen; n++)
 			{
 				E_tdir[n] = zeta[j + itheta*ny + n*ny*Param.ntheta] * zeta[j + itheta*ny + n*ny*Param.ntheta] * 0.5*Param.rho*Param.g / (Param.dtheta);
+				if (E_tdir[n] != E_tdir[n])
+				{
+					printf("Error in generating Wave component eebc: #NAN or #IND detected");
+					write_text_to_log_file("Error in generating Wave component eebc: #NAN or #IND detected");
+					exit(EXIT_FAILURE);
+				}
 			}
 			//interpolate to boundary timeseries
 			for (int m = 0; m < tslenbc; m++)
@@ -1154,8 +1160,8 @@ void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir
 				
 				if (Ftempx(i-1, m) != Ftempx(i-1, m))
 				{
-					printf("Error in generating Waave component: #NAN or #IND detected");
-					write_text_to_log_file("Error in generating JONSWAP Spectrum: #NAN or #IND detected");
+					printf("Error in generating Wave component q: #NAN or #IND detected");
+					write_text_to_log_file("Error in generating  Wave component q: #NAN or #IND detected");
 					exit(EXIT_FAILURE);
 				}
 				//qy
