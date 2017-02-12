@@ -188,7 +188,7 @@ __global__ void ubnd1D(int nx, int ny, DECNUM dx, DECNUM dt, DECNUM g, DECNUM rh
 
 			
 
-
+			//Tidetype=velocity
 			uumean = factime*uu[i] + umean[iy] * (1 - factime);
 			//vvmean = factime*vvmm + vmean[iy] * (1 - factime);
 			umean[iy] = uumean;
@@ -196,14 +196,16 @@ __global__ void ubnd1D(int nx, int ny, DECNUM dx, DECNUM dt, DECNUM g, DECNUM rh
 
 
 
-			//
+			// Freewave==1
 			uu[i] =  (2.0f)*ui + ur + uumean;//2.0f*ui-(sqrtf(g/(zs[i]+zb[i]))*(zs[i]-zsbnd));;//
 			//zs[i] = 1.5f*((bnp1 - uu[i])*(bnp1 - uu[i]) / (4.0f*g) - 0.5f*(zb[i] + zb[xplus + iy*nx])) - 0.5f*((betar - uu[xplus + iy*nx])*(betar - uu[xplus + iy*nx]) / (4.0f*g) - 0.5f*(zb[xplus + iy*nx] + zb[xplus2 + iy*nx]));
 			////
 			//zsbnd+qx/(dx*dx)*dt;//
 			zs[i] =  zsplus;
 			//hh[i] = zsplus + zb[i];
+			
 			vv[i] = vv[xplus + iy*nx];
+						
 		
 
 
@@ -1213,7 +1215,7 @@ __global__ void eulervstep(int nx, int ny, DECNUM dx, DECNUM dt, DECNUM g, DECNU
 			vvi[tx][ty] = 0.0f;
 			viscv[i] = 0.0f;
 		}
-		if (ix > 0)// && iy>0 && iy<ny)
+		if (ix > 0 && iy>0 && iy<ny)
 		{
 			vv[i] = vvi[tx][ty];
 		}//vdvdy[i]=tauby;
@@ -1408,6 +1410,7 @@ __global__ void uuvvzslatbnd(int nx, int ny, DECNUM * uu, DECNUM * vv, DECNUM *z
 
 	__shared__ DECNUM vvr[16][16];
 	__shared__ DECNUM vvb[16][16];
+	__shared__ DECNUM vvb2[16][16];
 	__shared__ DECNUM vvt[16][16];
 	__shared__ DECNUM uut[16][16];
 	__shared__ DECNUM uub[16][16];
@@ -1421,6 +1424,7 @@ __global__ void uuvvzslatbnd(int nx, int ny, DECNUM * uu, DECNUM * vv, DECNUM *z
 		unsigned int xminus = mminus(ix, nx);
 		unsigned int xplus = pplus(ix, nx);
 		unsigned int yminus = mminus(iy, ny);
+		unsigned int yminus2 = mminus2(iy, ny);
 		unsigned int yplus = pplus(iy, ny);
 
 
@@ -1429,6 +1433,7 @@ __global__ void uuvvzslatbnd(int nx, int ny, DECNUM * uu, DECNUM * vv, DECNUM *z
 		vvr[tx][ty] = vv[xplus + iy*nx];
 		vvt[tx][ty] = vv[ix + yplus*nx];
 		vvb[tx][ty] = vv[ix + yminus*nx];
+		vvb2[tx][ty] = vv[ix + yminus2*nx];
 		zst[tx][ty] = zs[ix + yplus*nx];
 		zsb[tx][ty] = zs[ix + yminus*nx];
 		zsl[tx][ty] = zs[xminus + iy*nx];
@@ -1443,14 +1448,14 @@ __global__ void uuvvzslatbnd(int nx, int ny, DECNUM * uu, DECNUM * vv, DECNUM *z
 		if (iy == ny - 1)
 		{
 			uu[i] = uub[tx][ty];
-			vv[i] = vvb[tx][ty];// THis is to follow XBeach definition although I don't really agree with it
+			vv[i] = 0.0f;// vvb2[tx][ty];
 			zs[i] = zsb[tx][ty];
 		}
-		//		if (iy==ny-2)
-		//		{
-		//			vv[i]=vvb[tx][ty];// THis is to follow XBeach definition although I don't really agree with it 
-		//							  // It should be that vv(i,ny-1)=vv(i,ny-2) end of story
-		//		}
+		if (iy==ny-2)
+		{
+			vv[i]=vvb[tx][ty];// THis is to follow XBeach definition although I don't really agree with it 
+							  // It should be that vv(i,ny-1)=vv(i,ny-2) end of story
+		}
 		if (ix == 0)
 		{
 			//vv[i]=vvr[tx][ty];//Imcompatible with abs_2d front boundary 

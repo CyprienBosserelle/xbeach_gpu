@@ -1062,6 +1062,12 @@ void flowbnd(XBGPUParam Param, std::vector<SLBnd> slbnd, std::vector<WindBnd> wn
 			ubnd1D << <gridDim, blockDim, 0 >> >(nx, ny, Param.dx, Param.dt, Param.g, Param.rho, (float)totaltime, timesincelast, timenext, zsbndi, Trep, qbndold_g, qbndnew_g, zs_g, uu_g, vv_g, vu_g, umeanbnd_g, vmeanbnd_g, zb_g, cg_g, hum_g, cfm_g, Fx_g, hh_g);
 			//CUT_CHECK_ERROR("ubnd execution failed\n");
 			CUDA_CHECK(cudaDeviceSynchronize());
+
+			//uuvvzslatbnd << <gridDim, blockDim, 0 >> >(nx, ny, uu_g, vv_g, zs_g);
+			//CUT_CHECK_ERROR("uu vv zs lateral bnd execution failed\n");
+			//CUDA_CHECK(cudaDeviceSynchronize());
+
+
 	}
 	else
 	{
@@ -1146,13 +1152,13 @@ void flowstep(XBGPUParam Param)
 	// Advection in the x direction using 2n order finite difference
 	//
 
-	ududx_adv2 << <gridDim, blockDim, 0 >> >(nx, ny, Param.dx, hu_g, hum_g, uu_g, ududx_g);
+	ududx_adv << <gridDim, blockDim, 0 >> >(nx, ny, Param.dx, hu_g, hum_g, uu_g, ududx_g);
 	//CUT_CHECK_ERROR("uadvec execution failed\n");
 	CUDA_CHECK(cudaDeviceSynchronize());
 
 
 	//vdudy
-	vdudy_adv2 << <gridDim, blockDim, 0 >> >(nx, ny, Param.dx, hv_g, hum_g, uu_g, vv_g, vdudy_g);
+	vdudy_adv << <gridDim, blockDim, 0 >> >(nx, ny, Param.dx, hv_g, hum_g, uu_g, vv_g, vdudy_g);
 	//CUT_CHECK_ERROR("uadvec execution failed\n");
 	CUDA_CHECK(cudaDeviceSynchronize());
 
@@ -1197,12 +1203,12 @@ void flowstep(XBGPUParam Param)
 	// Advection in the y direction using 2n order finite difference
 	//
 	//vdvdy
-	vdvdy_adv2 << <gridDim, blockDim, 0 >> >(nx, ny, Param.dx, hv_g, hvm_g, vv_g, vdvdy_g);
+	vdvdy_adv << <gridDim, blockDim, 0 >> >(nx, ny, Param.dx, hv_g, hvm_g, vv_g, vdvdy_g);
 	//CUT_CHECK_ERROR("vadvec for v execution failed\n");
 	CUDA_CHECK(cudaDeviceSynchronize());
 	//udvdx
 
-	udvdx_adv2 << <gridDim, blockDim, 0 >> >(nx, ny, Param.dx, hu_g, hvm_g, uu_g, vv_g, udvdx_g);
+	udvdx_adv << <gridDim, blockDim, 0 >> >(nx, ny, Param.dx, hu_g, hvm_g, uu_g, vv_g, udvdx_g);
 	//CUT_CHECK_ERROR("vadvec for v execution failed\n");
 	CUDA_CHECK(cudaDeviceSynchronize());
 
