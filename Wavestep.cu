@@ -11,7 +11,7 @@ void CUDA_CHECK(cudaError CUDerr)
 
 			__FILE__, __LINE__, cudaGetErrorString(CUDerr));
 		
-		write_text_to_log_file("Cuda error in file " + std::string(__FILE__) + " in line " + std::to_string(__LINE__) + std::string(cudaGetErrorString(CUDerr)));
+		write_text_to_log_file("Cuda error in file " + std::string(__FILE__) + " in line " + std::to_string(__LINE__) + " " + std::string(cudaGetErrorString(CUDerr)));
 		exit(EXIT_FAILURE);
 
 	}

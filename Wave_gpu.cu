@@ -2467,7 +2467,7 @@ int main(int argc, char **argv)
 		// Calculate initial maximum timestep
 
 
-		FLOWDT << <gridDim, blockDim, 0 >> >(nx, ny, dx, 0.5*XParam.CFL, dtflow_g, hh_g);
+		FLOWDT << <gridDim, blockDim, 0 >> >(nx, ny, dx, 0.5f*XParam.CFL, dtflow_g, hh_g);
 		CUDA_CHECK(cudaDeviceSynchronize());
 
 
