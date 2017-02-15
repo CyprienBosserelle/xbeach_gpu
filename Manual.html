@@ -35,14 +35,14 @@
             <ul class="sidebar-nav">
                 <li class="sidebar-brand">
                     <a href="#">
-                        Start Bootstrap
+                        Manual v1.0
                     </a>
                 </li>
                 <li>
-                    <a href="#">Overview</a>
+                    <a href="#Overview">Overview</a>
                 </li>
                 <li>
-                    <a href="#">Inputs</a>
+                    <a href="#Input">Inputs</a>
                 </li>
                 <li>
                     <a href="#">Outputs</a>
@@ -68,10 +68,47 @@
             <div class="container-fluid">
                 <div class="row">
                     <div class="col-lg-12">
-                        <h1>Simple Sidebar</h1>
+                      <a name="Overview"></a>
+                        <h1>Overview</h1>
+                        <p>XBeach_GPU is a lightweight version of the XBeack model that uses the Graphical Processing Unit (GPU) of computers to perform the calculations. XBeach_GPU is not as flexible or precise as the original XBeach but it can perform the calculation much quicker.</p>
+                        <p></p>
+                        <a href="#menu-toggle" class="btn btn-default" id="menu-toggle">Toggle Menu</a>
+                    </div>
+                </div>
+            </div>
+            <div class="container-fluid">
+                <div class="row">
+                    <div class="col-lg-12">
+                      <a name="Input"></a>
+                        <h1>Input</h1>
                         <p>This template has a responsive menu toggling system. The menu will appear collapsed on smaller screens, and will appear non-collapsed on larger screens. When toggled using the button below, the menu will appear/disappear. On small screens, the page content will be pushed off canvas.</p>
                         <p>Make sure to keep all page content within the <code>#page-content-wrapper</code>.</p>
                         <a href="#menu-toggle" class="btn btn-default" id="menu-toggle">Toggle Menu</a>
+                        <h2>Param file</h2>
+                        <p>Just like with Xbeach the model parameters are controled with an input file that is necessary to run the model. To differenciate with XBeach, in XBGPU the file is called <code>XBGPU_param.txt</code></p>
+                        <p>Again the file structure is similar to XBeach so that it would be easy to switch from one to the other. However the 2 models are quite different and despite our effort you shouldn't expect that a given option or default values in one model is the same in the other. Model parameters can be modified in the file by specifiying the parameter name, the equal sign, the desired value for the parameter and optionally a semi-column <code>;</code> </p>
+                        <pre><code>
+#My Dummy XBGPU param files
+#Any lines starting with the Hash tag will be ignored
+
+#You can also leave blank lines
+
+# You can use the tradicional XBeach way of specifying the parameter
+# Remenber that you can only put one parameter per line
+gamma = 0.4
+#any number of leading space or space between the parameter name and the equal sign will be accepted. Tabs are not acceptable
+   beta       =      0.15
+#Obviously you have to put the right name down otherwise the line will be ignored
+bbeettaa = 0.22
+
+#If you want to add a comment at the end of a line with a parameter you can do it after putting a semi column
+n = 9; Was 10 before
+
+#XBGPU has only one required parameter and that is teh bathymetry grid name
+
+                        </code></pre>
+
+
                     </div>
                 </div>
             </div>
