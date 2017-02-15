@@ -499,8 +499,10 @@ void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir
 	}
 	//! The length of the internal time axis should be even (for Fourier transform) and
 	//depends on the internal time step needed and the internal duration(~1 / dfgen) :
+
+	//incidently tslen*dtin>=rtlength
 	int tslen = (int)(ceil(1 / dfgen / dtin) + 1);
-	if ((ceil(tslen/2)-tslen/2)>0)
+	if ((ceil(tslen/2.0f)-tslen/2.0f)>0)
 	{
 		tslen = tslen + 1;
 	}
