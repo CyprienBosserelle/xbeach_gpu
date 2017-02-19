@@ -1215,7 +1215,7 @@ __global__ void eulervstep(int nx, int ny, DECNUM dx, DECNUM dt, DECNUM g, DECNU
 			vvi[tx][ty] = 0.0f;
 			viscv[i] = 0.0f;
 		}
-		if (ix > 0 && iy>0 && iy<ny)
+		if (ix > 0)// && iy>0 && iy<ny)
 		{
 			vv[i] = vvi[tx][ty];
 		}//vdvdy[i]=tauby;
@@ -1448,12 +1448,12 @@ __global__ void uuvvzslatbnd(int nx, int ny, DECNUM * uu, DECNUM * vv, DECNUM *z
 		if (iy == ny - 1)
 		{
 			uu[i] = uub[tx][ty];
-			vv[i] = 0.0f;// vvb2[tx][ty];
+			vv[i] = vvb[tx][ty];
 			zs[i] = zsb[tx][ty];
 		}
 		if (iy==ny-2)
 		{
-			vv[i]=vvb[tx][ty];// THis is to follow XBeach definition although I don't really agree with it 
+			//vv[i]=vvb[tx][ty];// THis is to follow XBeach definition although I don't really agree with it 
 							  // It should be that vv(i,ny-1)=vv(i,ny-2) end of story
 		}
 		if (ix == 0)

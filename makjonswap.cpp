@@ -258,7 +258,7 @@ void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir
 	double fmax,Sfmax; // Should be in Param
 	//int nspr = 0; // Should be in Param (need test for nspr ==1)
 	double * binedgeleft, * binedgeright; // size of ntheta
-	double * zeta, *Ampzeta; //water elevation ny*ntheta*tslen
+	//double * zeta, *Ampzeta; //water elevation ny*ntheta*tslen
 	double *eta, *Amp; //water elevation integrated over directions ny*tslen
 	double *stdzeta; //size of ntheta
 	double *E_tdir; // tslen
@@ -621,7 +621,11 @@ void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir
 	//= 0.0 + 1.0*I;
 	TwoDee<std::complex<double>> CompFn(ny, tslen);
 
-	zeta = (double *)malloc(ny*Param.ntheta*tslen*sizeof(double));
+	std::valarray<double> zeta(ny*Param.ntheta*tslen);
+
+
+
+	//zeta = (double *)malloc(ny*Param.ntheta*tslen*sizeof(double));
 	//Ampzeta = (double *)malloc(ny*Param.ntheta*tslen*sizeof(double));
 	eta = (double *)malloc(ny*tslen*sizeof(double));
 	Amp = (double *)malloc(ny*tslen*sizeof(double));
@@ -936,24 +940,26 @@ void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir
 		}
 
 		stdeta = sqrt(stdeta / (tslen - 1));
-		for (int itheta = 0; itheta < Param.ntheta; itheta++)
+		if (stdeta > 0.0)
 		{
-			temp = 0.0;
-
-			for (int n = 0; n < tslen; n++)
+			for (int itheta = 0; itheta < Param.ntheta; itheta++)
 			{
-				temp = temp + zeta[j + itheta*ny + n*ny*Param.ntheta] * zeta[j + itheta*ny + n*ny*Param.ntheta];
+				temp = 0.0;
+
+				for (int n = 0; n < tslen; n++)
+				{
+					temp = temp + zeta[j + itheta*ny + n*ny*Param.ntheta] * zeta[j + itheta*ny + n*ny*Param.ntheta];
+
+				}
+				stdzeta[itheta] = sqrt(temp / (tslen - 1));
+
+				for (int n = 0; n < tslen; n++)
+				{
+					zeta[j + itheta*ny + n*ny*Param.ntheta] = Amp[j + n*ny] * stdzeta[itheta] / stdeta;
+				}
 
 			}
-			stdzeta[itheta] = sqrt(temp / (tslen - 1));
-
-			for (int n = 0; n < tslen; n++)
-			{
-				zeta[j + itheta*ny + n*ny*Param.ntheta] = Amp[j + n*ny] * stdzeta[itheta] / stdeta;
-			}
-
 		}
-
 		//Calculate energy and interpolate to the output time step
 		// (Maybe dtin==dtbc or maybe not)
 		for (int itheta = 0; itheta < Param.ntheta; itheta++)
@@ -1382,7 +1388,7 @@ void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir
 	free(WDindex);
 
 	free(tin);
-	free(zeta);
+	//free(zeta); now a vector that will autodestruct??
 	//free(Ampzeta);//Reused zeta
 	free(eta);
 	free(Amp);

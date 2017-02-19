@@ -38,6 +38,10 @@ using DECNUM = float;
 typedef std::complex<double> Complex;
 typedef std::valarray<Complex> CArray;
 
+// This below is to built a 3d array that may be too large for  a simple malloc array Malloc c
+// instead we can design a more complex structure of vectors
+
+
 //class template to create vecotr ofg output locations fro the model
 class TSnode{
 public:
