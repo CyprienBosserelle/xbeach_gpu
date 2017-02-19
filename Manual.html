@@ -83,7 +83,7 @@
                         <h1>Input</h1>
                         <p>This template has a responsive menu toggling system. The menu will appear collapsed on smaller screens, and will appear non-collapsed on larger screens. When toggled using the button below, the menu will appear/disappear. On small screens, the page content will be pushed off canvas.</p>
                         <p>Make sure to keep all page content within the <code>#page-content-wrapper</code>.</p>
-                        <a href="#menu-toggle" class="btn btn-default" id="menu-toggle">Toggle Menu</a>
+
                         <h2>Param file</h2>
                         <p>Just like with Xbeach the model parameters are controled with an input file that is necessary to run the model. To differenciate with XBeach, in XBGPU the file is called <code>XBGPU_param.txt</code></p>
                         <p>Again the file structure is similar to XBeach so that it would be easy to switch from one to the other. However the 2 models are quite different and despite our effort you shouldn't expect that a given option or default values in one model is the same in the other. Model parameters can be modified in the file by specifiying the parameter name, the equal sign, the desired value for the parameter and optionally a semi-column <code>;</code> </p>
@@ -93,7 +93,7 @@
 
 #You can also leave blank lines
 
-# You can use the tradicional XBeach way of specifying the parameter
+# You can use the traditional XBeach way of specifying the parameter
 # Remenber that you can only put one parameter per line
 gamma = 0.4
 #any number of leading space or space between the parameter name and the equal sign will be accepted. Tabs are not acceptable
@@ -107,8 +107,66 @@ n = 9; Was 10 before
 #XBGPU has only one required parameter and that is teh bathymetry grid name
 
                         </code></pre>
+                        <h2>Bathymetry</h2>
+                        <h2>Offshore wave boundary</h2>
+                        <p>There are 4 option to specify a boundary condition to XBGPU.</p>
+                        <table class="table table-striped">
+    <thead>
+      <tr>
+        <th>wavebndtype</th>
+        <th>Description</th>
 
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>1</td>
+        <td>Constant wave boundary (no wave group)</td>
 
+      </tr>
+      <tr>
+        <td>2</td>
+        <td>Reuse XBeach boundary files, this requires several specific input file</td>
+
+      </tr>
+      <tr>
+        <td>3</td>
+        <td>Reuse XBeach_GPU boundary. Similar to XBeach but in netcdf format and all self explanatory</td>
+
+      </tr>
+      <tr >
+        <td>4</td>
+        <td>Generate wave group for JONSWAP parameters</td>
+
+      </tr>
+      <tr class="danger">
+        <td>5</td>
+        <td>Generate wave group from an input spectrum. (Not yet implemented)</td>
+
+      </tr>
+    </tbody>
+  </table>
+                        <h2>Offshore water level</h2>
+                        <p>Offshore water level is uniform along the boundary. The water level boundary file contains a time series of water level in two column. The first column is time in seconds and the second column is water level in meter above the bathymetry datum. The time series can be tab delimited, space delimited or comma delimited. Simply make sure it is consistent. The time vector needs to be monotonically increasing but the time step can be variable (but >0.0). See the example below.</p>
+                        <pre><code>
+# Offshore water level boundary example
+0.0,1.0
+100.0,1.2
+3600.0,1.0
+
+                        </code></pre>
+                        <p>If no sea level files are specified teh water level will be set to 0.0 throughout the duration of the model.</p>
+                        <h2>Wind boundary</h2>
+                        <p>Wind is applied uniformly accross the grid. By default no wind is applied but the user can specify a file wich contains a time series fo time (s) speed (m/s) and direction(degree true North). The wind direction is automatically corrected to the angle of the grid. The time series can be tab delimited, space delimited or comma delimited. Simply make sure it is consistent. The time vector needs to be monotonically increasing but the time step can be variable (but >0.0). See the example below.</p>
+                        <pre><code>
+# Wind boundary example
+0.0,5.0,250.0
+150.0,12.0,252.0
+4000.0,5.0,340.0
+
+                        </code></pre>
+                        <h2>Side boundaries</h2>
+                      <p>In XBGPU the side boundaries are automatically fixed as Neumann on the v velocity only. This means that you have to have the first rows identical to the second and the last row identical to the second to last. To avoid instabilities at the boundary it is safe to have multiple identical rows at each boundare sthat smoothly transitionned to the real bathymetry.</p>
                     </div>
                 </div>
             </div>
