@@ -35,7 +35,7 @@
             <ul class="sidebar-nav">
                 <li class="sidebar-brand">
                     <a href="#">
-                        Manual v1.0
+                        Manual XBGPU v1.0
                     </a>
                 </li>
                 <li>
@@ -48,16 +48,16 @@
                     <a href="#">Outputs</a>
                 </li>
                 <li>
-                    <a href="#">Events</a>
+                    <a href="#">--</a>
                 </li>
                 <li>
-                    <a href="#">About</a>
+                    <a href="#">--</a>
                 </li>
                 <li>
-                    <a href="#">Services</a>
+                    <a href="#">--</a>
                 </li>
                 <li>
-                    <a href="#">Contact</a>
+                    <a href="#">--</a>
                 </li>
             </ul>
         </div>
@@ -109,7 +109,7 @@ n = 9; Was 10 before
                         </code></pre>
                         <h2>Bathymetry</h2>
                         <h2>Offshore wave boundary</h2>
-                        <p>There are 4 option to specify a boundary condition to XBGPU.</p>
+                        <p>There are 4 options to specify a boundary condition to XBGPU. The boundary type is specified in the XBGPU_param file as : <code>wavebndtype = 1</code> the boundary condition require one files, <code>wavebndfile = Mywavebndfile.txt</code> </p>
                         <table class="table table-striped">
     <thead>
       <tr>
@@ -146,6 +146,7 @@ n = 9; Was 10 before
       </tr>
     </tbody>
   </table>
+  <h3>Constant wave input <code>wavebndtype = 1;</code></h3>
                         <h2>Offshore water level</h2>
                         <p>Offshore water level is uniform along the boundary. The water level boundary file contains a time series of water level in two column. The first column is time in seconds and the second column is water level in meter above the bathymetry datum. The time series can be tab delimited, space delimited or comma delimited. Simply make sure it is consistent. The time vector needs to be monotonically increasing but the time step can be variable (but >0.0). See the example below.</p>
                         <pre><code>
