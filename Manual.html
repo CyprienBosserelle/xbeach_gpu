@@ -3,91 +3,93 @@
 
 <head>
 
-    <meta charset="utf-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, shrink-to-fit=no, initial-scale=1">
-    <meta name="description" content="">
-    <meta name="author" content="">
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, shrink-to-fit=no, initial-scale=1">
+  <meta name="description" content="">
+  <meta name="author" content="">
 
-    <title>Manual</title>
+  <title>Manual</title>
 
-    <!-- Bootstrap Core CSS -->
-    <link href="./css/bootstrap.min.css" rel="stylesheet">
+  <!-- Bootstrap Core CSS -->
+  <link href="./css/bootstrap.min.css" rel="stylesheet">
 
-    <!-- Custom CSS -->
-    <link href="./css/simple-sidebar.css" rel="stylesheet">
+  <!-- Custom CSS -->
+  <link href="./css/simple-sidebar.css" rel="stylesheet">
 
-    <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
-    <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
-    <!--[if lt IE 9]>
-        <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
-        <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
-    <![endif]-->
+  <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
+  <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+  <!--[if lt IE 9]>
+  <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+  <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
+  <![endif]-->
 
 </head>
 
 <body>
 
-    <div id="wrapper">
+  <div id="wrapper">
 
-        <!-- Sidebar -->
-        <div id="sidebar-wrapper">
-            <ul class="sidebar-nav">
-                <li class="sidebar-brand">
-                    <a href="#">
-                        Manual XBGPU v1.0
-                    </a>
-                </li>
-                <li>
-                    <a href="#Overview">Overview</a>
-                </li>
-                <li>
-                    <a href="#Input">Inputs</a>
-                </li>
-                <li>
-                    <a href="#">Outputs</a>
-                </li>
-                <li>
-                    <a href="#">--</a>
-                </li>
-                <li>
-                    <a href="#">--</a>
-                </li>
-                <li>
-                    <a href="#">--</a>
-                </li>
-                <li>
-                    <a href="#">--</a>
-                </li>
-            </ul>
+    <!-- Sidebar -->
+    <div id="sidebar-wrapper">
+      <ul class="sidebar-nav">
+        <li class="sidebar-brand">
+          <p>
+            Manual XBGPU v1.0
+          </p>
+        </li>
+        <li>
+          <a href="#Overview">Overview</a>
+        </li>
+        <li>
+          <a href="#Input">Inputs</a>
+        </li>
+        <li>
+          <a href="#Output">Outputs</a>
+        </li>
+        <li>
+          <a href="#">--</a>
+        </li>
+        <li>
+          <a href="#">--</a>
+        </li>
+        <li>
+          <a href="#">--</a>
+        </li>
+        <li>
+          <a href="#">--</a>
+        </li>
+      </ul>
+    </div>
+    <!-- /#sidebar-wrapper -->
+
+    <!-- Page Content -->
+    <div id="page-content-wrapper">
+      <div class="container-fluid">
+        <div class="row">
+          <div class="col-lg-12">
+            <a name="Overview"></a>
+            <a href="#menu-toggle" class="btn btn-default" id="menu-toggle">Toggle Menu</a>
+            <h1>Overview</h1>
+            <p>XBeach_GPU is a lightweight version of the XBeack model that uses the Graphical Processing Unit (GPU) of computers to perform the calculations. XBeach_GPU is not as flexible or precise as the original XBeach but it can perform the calculation much quicker.</p>
+            <p></p>
+
+          </div>
         </div>
-        <!-- /#sidebar-wrapper -->
+      </div>
+      <div class="container-fluid">
+        <div class="row">
+          <div class="col-lg-12">
 
-        <!-- Page Content -->
-        <div id="page-content-wrapper">
-            <div class="container-fluid">
-                <div class="row">
-                    <div class="col-lg-12">
-                      <a name="Overview"></a>
-                        <h1>Overview</h1>
-                        <p>XBeach_GPU is a lightweight version of the XBeack model that uses the Graphical Processing Unit (GPU) of computers to perform the calculations. XBeach_GPU is not as flexible or precise as the original XBeach but it can perform the calculation much quicker.</p>
-                        <p></p>
-                        <a href="#menu-toggle" class="btn btn-default" id="menu-toggle">Toggle Menu</a>
-                    </div>
-                </div>
-            </div>
-            <div class="container-fluid">
-                <div class="row">
-                    <div class="col-lg-12">
-                      <a name="Input"></a>
-                        <h1>Input</h1>
-                        <p>This template has a responsive menu toggling system. The menu will appear collapsed on smaller screens, and will appear non-collapsed on larger screens. When toggled using the button below, the menu will appear/disappear. On small screens, the page content will be pushed off canvas.</p>
-                        <p>Make sure to keep all page content within the <code>#page-content-wrapper</code>.</p>
+            <a name="Input"></a>
+            <h1>Input</h1>
+            <p>This template has a responsive menu toggling system. The menu will appear collapsed on smaller screens, and will appear non-collapsed on larger screens. When toggled using the button below, the menu will appear/disappear. On small screens, the page content will be pushed off canvas.</p>
+            <p>Make sure to keep all page content within the <code>#page-content-wrapper</code>.</p>
 
-                        <h2>Param file</h2>
-                        <p>Just like with Xbeach the model parameters are controled with an input file that is necessary to run the model. To differenciate with XBeach, in XBGPU the file is called <code>XBGPU_param.txt</code></p>
-                        <p>Again the file structure is similar to XBeach so that it would be easy to switch from one to the other. However the 2 models are quite different and despite our effort you shouldn't expect that a given option or default values in one model is the same in the other. Model parameters can be modified in the file by specifiying the parameter name, the equal sign, the desired value for the parameter and optionally a semi-column <code>;</code> </p>
-                        <pre><code>
+            <h2>Param file</h2>
+            <p>Just like with Xbeach the model parameters are controled with an input file that is necessary to run the model. To differenciate with XBeach, in XBGPU the file is called <code>XBGPU_param.txt</code></p>
+            <p>Again the file structure is similar to XBeach so that it would be easy to switch from one to the other. However the 2 models are quite different and despite our effort you shouldn't expect that a given option or default values in one model is the same in the other. Model parameters can be modified in the file by specifiying the parameter name, the equal sign, the desired value for the parameter and optionally a semi-column <code>;</code> </p>
+            <pre><code>
 #My Dummy XBGPU param files
 #Any lines starting with the Hash tag will be ignored
 
@@ -97,7 +99,7 @@
 # Remenber that you can only put one parameter per line
 gamma = 0.4
 #any number of leading space or space between the parameter name and the equal sign will be accepted. Tabs are not acceptable
-   beta       =      0.15
+         beta       =      0.15
 #Obviously you have to put the right name down otherwise the line will be ignored
 bbeettaa = 0.22
 
@@ -106,90 +108,298 @@ n = 9; Was 10 before
 
 #XBGPU has only one required parameter and that is teh bathymetry grid name
 
-                        </code></pre>
-                        <h2>Bathymetry</h2>
-                        <h2>Offshore wave boundary</h2>
-                        <p>There are 4 options to specify a boundary condition to XBGPU. The boundary type is specified in the XBGPU_param file as : <code>wavebndtype = 1</code> the boundary condition require one files, <code>wavebndfile = Mywavebndfile.txt</code> </p>
-                        <table class="table table-striped">
-    <thead>
-      <tr>
-        <th>wavebndtype</th>
-        <th>Description</th>
+            </code></pre>
+            <h2>Bathymetry</h2>
+            <p>3 types of bathymetry files are recognize by XBGPU. </p>
+            <ol>
+              <li><p><strong>XBeach style bathymetry file</strong> <code>*.dep or *.bot</code>. This type of file require the user to explicitely define nx, ny, dx, dy (dy=dx for now) and grdalpha (grid rotation of the y axis from the North same as XBeach alfa) in the XBGPU_Param.txt. Please also note that nx in XBGPU is the number of elements in x (same for y) as oposed to XBeach where its is 1 less thand the number of elements. </p></li>
+              <li><p><strong>Mid Depth file </strong><code>*.md</code>. Essentially similar to the XBeach format but with a header. The content of the header will override any specified nx,ny,dx,dy,grdalpha specified in the XBGPU_param.txt</p></li>
+              <li><p><strong>Netcdf file</strong> containing the variables x y and z</p></li>
+            </ol>
+            <p>Bathymetry needs to be set using the oceanographic convention as positive down.</p>
+            <h2>Offshore wave boundary</h2>
+            <p>There are 4 options to specify wave boundary condition to XBGPU. The boundary type is specified in the XBGPU_param file as : <code>wavebndtype = 1</code> the boundary condition require one files, <code>wavebndfile = Mywavebndfile.txt</code> </p>
+            <table class="table table-striped">
+              <thead>
+                <tr>
+                  <th>wavebndtype</th>
+                  <th>Description</th>
 
-      </tr>
-    </thead>
-    <tbody>
-      <tr>
-        <td>1</td>
-        <td>Constant wave boundary (no wave group)</td>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>1</td>
+                  <td>Constant wave boundary (no wave group)</td>
 
-      </tr>
-      <tr>
-        <td>2</td>
-        <td>Reuse XBeach boundary files, this requires several specific input file</td>
+                </tr>
+                <tr>
+                  <td>2</td>
+                  <td>Reuse XBeach boundary files, this requires several specific input file</td>
 
-      </tr>
-      <tr>
-        <td>3</td>
-        <td>Reuse XBeach_GPU boundary. Similar to XBeach but in netcdf format and all self explanatory</td>
+                </tr>
+                <tr>
+                  <td>3</td>
+                  <td>Reuse XBGPU boundary. Similar to XBeach but in netcdf format and all self explanatory</td>
 
-      </tr>
-      <tr >
-        <td>4</td>
-        <td>Generate wave group for JONSWAP parameters</td>
+                </tr>
+                <tr >
+                  <td>4</td>
+                  <td>Generate wave group for JONSWAP parameters</td>
 
-      </tr>
-      <tr class="danger">
-        <td>5</td>
-        <td>Generate wave group from an input spectrum. (Not yet implemented)</td>
+                </tr>
+                <tr class="danger">
+                  <td>5</td>
+                  <td>Generate wave group from an input spectrum. (Not yet implemented)</td>
 
-      </tr>
-    </tbody>
-  </table>
-  <h3>Constant wave input <code>wavebndtype = 1;</code></h3>
-                        <h2>Offshore water level</h2>
-                        <p>Offshore water level is uniform along the boundary. The water level boundary file contains a time series of water level in two column. The first column is time in seconds and the second column is water level in meter above the bathymetry datum. The time series can be tab delimited, space delimited or comma delimited. Simply make sure it is consistent. The time vector needs to be monotonically increasing but the time step can be variable (but >0.0). See the example below.</p>
-                        <pre><code>
+                </tr>
+              </tbody>
+            </table>
+            <h3>Constant wave input <code>wavebndtype = 1;</code></h3>
+            <p> The wave boundary file must contain a timeseries of Wave height and peak period, peak direction and directional spread as presented below:</p>
+            <pre><code>
+# Constant wave input example
+0.0,1.0,15.0,255.0,100.0
+100.0,1.2,14.33,220.0,100.0
+3600.0,1.0,12.78,200.0,100.0
+
+            </code></pre>
+            <p>The model then calculate the wave energy and representative wave period at the boundary as linearly varying between timeseries line</p>
+            <h3>Reuse XBeach boundary files <code>wavebndtype = 2;</code></h3>
+            <p>You can also use wave boundary condition previously generated by XBeach. In this particular case you need to specify in the wavebndfile:</p>
+            <ul>
+              <li>
+                <p>Header speciying: thetamin, thetamax, dtheta, dtbc, rtlength</p>
+              </li>
+              <li>
+                <p>a time serie with each line containing : time, Trep, qfile, Efile</p>
+              </li>
+            </ul>
+            <pre><code>
+-60.0,60.0,10.0,0.5,3600.0
+0.0,12.452,q_reuse.bcf,ee_reuse.bcf
+3600.0,12.452,q_reuse.bcf,ee_reuse.bcf
+
+            </code></pre>
+            <h3>Reuse XBGPU boundary file <code>wavebndtype = 3;</code></h3>
+            <p>When a boundary is generated for say a JONSWAP spectra, XBGPU saves a netcdf file <code>XBGPU_bnd_reuse.nc</code>. This file contains all the information necessary to reuse this file as boundary condition. simply put teh file name as your wavebndfile: <code> wavebndfile = XBGPU_bnd_reuse.nc</code> </p>
+            <p>When a timeseries of JONSWAP spectra has been used as an input. each Wave group timeseries and long bond wave will be save in the reuse netcdf file.</p>
+            <h3>Generate wave group for JONSWAP parameters <code>wavebndtype = 4;</code></h3>
+            <p>Wave group and long bound waves can be generated with XBGPU using the same algorithm as XBeach. To generate the conditions the user need to specify 1 or more JONSWAP spectra in the wavebndfile. The file needs to contain a timeseries of : time, HS, Tp, Dp, s (spread), gamma (usually 3.3)</p>
+            <pre><code>
+# JONSWAP wave input example
+0.0,1.0,15.0,255.0,100.0,3.3
+100.0,1.2,14.33,240.0,200.0,3.3
+3600.0,1.0,12.78,200.0,400.0,3.3
+
+            </code></pre>
+            <h2>Offshore water level</h2>
+            <p>Offshore water level is uniform along the boundary. The water level boundary file contains a time series of water level in two column. The first column is time in seconds and the second column is water level in meter above the bathymetry datum. The time series can be tab delimited, space delimited or comma delimited. Simply make sure it is consistent. The time vector needs to be monotonically increasing but the time step can be variable (but >0.0). See the example below.</p>
+            <pre><code>
 # Offshore water level boundary example
 0.0,1.0
 100.0,1.2
 3600.0,1.0
 
-                        </code></pre>
-                        <p>If no sea level files are specified teh water level will be set to 0.0 throughout the duration of the model.</p>
-                        <h2>Wind boundary</h2>
-                        <p>Wind is applied uniformly accross the grid. By default no wind is applied but the user can specify a file wich contains a time series fo time (s) speed (m/s) and direction(degree true North). The wind direction is automatically corrected to the angle of the grid. The time series can be tab delimited, space delimited or comma delimited. Simply make sure it is consistent. The time vector needs to be monotonically increasing but the time step can be variable (but >0.0). See the example below.</p>
-                        <pre><code>
+            </code></pre>
+            <p>If no sea level files are specified teh water level will be set to 0.0 throughout the duration of the model.</p>
+            <h2>Wind boundary</h2>
+            <p>Wind is applied uniformly accross the grid. By default no wind is applied but the user can specify a file wich contains a time series fo time (s) speed (m/s) and direction(degree true North). The wind direction is automatically corrected to the angle of the grid. The time series can be tab delimited, space delimited or comma delimited. Simply make sure it is consistent. The time vector needs to be monotonically increasing but the time step can be variable (but >0.0). See the example below.</p>
+            <pre><code>
 # Wind boundary example
 0.0,5.0,250.0
 150.0,12.0,252.0
 4000.0,5.0,340.0
 
-                        </code></pre>
-                        <h2>Side boundaries</h2>
-                      <p>In XBGPU the side boundaries are automatically fixed as Neumann on the v velocity only. This means that you have to have the first rows identical to the second and the last row identical to the second to last. To avoid instabilities at the boundary it is safe to have multiple identical rows at each boundare sthat smoothly transitionned to the real bathymetry.</p>
-                    </div>
-                </div>
-            </div>
+            </code></pre>
+            <h2>Side boundaries</h2>
+            <p>In XBGPU the side boundaries are automatically fixed as Neumann on the v velocity only. This means that you have to have the first rows identical to the second and the last row identical to the second to last. To avoid instabilities at the boundary it is safe to have multiple identical rows at each boundare sthat smoothly transitionned to the real bathymetry.</p>
+          </div>
         </div>
-        <!-- /#page-content-wrapper -->
+      </div>
+      <div class="container-fluid">
+        <div class="row">
+          <div class="col-lg-12">
+            <a name="Output"></a>
 
+            <h1>Output</h1>
+            <p>XBGPU is capable of producing 4 types of outputs:</p>
+            <ul>
+              <li><strong>Log file</strong> is systematically created as soon as you start the software. The log file contains information generated when the model is setup and as teh model runs. It is teh first place to look if the model terminate unexpectidely</li>
+              <li><strong>Gridded variable </strong> extrated at selected setps and stored in a netcdf variable (see below)</li>
+              <li><strong>Variable timeseries</strong> from selected point(s) output extracted at every model step and stored in a txt file (see below)</li>
+              <li><strong>Reusable boundary in Netcdf format</strong> When generating a wave goups and long bound waves from a JONSWAP spectra or an given spectra. XBGPU porduces a Netcdf output containin all the information necessary to rerun the model using the same wave group. This is usefull when the wave group take a long time to generate.</li>
+            </ul>
+            <h2>Gridded variables</h2>
+            <p>gridded variables can be extracted from the model at regular time interval.</p>
+            <ul>
+              <li><code>outputtimestep = 3600.000000;</code> controls the interval between output of the gridded variables. </li>
+              <li><code>outfile = XBGPU_output.nc;</code> controls the name of the Netcdf file that will contain the gridded variables. The file cannot be overwritten by XBGPU so data is appended to the file if it already exits. </li>
+              <li><code>outvars = H,uu,vv,zs,zb</code> controls which gridded variable will be saved (See below). </li>
+            </ul>
+            <h3>Output Variables list</h3>
+            <ul>
+            <li><p><strong> zb</strong>: Bathymetry, [m] positive down</p></li>
+
+          	<li><p><strong> uu</strong>:</p></li>
+
+          	<li><p><strong> vv</strong>:</p></li>
+
+          	<li><p><strong> zs</strong>:</p></li>
+
+          	<li><p><strong> hh</strong>:</p></li>
+
+          	<li><p><strong> H</strong>:</p></li>
+
+          	<li><p><strong> thetamean</strong>:</p></li>
+
+          	<li><p><strong> ee</strong>:</p></li>
+
+          	<li><p><strong> rr</strong>:</p></li>
+
+
+          	<li><p><strong> cfm</strong>:</p></li>
+
+          	<li><p><strong> dzb</strong>:</p></li>
+
+          	<li><p><strong> stdep</strong>:</p></li>
+
+          	<li><p><strong> Fx</strong>:</p></li>
+
+          	<li><p><strong> Fy</strong>:</p></li>
+
+          	<li><p><strong> cgx</strong>:</p></li>
+
+          	<li><p><strong> cgy</strong>:</p></li>
+
+          	<li><p><strong> cx</strong>:</p></li>
+
+          	<li><p><strong> cy</strong>:</p></li>
+
+          	<li><p><strong> ctheta</strong>:</p></li>
+
+
+          	<li><p><strong> D</strong>:</p></li>
+
+          	<li><p><strong> E</strong>:</p></li>
+
+
+          	<li><p><strong> urms</strong>:</p></li>
+
+          	<li><p><strong> ueu</strong>:</p></li>
+
+          	<li><p><strong> vev</strong>:</p></li>
+
+
+          	<li><p><strong> hhmean</strong>:</p></li>
+
+          	<li><p><strong> uumean</strong>:</p></li>
+
+          	<li><p><strong> vvmean</strong>:</p></li>
+
+          	<li><p><strong> zsmean</strong>:</p></li>
+
+          	<li><p><strong> zsmax</strong>:</p></li>
+
+          	<li><p><strong> Hmean</strong>:</p></li>
+
+          	<li><p><strong> Cmean</strong>:</p></li>
+
+          	<li><p><strong> sigm</strong>:</p></li>
+
+          	<li><p><strong> k</strong>:</p></li>
+
+          	<li><p><strong> c</strong>:</p></li>
+
+          	<li><p><strong> kh</strong>:</p></li>
+
+          	<li><p><strong> cg</strong>:</p></li>
+
+          	<li><p><strong> sinh2kh</strong>:</p></li>
+
+          	<li><p><strong> dhdx</strong>:</p></li>
+
+          	<li><p><strong> dhdy</strong>:</p></li>
+
+          	<li><p><strong> dudx</strong>:</p></li>
+
+          	<li><p><strong> dudy</strong>:</p></li>
+
+          	<li><p><strong> dvdx</strong>:</p></li>
+
+          	<li><p><strong> dvdy</strong>:</p></li>
+
+          	<li><p><strong> C</strong>:</p></li>
+
+          	<li><p><strong> R</strong>:</p></li>
+
+          	<li><p><strong> DR</strong>:</p></li>
+
+          	<li><p><strong> wci</strong>:</p></li>
+
+          	<li><p><strong> vmageu</strong>:</p></li>
+
+          	<li><p><strong> vmagev</strong>:</p></li>
+
+          	<li><p><strong> dzsdx</strong>:</p></li>
+
+          	<li><p><strong> dzsdy</strong>:</p></li>
+
+          	<li><p><strong> dzsdt</strong>:</p></li>
+
+          	<li><p><strong> fwm</strong>:</p></li>
+
+          	<li><p><strong> hu</strong>:</p></li>
+
+          	<li><p><strong> hv</strong>:</p></li>
+
+          	<li><p><strong> hum</strong>:</p></li>
+
+          	<li><p><strong> hvm</strong>:</p></li>
+
+          	<li><p><strong> uv</strong>:</p></li>
+
+          	 <li><p><strong> vu</strong>:</p></li>
+
+
+          	<li><p><strong> ududx</strong>:</p></li>
+          	<li><p><strong> vdvdy</strong>:</p></li>
+
+          	<li><p><strong> udvdx</strong>:</p></li>
+
+          	<li><p><strong> vdudy</strong>:</p></li>
+
+          	<li><p><strong> ust</strong>:</p></li>
+
+          	<li><p><strong> kturb</strong>:</p></li>
+
+          	<li><p><strong> rolthick</strong>:</p></li>
+
+          	<li><p><strong> ceqsg</strong>:</p></li>
+
+
+          </div>
+        </div>
+      </div>
     </div>
-    <!-- /#wrapper -->
+    <!-- /#page-content-wrapper -->
 
-    <!-- jQuery -->
-    <script src="js/jquery.js"></script>
+  </div>
+  <!-- /#wrapper -->
 
-    <!-- Bootstrap Core JavaScript -->
-    <script src="js/bootstrap.min.js"></script>
+  <!-- jQuery -->
+  <script src="js/jquery.js"></script>
 
-    <!-- Menu Toggle Script -->
-    <script>
-    $("#menu-toggle").click(function(e) {
-        e.preventDefault();
-        $("#wrapper").toggleClass("toggled");
-    });
-    </script>
+  <!-- Bootstrap Core JavaScript -->
+  <script src="js/bootstrap.min.js"></script>
+
+  <!-- Menu Toggle Script -->
+  <script>
+  $("#menu-toggle").click(function(e) {
+    e.preventDefault();
+    $("#wrapper").toggleClass("toggled");
+  });
+  </script>
 
 </body>
 
