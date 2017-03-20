@@ -368,8 +368,8 @@ std::vector<WindBnd> readWNDfile(std::string WNDfilename, double grdalpha)
 			{
 				// Giving up now! Could not read the files
 				//issue a warning and exit
-				std::cerr << WNDfilename << "ERROR Wind bnd file format error. only " << lineelements.size() << " where 2 were expected. Exiting." << std::endl;
-				write_text_to_log_file("ERROR:  Wind bnd file (" + WNDfilename + ") format error. only " + std::to_string(lineelements.size()) + " where 2 were expected. Exiting.");
+				std::cerr << WNDfilename << "ERROR Wind bnd file format error. only " << lineelements.size() << " where 3 were expected. Exiting." << std::endl;
+				write_text_to_log_file("ERROR:  Wind bnd file (" + WNDfilename + ") format error. only " + std::to_string(lineelements.size()) + " where 3 were expected. Exiting.");
 				write_text_to_log_file(line);
 				exit(1);
 			}
@@ -435,7 +435,20 @@ std::vector<Wavebndparam> ReadCstBnd(XBGPUParam XParam)
 				lineelements.clear();
 				lineelements = split(line, ' ');
 			}
-
+			if (lineelements.size() < 5) // If we cant find all the elements it must be comma delimited
+			{
+				lineelements.clear();
+				lineelements = split(line, ',');
+			}
+			if (lineelements.size() < 5) // No? I give up
+			{
+				// Giving up now! Could not read the files
+				//issue a warning and exit
+				std::cerr << XParam.wavebndfile << "ERROR Wave bnd file format error. only " << lineelements.size() << " where 5 were expected. Exiting." << std::endl;
+				write_text_to_log_file("ERROR:  Wind bnd file (" + XParam.wavebndfile + ") format error. only " + std::to_string(lineelements.size()) + " where 5 were expected. Exiting.");
+				write_text_to_log_file(line);
+				exit(1);
+			}
 			waveline.time = std::stod(lineelements[0]);
 			waveline.Hs = std::stod(lineelements[1]);
 			waveline.Tp = std::stod(lineelements[2]);
@@ -474,14 +487,27 @@ std::vector<Wavebndparam> ReadJSWPBnd(XBGPUParam XParam)
 		if (!line.empty())
 		{
 			//Data should be in teh format :
-			//BASIN,CY,YYYYMMDDHH,TECHNUM/MIN,TECH,TAU,LatN/S,LonE/W,VMAX,MSLP,TY,RAD,WINDCODE,RAD1,RAD2,RAD3,RAD4,RADP,RRP,MRD,GUSTS,EYE,SUBREGION,MAXSEAS,INITIALS,DIR,SPEED,STORMNAME,DEPTH,SEAS,SEASCODE,SEAS1,SEAS2,SEAS3,SEAS4,USERDEFINED,userdata
-
+			
 			//by default we expect tab delimitation
 			lineelements = split(line, '\t');
 			if (lineelements.size() < 6) // If we cant find all the elements it must be space delimited
 			{
 				lineelements.clear();
 				lineelements = split(line, ' ');
+			}
+			if (lineelements.size() < 6) // If we cant find all the elements it must be space delimited
+			{
+				lineelements.clear();
+				lineelements = split(line, ',');
+			}
+			if (lineelements.size() < 6) // Give up
+			{
+				// Giving up now! Could not read the files
+				//issue a warning and exit
+				std::cerr << XParam.wavebndfile << "ERROR Wave bnd file format error. only " << lineelements.size() << " where 6 were expected. Exiting." << std::endl;
+				write_text_to_log_file("ERROR:  Wind bnd file (" + XParam.wavebndfile + ") format error. only " + std::to_string(lineelements.size()) + " where 6 were expected. Exiting.");
+				write_text_to_log_file(line);
+				exit(1);
 			}
 
 			waveline.time = std::stod(lineelements[0]);
