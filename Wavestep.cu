@@ -544,8 +544,11 @@ void wavebnd(XBGPUParam Param, std::vector<Wavebndparam> wavebndvec)
 	if (Param.wavebndtype >= 2)
 	{
 		nwbndstep = min(floor((totaltime - wavebndvec[WAVstepinbnd - 1].time) / Param.dtbc),ceil(Param.rtlength/Param.dtbc)-1);
+		//nwbndstep = nwbndstep + 1;// trying to solve discrepency between XB and XBGPU bnd
 		timenext = Param.dtbc;
 		timesincelast = totaltime - (nwbndstep*Param.dtbc + wavebndvec[WAVstepinbnd - 1].time);
+
+		//nwbndstep = nwbndstep + 1;//trying to solve discrepency between XB and XBGPU bnd
 	}
 
 
