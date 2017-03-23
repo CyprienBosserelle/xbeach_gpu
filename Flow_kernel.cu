@@ -127,7 +127,7 @@ __global__ void ubnd(int nx, int ny, DECNUM dx, DECNUM dt, DECNUM g, DECNUM rho,
 
 
 			//
-			uu[i] = (order - 1.0f)*ui + ur + uumean;//2.0f*ui-(sqrtf(g/(zs[i]+zb[i]))*(zs[i]-zsbnd));;//
+			uu[i] = uumean;//(order - 1.0f)*ui + ur + uumean;//2.0f*ui-(sqrtf(g/(zs[i]+zb[i]))*(zs[i]-zsbnd));;//
 			zs[i] = 1.5f*((bnp1 - uu[i])*(bnp1 - uu[i]) / (4.0f*g) - 0.5f*(zb[i] + zb[xplus + iy*nx])) - 0.5f*((betar - uu[xplus + iy*nx])*(betar - uu[xplus + iy*nx]) / (4.0f*g) - 0.5f*(zb[xplus + iy*nx] + zb[xplus2 + iy*nx]));
 			////
 			//zsbnd+qx/(dx*dx)*dt;//
@@ -144,7 +144,7 @@ __global__ void ubnd(int nx, int ny, DECNUM dx, DECNUM dt, DECNUM g, DECNUM rho,
 
 
 }
-__global__ void ubnd1D(int nx, int ny, DECNUM dx, DECNUM dt, DECNUM g, DECNUM rho, DECNUM totaltime, DECNUM wavbndtime, DECNUM rt, DECNUM zsbnd, DECNUM Trep, DECNUM * qbndold, DECNUM * qbndnew, DECNUM *zs, DECNUM * uu, DECNUM * vv, DECNUM *vu, DECNUM * umean, DECNUM * vmean, DECNUM * zb, DECNUM * cg, DECNUM * hum, DECNUM * zo, DECNUM *Fx, DECNUM *hh)
+__global__ void ubnd1D(int nx, int ny, DECNUM dx, DECNUM dt, DECNUM g, DECNUM rho, DECNUM totaltime, DECNUM time, DECNUM timenext, DECNUM zsbnd, DECNUM Trep, DECNUM * qbndold, DECNUM * qbndnew, DECNUM *zs, DECNUM * uu, DECNUM * vv, DECNUM *vu, DECNUM * umean, DECNUM * vmean, DECNUM * zb, DECNUM * cg, DECNUM * hum, DECNUM * zo, DECNUM *Fx, DECNUM *hh)
 {
 	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
 	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
@@ -171,9 +171,9 @@ __global__ void ubnd1D(int nx, int ny, DECNUM dx, DECNUM dt, DECNUM g, DECNUM rh
 		DECNUM taper = min(totaltime / 100.0f, 1.0f);
 		DECNUM zsplus = zs[xplus + iy*nx];
 		
-
-		qx = (qbndold[iy] + (totaltime - wavbndtime + rt)*(qbndnew[iy] - qbndold[iy]) / rt)*taper;
-		qy = (qbndold[iy + ny] + (totaltime - wavbndtime + rt)*(qbndnew[iy + ny] - qbndold[iy + ny]) / rt)*taper;
+		//prev + (time) / (timenext)*(next - prev);
+		qx = (qbndold[iy] + time/ timenext*(qbndnew[iy] - qbndold[iy]) )*taper;
+		qy = (qbndold[iy + ny] + time / timenext*(qbndnew[iy + ny] - qbndold[iy + ny]) )*taper;
 
 			//zsbnd = zsbndold + (totaltime - rtsl)*(zsbndnew - zsbndold) / (slbndtime - rtsl);
 
@@ -188,7 +188,7 @@ __global__ void ubnd1D(int nx, int ny, DECNUM dx, DECNUM dt, DECNUM g, DECNUM rh
 
 			
 
-
+			//Tidetype=velocity
 			uumean = factime*uu[i] + umean[iy] * (1 - factime);
 			//vvmean = factime*vvmm + vmean[iy] * (1 - factime);
 			umean[iy] = uumean;
@@ -196,14 +196,16 @@ __global__ void ubnd1D(int nx, int ny, DECNUM dx, DECNUM dt, DECNUM g, DECNUM rh
 
 
 
-			//
-			uu[i] = (2.0f)*ui +ur + uumean;//2.0f*ui-(sqrtf(g/(zs[i]+zb[i]))*(zs[i]-zsbnd));;//
+			// Freewave==1
+			uu[i] =  (2.0f)*ui + ur + uumean;//2.0f*ui-(sqrtf(g/(zs[i]+zb[i]))*(zs[i]-zsbnd));;//
 			//zs[i] = 1.5f*((bnp1 - uu[i])*(bnp1 - uu[i]) / (4.0f*g) - 0.5f*(zb[i] + zb[xplus + iy*nx])) - 0.5f*((betar - uu[xplus + iy*nx])*(betar - uu[xplus + iy*nx]) / (4.0f*g) - 0.5f*(zb[xplus + iy*nx] + zb[xplus2 + iy*nx]));
 			////
 			//zsbnd+qx/(dx*dx)*dt;//
 			zs[i] =  zsplus;
 			//hh[i] = zsplus + zb[i];
+			
 			vv[i] = vv[xplus + iy*nx];
+						
 		
 
 
@@ -1221,7 +1223,29 @@ __global__ void eulervstep(int nx, int ny, DECNUM dx, DECNUM dt, DECNUM g, DECNU
 	}
 }
 
+__global__ void flowsecO_advUV(int nx, int ny, DECNUM *uuold, DECNUM *vvold, DECNUM *uu, DECNUM *vv)
+{
+	float mindepth;
+	
+	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
+	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
+	unsigned int i = ix + iy*nx;
 
+	unsigned int tx = threadIdx.x;
+	unsigned int ty = threadIdx.y;
+
+
+	if (ix < nx && iy < ny)
+	{
+		unsigned int xminus = mminus(ix, nx);
+		unsigned int xplus = pplus(ix, nx);
+		unsigned int xminus2 = mminus2(ix, nx);
+		unsigned int xplus2 = pplus2(ix, nx);
+		
+		//
+		mindepth = 0.0;//
+	}
+}
 
 
 __global__ void continuity(int nx, int ny, DECNUM dx, DECNUM dt, DECNUM eps, DECNUM * uu, DECNUM* hu, DECNUM* vv, DECNUM* hv, DECNUM* zs, DECNUM *hh, DECNUM *zb, DECNUM * dzsdt)
@@ -1408,6 +1432,7 @@ __global__ void uuvvzslatbnd(int nx, int ny, DECNUM * uu, DECNUM * vv, DECNUM *z
 
 	__shared__ DECNUM vvr[16][16];
 	__shared__ DECNUM vvb[16][16];
+	__shared__ DECNUM vvb2[16][16];
 	__shared__ DECNUM vvt[16][16];
 	__shared__ DECNUM uut[16][16];
 	__shared__ DECNUM uub[16][16];
@@ -1421,6 +1446,7 @@ __global__ void uuvvzslatbnd(int nx, int ny, DECNUM * uu, DECNUM * vv, DECNUM *z
 		unsigned int xminus = mminus(ix, nx);
 		unsigned int xplus = pplus(ix, nx);
 		unsigned int yminus = mminus(iy, ny);
+		unsigned int yminus2 = mminus2(iy, ny);
 		unsigned int yplus = pplus(iy, ny);
 
 
@@ -1429,6 +1455,7 @@ __global__ void uuvvzslatbnd(int nx, int ny, DECNUM * uu, DECNUM * vv, DECNUM *z
 		vvr[tx][ty] = vv[xplus + iy*nx];
 		vvt[tx][ty] = vv[ix + yplus*nx];
 		vvb[tx][ty] = vv[ix + yminus*nx];
+		vvb2[tx][ty] = vv[ix + yminus2*nx];
 		zst[tx][ty] = zs[ix + yplus*nx];
 		zsb[tx][ty] = zs[ix + yminus*nx];
 		zsl[tx][ty] = zs[xminus + iy*nx];
@@ -1443,14 +1470,14 @@ __global__ void uuvvzslatbnd(int nx, int ny, DECNUM * uu, DECNUM * vv, DECNUM *z
 		if (iy == ny - 1)
 		{
 			uu[i] = uub[tx][ty];
-			vv[i] = vvb[tx][ty];// THis is to follow XBeach definition although I don't really agree with it
+			vv[i] = vvb[tx][ty];
 			zs[i] = zsb[tx][ty];
 		}
-		//		if (iy==ny-2)
-		//		{
-		//			vv[i]=vvb[tx][ty];// THis is to follow XBeach definition although I don't really agree with it 
-		//							  // It should be that vv(i,ny-1)=vv(i,ny-2) end of story
-		//		}
+		if (iy==ny-2)
+		{
+			//vv[i]=vvb[tx][ty];// THis is to follow XBeach definition although I don't really agree with it 
+							  // It should be that vv(i,ny-1)=vv(i,ny-2) end of story
+		}
 		if (ix == 0)
 		{
 			//vv[i]=vvr[tx][ty];//Imcompatible with abs_2d front boundary 

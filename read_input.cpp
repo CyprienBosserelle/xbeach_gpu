@@ -21,13 +21,133 @@
 using DECNUM = float;
 
 
-extern "C" void readXbbndhead(const char * wavebnd, DECNUM &thetamin, DECNUM &thetamax, DECNUM &dtheta, DECNUM &dtwavbnd, int &nwavbnd, int &nwavfile)
+
+XBGPUParam readXbbndhead(XBGPUParam Param)
 {
-	FILE * fwav;
-	fwav = fopen(wavebnd, "r");
-	fscanf(fwav, "%f\t%f\t%f\t%f\t%d\t%d", &thetamin, &thetamax, &dtheta, &dtwavbnd, &nwavbnd, &nwavfile);
-	fclose(fwav);
+	std::ifstream fs(Param.wavebndfile);
+
+	if (fs.fail()){
+		std::cerr << Param.wavebndfile << " XBeach Reuse input bnd file could not be opened" << std::endl;
+		write_text_to_log_file("ERROR: XBeach Reuse input bnd file could not be opened ");
+		exit(1);
+	}
+
+	std::string line;
+	std::vector<std::string> lineelements;
+	
+	std::getline(fs, line);
+	//by default we expect tab delimitation
+	lineelements = split(line, '\t');
+	if (lineelements.size() < 5) // Expecting 5 parameters
+	{
+		// Maybe it is space delimited
+		lineelements.clear();
+		lineelements = split(line, ' ');
+	}
+	if (lineelements.size() < 5) // Expecting 5 parameters
+	{
+		// Maybe it is comma delimited
+		lineelements.clear();
+		lineelements = split(line, ',');
+	}
+
+	if (lineelements.size() < 5)
+	{
+		// Giving up now! Could not read the files
+		//issue a warning and exit
+		std::cerr << Param.wavebndfile << "ERROR Wave bnd file, header format error. only " << lineelements.size() << " where 5 were expected. Exiting." << std::endl;
+		write_text_to_log_file("ERROR:  Wave bnd file (" + Param.wavebndfile + "), header format error. only " + std::to_string(lineelements.size()) + " field found where 5 were expected. Exiting.");
+		write_text_to_log_file(line);
+		exit(1);
+	}
+
+
+	
+	Param.thetamin = std::stod(lineelements[0])*pi / 180.0;
+	Param.thetamax = std::stod(lineelements[1])*pi / 180.0;
+	Param.dtheta = std::stod(lineelements[2])*pi / 180.0;
+	Param.dtbc = std::stod(lineelements[3]);
+	Param.rtlength = std::stod(lineelements[4]);
+
+	
+	//FILE * fwav;
+	//fwav = fopen(wavebnd, "r");
+	//fscanf(fwav, "%f\t%f\t%f\t%f\t%d\t%d", &thetamin, &thetamax, &dtheta, &dtwavbnd, &nwavbnd, &nwavfile);
+	//fclose(fwav);
+
+	fs.close();
+
+	return Param;
+
 }
+std::vector<Wavebndparam> readXbbndfile(XBGPUParam Param)
+{
+	std::vector<Wavebndparam> wavebndvec;
+	std::ifstream fs(Param.wavebndfile);
+
+	if (fs.fail()){
+		std::cerr << Param.wavebndfile << " XBeach Reuse input bnd file could not be opened" << std::endl;
+		write_text_to_log_file("ERROR: XBeach Reuse input bnd file could not be opened ");
+		exit(1);
+	}
+
+	std::string line;
+	std::vector<std::string> lineelements;
+	Wavebndparam wavebndline;
+	int linenumber = 0;
+	while (std::getline(fs, line))
+	{
+		if (linenumber > 0)
+		{
+			//std::cout << line << std::endl;
+
+			// skip empty lines
+			if (!line.empty())
+			{
+
+				//by default we expect tab delimitation
+				lineelements = split(line, '\t');
+				if (lineelements.size() < 4)
+				{
+					// Hum must be space delimited
+					lineelements.clear();
+					lineelements = split(line, ' ');
+				}
+				if (lineelements.size() < 4)
+				{
+					// Then must be comma delimited
+					lineelements.clear();
+					lineelements = split(line, ',');
+				}
+				if (lineelements.size() < 4)
+				{
+					// Giving up now! Could not read the files
+					//issue a warning and exit
+					std::cerr << Param.wavebndfile << "ERROR Wave bnd file format error. only " << lineelements.size() << " where 4 were expected. Exiting." << std::endl;
+					write_text_to_log_file("ERROR:  Wave bnd file (" + Param.wavebndfile + ") format error. only " + std::to_string(lineelements.size()) + " where 4 were expected. Exiting.");
+					write_text_to_log_file(line);
+					exit(1);
+				}
+				wavebndline.time = std::stod(lineelements[0]);
+				wavebndline.Trep = std::stod(lineelements[1]);
+				wavebndline.qfile = lineelements[2];
+				wavebndline.Efile = lineelements[3];
+
+				//slbndline = readBSHline(line);
+				wavebndvec.push_back(wavebndline);
+
+			}
+		}
+		linenumber++;
+	}
+	//Add a dummy line at the end to predict when the last time step will end
+	wavebndline.time = wavebndvec.back().time+Param.rtlength;
+	wavebndvec.push_back(wavebndline);
+	return wavebndvec;
+}
+
+
+
 extern "C" void readbndhead(const char * wavebnd, DECNUM &thetamin, DECNUM &thetamax, DECNUM &dtheta, DECNUM &dtwavbnd, int &nwavbnd)
 {
 	FILE * fwav;
@@ -38,36 +158,34 @@ extern "C" void readbndhead(const char * wavebnd, DECNUM &thetamin, DECNUM &thet
 	fclose(fwav);
 }
 
-extern "C" void readXbbndstep(int nx, int ny, int ntheta, const char * wavebnd, int step, DECNUM &Trep, double *&qfile, double *&Stfile)
+extern "C" void readXbbndstep(XBGPUParam Param, std::vector<Wavebndparam> wavebnd,int step, DECNUM &Trep, double *&qfile, double *&Stfile)
 {
-	FILE * fwav;
+
+	int nx, ny, ntheta;
+	nx = Param.nx;
+	ny = Param.ny;
+	ntheta = Param.ntheta;
 	FILE * fXq, *fXE;
-	char Xbqfile[256];
-	char XbEfile[256];
+	
 	double dummy;
 	size_t result;
 	DECNUM thetamin, thetamax, dtheta, dtwavbnd;
 	int nwavbnd, nwavfile;
+	nwavbnd = ceil(Param.rtlength / Param.dtbc); 
+
 
 	printf("Reading next wave bnd file... ");
 	write_text_to_log_file("Reading next bnd file... ");
 
-	fwav = fopen(wavebnd, "r");
-	fscanf(fwav, "%f\t%f\t%f\t%f\t%d\t%d", &thetamin, &thetamax, &dtheta, &dtwavbnd, &nwavbnd, &nwavfile);
-	for (int n = 0; n < step; n++)
-	{
-		fscanf(fwav, "%f\t%s\t%s\n", &Trep, &Xbqfile, &XbEfile);
-	}
-	fclose(fwav);
-
+	
 	//printf("Xbq: %s\n",Xbqfile);
 	//printf("Xbe: %s\n",XbEfile);
 
-	fXq = fopen(Xbqfile, "rb");
+	fXq = fopen(wavebnd[step].qfile.c_str(), "rb");
 	if (!fXq)
 	{
-		printf("Unable to open file %s\t", Xbqfile);
-		write_text_to_log_file("Unable to open file :"+ (std::string)Xbqfile);
+		printf("Unable to open file %s\t", wavebnd[step].qfile.c_str());
+		write_text_to_log_file("Unable to open file :" + wavebnd[step].qfile);
 		return;
 	}
 	else
@@ -84,7 +202,7 @@ extern "C" void readXbbndstep(int nx, int ny, int ntheta, const char * wavebnd, 
 	}
 
 
-	fXE = fopen(XbEfile, "rb");
+	fXE = fopen(wavebnd[step].Efile.c_str(), "rb");
 	for (int nn = 0; nn < ntheta*ny*nwavbnd; nn++)
 	{
 		fread(&dummy, sizeof(double), 1, fXE);
@@ -93,6 +211,8 @@ extern "C" void readXbbndstep(int nx, int ny, int ntheta, const char * wavebnd, 
 		Stfile[nn] = (DECNUM)dummy;
 	}
 	fclose(fXE);
+
+	Trep = wavebnd[step].Trep;
 
 	printf("done \n");
 	write_text_to_log_file("done");
@@ -165,9 +285,28 @@ std::vector<SLBnd> readWLfile(std::string WLfilename)
 			lineelements = split(line, '\t');
 			if (lineelements.size() < 2)
 			{
+				// Is it space delimited?
 				lineelements.clear();
 				lineelements = split(line, ' ');
 			}
+
+			if (lineelements.size() < 2)
+			{
+				//Well it has to be comma delimited then
+				lineelements.clear();
+				lineelements = split(line, ',');
+			}
+			if (lineelements.size() < 2)
+			{
+					// Giving up now! Could not read the files
+					//issue a warning and exit
+					std::cerr << WLfilename << "ERROR Water level bnd file format error. only " << lineelements.size() << " where 2 were expected. Exiting."  << std::endl;
+					write_text_to_log_file("ERROR:  Water level bnd file (" + WLfilename + ") format error. only " + std::to_string(lineelements.size())+ " where 2 were expected. Exiting.");
+					write_text_to_log_file(line);
+					exit(1);
+			}
+
+			
 			slbndline.time = std::stod(lineelements[0]);
 			slbndline.wlev = std::stod(lineelements[1]);
 			
@@ -212,6 +351,29 @@ std::vector<WindBnd> readWNDfile(std::string WNDfilename, double grdalpha)
 
 			//by default we expect tab delimitation
 			lineelements = split(line, '\t');
+			if (lineelements.size() < 3)
+			{
+				// Is it space delimited?
+				lineelements.clear();
+				lineelements = split(line, ' ');
+			}
+
+			if (lineelements.size() < 3)
+			{
+				//Well it has to be comma delimited then
+				lineelements.clear();
+				lineelements = split(line, ',');
+			}
+			if (lineelements.size() < 3)
+			{
+				// Giving up now! Could not read the files
+				//issue a warning and exit
+				std::cerr << WNDfilename << "ERROR Wind bnd file format error. only " << lineelements.size() << " where 3 were expected. Exiting." << std::endl;
+				write_text_to_log_file("ERROR:  Wind bnd file (" + WNDfilename + ") format error. only " + std::to_string(lineelements.size()) + " where 3 were expected. Exiting.");
+				write_text_to_log_file(line);
+				exit(1);
+			}
+
 			wndbndline.time = std::stod(lineelements[0]);
 			wndbndline.spd = std::stod(lineelements[1]);
 			wndbndline.dir = std::stod(lineelements[2]);
@@ -237,6 +399,196 @@ std::vector<WindBnd> readWNDfile(std::string WNDfilename, double grdalpha)
 	return windbnd;
 }
 
+
+
+std::vector<Wavebndparam> ReadCstBnd(XBGPUParam XParam)
+{
+	std::vector<Wavebndparam> wavebnd;
+
+
+	std::ifstream fs(XParam.wavebndfile);
+
+	if (fs.fail()){
+		std::cerr << XParam.wavebndfile << " Wave bnd file could not be opened" << std::endl;
+		write_text_to_log_file("ERROR: Wave bnd file could not be opened ");
+		exit(1);
+	}
+
+	std::string line;
+	std::vector<std::string> lineelements;
+	Wavebndparam waveline;
+
+	while (std::getline(fs, line))
+	{
+		//std::cout << line << std::endl;
+
+		// skip empty lines
+		if (!line.empty())
+		{
+			//Data should be in teh format :
+			//BASIN,CY,YYYYMMDDHH,TECHNUM/MIN,TECH,TAU,LatN/S,LonE/W,VMAX,MSLP,TY,RAD,WINDCODE,RAD1,RAD2,RAD3,RAD4,RADP,RRP,MRD,GUSTS,EYE,SUBREGION,MAXSEAS,INITIALS,DIR,SPEED,STORMNAME,DEPTH,SEAS,SEASCODE,SEAS1,SEAS2,SEAS3,SEAS4,USERDEFINED,userdata
+
+			//by default we expect tab delimitation
+			lineelements = split(line, '\t');
+			if (lineelements.size() < 5) // If we cant find all the elements it must be space delimited
+			{
+				lineelements.clear();
+				lineelements = split(line, ' ');
+			}
+			if (lineelements.size() < 5) // If we cant find all the elements it must be comma delimited
+			{
+				lineelements.clear();
+				lineelements = split(line, ',');
+			}
+			if (lineelements.size() < 5) // No? I give up
+			{
+				// Giving up now! Could not read the files
+				//issue a warning and exit
+				std::cerr << XParam.wavebndfile << "ERROR Wave bnd file format error. only " << lineelements.size() << " where 5 were expected. Exiting." << std::endl;
+				write_text_to_log_file("ERROR:  Wind bnd file (" + XParam.wavebndfile + ") format error. only " + std::to_string(lineelements.size()) + " where 5 were expected. Exiting.");
+				write_text_to_log_file(line);
+				exit(1);
+			}
+			waveline.time = std::stod(lineelements[0]);
+			waveline.Hs = std::stod(lineelements[1]);
+			waveline.Tp = std::stod(lineelements[2]);
+			// make bnd normal wave direction
+			waveline.Dp = (1.5*pi - XParam.grdalpha) - std::stod(lineelements[3])*pi / 180; // convert to rad
+			waveline.s = std::stod(lineelements[4]);
+			wavebnd.push_back(waveline);
+		}
+	}
+	fs.close();
+
+	return wavebnd;
+}
+std::vector<Wavebndparam> ReadJSWPBnd(XBGPUParam XParam)
+{
+	std::vector<Wavebndparam> wavebnd;
+
+
+	std::ifstream fs(XParam.wavebndfile);
+
+	if (fs.fail()){
+		std::cerr << XParam.wavebndfile << " Wave bnd file could not be opened" << std::endl;
+		write_text_to_log_file("ERROR: Wave bnd file could not be opened ");
+		exit(1);
+	}
+
+	std::string line;
+	std::vector<std::string> lineelements;
+	Wavebndparam waveline;
+
+	while (std::getline(fs, line))
+	{
+		//std::cout << line << std::endl;
+
+		// skip empty lines
+		if (!line.empty())
+		{
+			//Data should be in teh format :
+			
+			//by default we expect tab delimitation
+			lineelements = split(line, '\t');
+			if (lineelements.size() < 6) // If we cant find all the elements it must be space delimited
+			{
+				lineelements.clear();
+				lineelements = split(line, ' ');
+			}
+			if (lineelements.size() < 6) // If we cant find all the elements it must be space delimited
+			{
+				lineelements.clear();
+				lineelements = split(line, ',');
+			}
+			if (lineelements.size() < 6) // Give up
+			{
+				// Giving up now! Could not read the files
+				//issue a warning and exit
+				std::cerr << XParam.wavebndfile << "ERROR Wave bnd file format error. only " << lineelements.size() << " where 6 were expected. Exiting." << std::endl;
+				write_text_to_log_file("ERROR:  Wind bnd file (" + XParam.wavebndfile + ") format error. only " + std::to_string(lineelements.size()) + " where 6 were expected. Exiting.");
+				write_text_to_log_file(line);
+				exit(1);
+			}
+
+			waveline.time = std::stod(lineelements[0]);
+			waveline.Hs = std::stod(lineelements[1]);
+			waveline.Tp = std::stod(lineelements[2]);
+			// make bnd normal wave direction
+			waveline.Dp = (1.5*pi - XParam.grdalpha) - std::stod(lineelements[3])*pi / 180; // Why make it in degree?
+			waveline.s = std::stod(lineelements[4]);
+			waveline.gamma = std::stod(lineelements[5]);
+			wavebnd.push_back(waveline);
+		}
+	}
+	fs.close();
+
+	waveline.time = wavebnd.back().time + XParam.rtlength;
+	wavebnd.push_back(waveline);
+
+	return wavebnd;
+}
+
+std::vector<Wavebndparam> ReadSPECBnd(XBGPUParam XParam)
+{
+	std::vector<Wavebndparam> wavebnd;
+
+
+	std::ifstream fs(XParam.wavebndfile);
+
+	if (fs.fail()){
+		std::cerr << XParam.wavebndfile << " Wave bnd file could not be opened" << std::endl;
+		write_text_to_log_file("ERROR: Wave bnd file could not be opened ");
+		exit(1);
+	}
+
+	std::string line;
+	std::vector<std::string> lineelements;
+	Wavebndparam waveline;
+
+	while (std::getline(fs, line))
+	{
+		//std::cout << line << std::endl;
+
+		// skip empty lines
+		if (!line.empty())
+		{
+			//Data should be in teh format :
+
+			//by default we expect tab delimitation
+			lineelements = split(line, '\t');
+			if (lineelements.size() < 2) // If we cant find all the elements it must be space delimited
+			{
+				lineelements.clear();
+				lineelements = split(line, ' ');
+			}
+			if (lineelements.size() < 2) // If we cant find all the elements it must be space delimited
+			{
+				lineelements.clear();
+				lineelements = split(line, ',');
+			}
+			if (lineelements.size() < 2) // Give up
+			{
+				// Giving up now! Could not read the files
+				//issue a warning and exit
+				std::cerr << XParam.wavebndfile << "ERROR Wave bnd file format error. only " << lineelements.size() << " where 2 were expected. Exiting." << std::endl;
+				write_text_to_log_file("ERROR:  Wind bnd file (" + XParam.wavebndfile + ") format error. only " + std::to_string(lineelements.size()) + " where 2 were expected. Exiting.");
+				write_text_to_log_file(line);
+				exit(1);
+			}
+
+			waveline.time = std::stod(lineelements[0]);
+			waveline.Swanfile = lineelements[1];
+			wavebnd.push_back(waveline);
+		}
+	}
+	fs.close();
+
+	waveline.time = wavebnd.back().time + XParam.rtlength;
+	wavebnd.push_back(waveline);
+
+	return wavebnd;
+}
+
 XBGPUParam readparamstr(std::string line, XBGPUParam param)
 {
 
@@ -245,7 +597,7 @@ XBGPUParam readparamstr(std::string line, XBGPUParam param)
 
 	///////////////////////////////////////////////////////
 	// General parameters
-	parameterstr = "bathy =";
+	parameterstr = "bathy";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
@@ -254,7 +606,7 @@ XBGPUParam readparamstr(std::string line, XBGPUParam param)
 	}
 	
 	//
-	parameterstr = "depfile =";
+	parameterstr = "depfile";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
@@ -263,7 +615,7 @@ XBGPUParam readparamstr(std::string line, XBGPUParam param)
 		
 	
 	//
-	parameterstr = "swave =";
+	parameterstr = "swave";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
@@ -271,7 +623,7 @@ XBGPUParam readparamstr(std::string line, XBGPUParam param)
 	}
 
 	//
-	parameterstr = "flow =";
+	parameterstr = "flow";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
@@ -279,7 +631,7 @@ XBGPUParam readparamstr(std::string line, XBGPUParam param)
 	}
 
 	//
-	parameterstr = "sedtrans =";
+	parameterstr = "sedtrans";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
@@ -287,7 +639,7 @@ XBGPUParam readparamstr(std::string line, XBGPUParam param)
 	}
 
 	//
-	parameterstr = "morphology =";
+	parameterstr = "morphology";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
@@ -295,14 +647,14 @@ XBGPUParam readparamstr(std::string line, XBGPUParam param)
 	}
 
 	//
-	parameterstr = "gpudevice =";
+	parameterstr = "gpudevice";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
 		param.GPUDEVICE = std::stoi(parametervalue);
 	}
 
-	parameterstr = "roller =";
+	parameterstr = "roller";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
@@ -312,91 +664,91 @@ XBGPUParam readparamstr(std::string line, XBGPUParam param)
 	///////////////////////////////////////////////////////
 	// Flow parameters
 	//
-	parameterstr = "eps =";
+	parameterstr = "eps";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
 		param.eps = std::stod(parametervalue);
 	}
 	
-	parameterstr = "cf =";
+	parameterstr = "cf";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
 		param.cf = std::stod(parametervalue);
 	}
 
-	parameterstr = "cfsand =";
+	parameterstr = "cfsand";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
 		param.cfsand = std::stod(parametervalue);
 	}
 
-	parameterstr = "cfreef =";
+	parameterstr = "cfreef";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
 		param.cfreef = std::stod(parametervalue);
 	}
 
-	parameterstr = "nuh =";
+	parameterstr = "nuh";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
 		param.nuh = std::stod(parametervalue);
 	}
 
-	parameterstr = "nuhfac =";
+	parameterstr = "nuhfac";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
 		param.nuhfac = std::stod(parametervalue);
 	}
 
-	parameterstr = "usesmago =";
+	parameterstr = "usesmago";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
 		param.usesmago = std::stoi(parametervalue);
 	}
 
-	parameterstr = "smag =";
+	parameterstr = "smag";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
 		param.smag = std::stod(parametervalue);
 	}
 
-	parameterstr = "lat =";
+	parameterstr = "lat";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
 		param.lat = std::stod(parametervalue);
 	}
 
-	parameterstr = "Cd =";
+	parameterstr = "Cd";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
 		param.Cd = std::stod(parametervalue);
 	}
 
-	parameterstr = "wci =";
+	parameterstr = "wci";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
 		param.wci = std::stod(parametervalue);
 	}
 
-	parameterstr = "hwci =";
+	parameterstr = "hwci";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
 		param.hwci = std::stod(parametervalue);
 	}
 
-	parameterstr = "fc =";
+	parameterstr = "fc";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
@@ -406,63 +758,63 @@ XBGPUParam readparamstr(std::string line, XBGPUParam param)
 	///////////////////////////////////////////////////////
 	// Wave parameters
 	//
-	parameterstr = "breakmodel =";
+	parameterstr = "breakmodel";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
 		param.breakmodel = std::stoi(parametervalue);
 	}
 
-	parameterstr = "gamma =";
+	parameterstr = "gamma";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
 		param.gammaa = std::stod(parametervalue);
 	}
 
-	parameterstr = "n =";
+	parameterstr = "n";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
 		param.n = std::stod(parametervalue);
 	}
 
-	parameterstr = "alpha =";
+	parameterstr = "alpha";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
 		param.alpha = std::stod(parametervalue);
 	}
 
-	parameterstr = "gammax =";
+	parameterstr = "gammax";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
 		param.gammax = std::stod(parametervalue);
 	}
 
-	parameterstr = "beta =";
+	parameterstr = "beta";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
 		param.beta = std::stod(parametervalue);
 	}
 
-	parameterstr = "fw =";
+	parameterstr = "fw";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
 		param.fw = std::stod(parametervalue);
 	}
 
-	parameterstr = "fwsand =";
+	parameterstr = "fwsand";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
 		param.fwsand = std::stod(parametervalue);
 	}
 
-	parameterstr = "fwreef =";
+	parameterstr = "fwreef";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
@@ -472,28 +824,28 @@ XBGPUParam readparamstr(std::string line, XBGPUParam param)
 	///////////////////////////////////////////////////////
 	// Sediment parameters
 	//
-	parameterstr = "D50 =";
+	parameterstr = "D50";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
 		param.D50 = std::stod(parametervalue);
 	}
 
-	parameterstr = "D90 =";
+	parameterstr = "D90";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
 		param.D90 = std::stod(parametervalue);
 	}
 
-	parameterstr = "rhosed =";
+	parameterstr = "rhosed";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
 		param.rhosed = std::stod(parametervalue);
 	}
 
-	parameterstr = "wws =";
+	parameterstr = "wws";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
@@ -501,7 +853,7 @@ XBGPUParam readparamstr(std::string line, XBGPUParam param)
 		// Value should be calculated in the sanity check
 	}
 
-	parameterstr = "drydzmax =";
+	parameterstr = "drydzmax";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
@@ -509,7 +861,7 @@ XBGPUParam readparamstr(std::string line, XBGPUParam param)
 		// Value should be calculated in the sanity check
 	}
 
-	parameterstr = "wetdzmax =";
+	parameterstr = "wetdzmax";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
@@ -517,7 +869,7 @@ XBGPUParam readparamstr(std::string line, XBGPUParam param)
 		// Value should be calculated in the sanity check
 	}
 
-	parameterstr = "maxslpchg =";
+	parameterstr = "maxslpchg";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
@@ -525,7 +877,7 @@ XBGPUParam readparamstr(std::string line, XBGPUParam param)
 		// Value should be calculated in the sanity check
 	}
 
-	parameterstr = "por =";
+	parameterstr = "por";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
@@ -533,7 +885,7 @@ XBGPUParam readparamstr(std::string line, XBGPUParam param)
 		// Value should be calculated in the sanity check
 	}
 
-	parameterstr = "morfac =";
+	parameterstr = "morfac";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
@@ -541,7 +893,7 @@ XBGPUParam readparamstr(std::string line, XBGPUParam param)
 		// Value should be calculated in the sanity check
 	}
 
-	parameterstr = "sus =";
+	parameterstr = "sus";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
@@ -549,7 +901,7 @@ XBGPUParam readparamstr(std::string line, XBGPUParam param)
 		// Value should be calculated in the sanity check
 	}
 
-	parameterstr = "bed =";
+	parameterstr = "bed";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
@@ -558,7 +910,7 @@ XBGPUParam readparamstr(std::string line, XBGPUParam param)
 	}
 
 
-	parameterstr = "facsk =";
+	parameterstr = "facsk";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
@@ -566,7 +918,7 @@ XBGPUParam readparamstr(std::string line, XBGPUParam param)
 		// Value should be calculated in the sanity check
 	}
 
-	parameterstr = "facas =";
+	parameterstr = "facas";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
@@ -577,7 +929,7 @@ XBGPUParam readparamstr(std::string line, XBGPUParam param)
 	///////////////////////////////////////////////////////
 	// Timekeeping parameters
 	//
-	parameterstr = "dt =";
+	parameterstr = "dt";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
@@ -585,7 +937,7 @@ XBGPUParam readparamstr(std::string line, XBGPUParam param)
 
 	}
 
-	parameterstr = "CFL =";
+	parameterstr = "CFL";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
@@ -593,7 +945,7 @@ XBGPUParam readparamstr(std::string line, XBGPUParam param)
 
 	}
 
-	parameterstr = "sedstart =";
+	parameterstr = "sedstart";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
@@ -601,7 +953,7 @@ XBGPUParam readparamstr(std::string line, XBGPUParam param)
 
 	}
 
-	parameterstr = "outputtimestep =";
+	parameterstr = "outputtimestep";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
@@ -609,7 +961,7 @@ XBGPUParam readparamstr(std::string line, XBGPUParam param)
 
 	}
 
-	parameterstr = "endtime =";
+	parameterstr = "endtime";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
@@ -621,7 +973,7 @@ XBGPUParam readparamstr(std::string line, XBGPUParam param)
 	// Input and output files
 	//
 	
-	parameterstr = "outfile =";
+	parameterstr = "outfile";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
@@ -629,7 +981,7 @@ XBGPUParam readparamstr(std::string line, XBGPUParam param)
 		//std::cerr << "Bathymetry file found!" << std::endl;
 	}
 
-	parameterstr = "SedThkfile =";
+	parameterstr = "SedThkfile";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
@@ -637,7 +989,7 @@ XBGPUParam readparamstr(std::string line, XBGPUParam param)
 		//std::cerr << "Bathymetry file found!" << std::endl;
 	}
 
-	parameterstr = "wavebndfile =";
+	parameterstr = "wavebndfile";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
@@ -645,7 +997,7 @@ XBGPUParam readparamstr(std::string line, XBGPUParam param)
 		//std::cerr << "Bathymetry file found!" << std::endl;
 	}
 
-	parameterstr = "slbndfile =";
+	parameterstr = "slbndfile";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
@@ -653,7 +1005,7 @@ XBGPUParam readparamstr(std::string line, XBGPUParam param)
 		//std::cerr << "Bathymetry file found!" << std::endl;
 	}
 
-	parameterstr = "windbndfile =";
+	parameterstr = "windbndfile";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
@@ -664,7 +1016,7 @@ XBGPUParam readparamstr(std::string line, XBGPUParam param)
 	
 
 	// Below is a bit more complex than usual because more than 1 node can be outputed as a timeseries
-	parameterstr = "TSOfile =";
+	parameterstr = "TSOfile";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
@@ -672,7 +1024,7 @@ XBGPUParam readparamstr(std::string line, XBGPUParam param)
 		//std::cerr << "Bathymetry file found!" << std::endl;
 	}
 
-	parameterstr = "TSnode =";
+	parameterstr = "TSnode";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
@@ -685,67 +1037,167 @@ XBGPUParam readparamstr(std::string line, XBGPUParam param)
 		//std::cerr << "Bathymetry file found!" << std::endl;
 	}
 
-	parameterstr = "wavebndtype =";
+	//outvars
+	parameterstr = "outvars";
+	parametervalue = findparameter(parameterstr, line);
+	if (!parametervalue.empty())
+	{
+		std::vector<std::string> vars = split(parametervalue, ',');
+		for (int nv = 0; nv < vars.size(); nv++)
+		{
+			//Verify that the variable name makes sense?
+			//Need to add more here
+			std::vector<std::string> SupportedVarNames = { "hh", "uu", "vv", "wci", "zs", "zb", "cfm", "dzb", "stdep", "Fx", "Fy", "cgx", "cgy", "cx", "cy", "ctheta", "D", "E", "H", "urms", "ueu", "vev", "thetamean", "Hmean", "uumean", "vvmean", "hhmean", "zsmax",  "zsmean", "Cmean", "sigm", "k", "c", "kh", "cg", "sinh2kh", "dhdx", "dhdy", "dudx", "dudy", "dvdx", "dvdy", "C", "R", "DR", "ee", "vmageu", "vmagev", "dzsdx", "dzsdy", "dzsdt", "fwm", "hu", "hum", "hv", "hvm", "uv", "vu", "ududx", "vdvdy", "udvdx", "vdudy", "ust", "rr", "kturb", "rolthick", "ceqsg" };
+
+			for (int isup = 0; isup < SupportedVarNames.size(); isup++)
+			{
+				std::string vvar = trim(vars[nv]," ");
+				//std::cout << "..." << vvar << "..." << std::endl;
+				if (vvar.compare(SupportedVarNames[isup]) == 0)
+				{
+					param.outvars.push_back(vvar);
+					break;
+				}
+			}
+			
+		}
+		
+
+		//std::cerr << "Bathymetry file found!" << std::endl;
+	}
+
+	parameterstr = "wavebndtype";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
 		param.wavebndtype = std::stoi(parametervalue);
 	}
 
+	parameterstr = "thetamin";
+	parametervalue = findparameter(parameterstr, line);
+	if (!parametervalue.empty())
+	{
+		param.thetamin = std::stod(parametervalue)*pi / 180.0;
+	}
+
+	parameterstr = "thetamax";
+	parametervalue = findparameter(parameterstr, line);
+	if (!parametervalue.empty())
+	{
+		param.thetamax = std::stod(parametervalue)*pi / 180.0;
+	}
+
+	parameterstr = "dtheta";
+	parametervalue = findparameter(parameterstr, line);
+	if (!parametervalue.empty())
+	{
+		param.dtheta = std::stod(parametervalue)*pi / 180.0;
+	}
+
+	parameterstr = "dtbc";
+	parametervalue = findparameter(parameterstr, line);
+	if (!parametervalue.empty())
+	{
+		param.dtbc = std::stod(parametervalue);
+	}
+
+	parameterstr = "rtlength";
+	parametervalue = findparameter(parameterstr, line);
+	if (!parametervalue.empty())
+	{
+		param.rtlength = std::stod(parametervalue);
+	}
+
+	parameterstr = "sprdthr";
+	parametervalue = findparameter(parameterstr, line);
+	if (!parametervalue.empty())
+	{
+		param.sprdthr = std::stod(parametervalue);
+	}
+
+	parameterstr = "random";
+	parametervalue = findparameter(parameterstr, line);
+	if (!parametervalue.empty())
+	{
+		param.random = std::stoi(parametervalue);
+	}
+
 	//Other parameters
-	parameterstr = "GPUDEVICE =";
+	parameterstr = "GPUDEVICE";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
 		param.GPUDEVICE= std::stoi(parametervalue);
 	}
 
-	parameterstr = "nx =";
+	parameterstr = "nx";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
 		param.nx = std::stoi(parametervalue);
 	}
 
-	parameterstr = "ny =";
+	parameterstr = "ny";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
 		param.ny = std::stoi(parametervalue);
 	}
 
-	parameterstr = "dx =";
+	parameterstr = "dx";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
 		param.dx = std::stod(parametervalue);
 	}
 
-	parameterstr = "grdalpha =";
+	parameterstr = "grdalpha";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
 		param.grdalpha = std::stod(parametervalue);
 	}
 
-	parameterstr = "g =";
+	parameterstr = "g";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
-		param.dx = std::stod(parametervalue);
+		param.g = std::stod(parametervalue);
+		
 	}
 
-	parameterstr = "rho =";
+	parameterstr = "rho";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
-		param.dx = std::stod(parametervalue);
+		param.rho = std::stod(parametervalue);
+	}
+
+	parameterstr = "nmax";
+	parametervalue = findparameter(parameterstr, line);
+	if (!parametervalue.empty())
+	{
+		param.nmax = std::stod(parametervalue);
+	}
+
+	parameterstr = "fcutoff";
+	parametervalue = findparameter(parameterstr, line);
+	if (!parametervalue.empty())
+	{
+		param.fcutoff = std::stod(parametervalue);
+	}
+
+	parameterstr = "nspr";
+	parametervalue = findparameter(parameterstr, line);
+	if (!parametervalue.empty())
+	{
+		param.nspr = std::stoi(parametervalue);
 	}
 
 	return param;
 }
 
-XBGPUParam checkparamsanity(XBGPUParam XParam, std::vector<SLBnd> slbnd, std::vector<WindBnd> wndbnd)
+XBGPUParam checkparamsanity(XBGPUParam XParam, std::vector<SLBnd> slbnd, std::vector<WindBnd> wndbnd, std::vector<Wavebndparam> wavbnd)
 {
 	XBGPUParam DefaultParams;
 
@@ -782,23 +1234,34 @@ XBGPUParam checkparamsanity(XBGPUParam XParam, std::vector<SLBnd> slbnd, std::ve
 
 
 	// Check whether endtime was specified by the user
+	//No; i.e. endtimne =0.0
+	//so the following conditions are useless
+	
+	
+	
 	if (abs(XParam.endtime - DefaultParams.endtime) <= tiny)
 	{
 		//No; i.e. endtimne =0.0
-		if (slbnd.back().time>0.0 && wndbnd.back().time > 0.0)
-		{
-			XParam.endtime = min(slbnd.back().time, wndbnd.back().time);
-		}
-
-		
+		XParam.endtime = 1 / tiny; //==huge
+	//	if (slbnd.back().time>0.0 && wndbnd.back().time > 0.0)
+	//	{
+	//		XParam.endtime = min(slbnd.back().time, wndbnd.back().time);
+	//	}
+	//
+	//	
 	}
-	else
-	{
-		//Check that endtime is no longer than the shortest boundary
-		double endbnd = min(slbnd.back().time, wndbnd.back().time);
+	
+	//Check that endtime is no longer than the shortest boundary
+	double endbnd = min(slbnd.back().time, wndbnd.back().time);
 
-		XParam.endtime = min(XParam.endtime, endbnd);
-	}
+	
+	endbnd = min(endbnd, wavbnd.back().time);
+	
+
+	XParam.endtime = min(XParam.endtime, endbnd);
+	
+	// Issue a warning?
+
 
 
 	// Check that a wave bnd file was specified otherwise kill the app
@@ -833,6 +1296,23 @@ XBGPUParam checkparamsanity(XBGPUParam XParam, std::vector<SLBnd> slbnd, std::ve
 		
 		XParam.cfreef = XParam.cfsand;
 	}
+
+	//Check that sand and reef friction is not zero (Default) if it is the case then use the default cf
+	if (abs(XParam.fwsand - DefaultParams.fwsand) < tiny)
+	{
+		if (XParam.fw < tiny)
+		{
+			XParam.fw = tiny;
+		}
+		XParam.fwsand = XParam.fw;
+	}
+
+	if (abs(XParam.fwreef - DefaultParams.fwreef) < tiny)
+	{
+
+		XParam.fwreef = XParam.fwsand;
+	}
+
 
 	// Check that if smagorinsky formulation is used then nuh == samgo otherwise use the specified value for smago
 	if (XParam.usesmago == 1)
@@ -912,30 +1392,47 @@ XBGPUParam checkparamsanity(XBGPUParam XParam, std::vector<SLBnd> slbnd, std::ve
 
 	}
 
+	if (XParam.outvars.empty() && XParam.outputtimestep > 0)
+	{
+		//a nc file was specified but no output variable were specified
+		std::vector<std::string> SupportedVarNames = { "zb", "zs", "uu", "vv", "H", "thetamean", "D", "urms", "ueu", "vev", "C", "dzb", "Fx", "Fy", "hh", "Hmean", "uumean", "vvmean", "hhmean", "zsmean", "Cmean" };
+		for (int isup = 0; isup < SupportedVarNames.size(); isup++)
+		{
+			XParam.outvars.push_back(SupportedVarNames[isup]);
+				
+		}
+
+	}
+
 	return XParam;
 }
 
 std::string findparameter(std::string parameterstr, std::string line)
 {
 	std::size_t found, Numberstart, Numberend;
-	std::string parameternumber;
-	found = line.find(parameterstr);
-	if (found != std::string::npos) // found a line that has Lonmin
+	std::string parameternumber,left,right;
+	std::vector<std::string> splittedstr;
+	
+	// first look fo an equal sign
+	// No equal sign mean not a valid line so skip
+	splittedstr=split(line, '=' );
+	if (splittedstr.size()>1)
 	{
-		//std::cout <<"found LonMin at : "<< found << std::endl;
-		Numberstart = found + parameterstr.length();
-		found = line.find(";");
-		if (found != std::string::npos) // found a line that has Lonmin
+		left = trim(splittedstr[0]," ");
+		right = splittedstr[1]; // if there are more than one equal sign in the line the second one is ignored
+		found = left.compare(parameterstr);// it needs to strictly compare
+		if (found == 0) // found the parameter
 		{
-			Numberend = found;
-		}
-		else
-		{
-			Numberend = line.length();
-		}
-		parameternumber = line.substr(Numberstart, Numberend - Numberstart);
-		//std::cout << parameternumber << std::endl;
+			//std::cout <<"found LonMin at : "<< found << std::endl;
+			//Numberstart = found + parameterstr.length();
+			splittedstr = split(right, ';');
+			if (splittedstr.size() >= 1)
+			{
+				parameternumber = splittedstr[0];
+			}
+			//std::cout << parameternumber << std::endl;
 
+		}
 	}
 	return trim(parameternumber, " ");
 }
@@ -972,10 +1469,8 @@ std::string trim(const std::string& str, const std::string& whitespace)
 	return str.substr(strBegin, strRange);
 }
 
-double interptime(double next, double prev, double timenext, double time)
-{
-	return prev + (time) / (timenext)*(next - prev);
-}
+
+
 
 extern "C" void readbathyHead(std::string filename, int &nx, int &ny, double &dx, double &grdalpha )
 {
@@ -1068,7 +1563,7 @@ void SaveParamtolog(XBGPUParam XParam)
 	write_text_to_log_file("nx = " + std::to_string(XParam.nx) + ";");
 	write_text_to_log_file("ny = " + std::to_string(XParam.ny) + ";");
 	write_text_to_log_file("dx = " + std::to_string(XParam.dx) + ";");
-	write_text_to_log_file("grdalpha = " + std::to_string(XParam.grdalpha) + ";");
+	write_text_to_log_file("grdalpha = " + std::to_string(XParam.grdalpha*180.0/pi) + ";");
 	write_text_to_log_file("\n");
 	write_text_to_log_file("# Model controls");
 	write_text_to_log_file("swave = " + std::to_string(XParam.swave) + ";");
@@ -1107,6 +1602,16 @@ void SaveParamtolog(XBGPUParam XParam)
 	write_text_to_log_file("fwsand = " + std::to_string(XParam.fwsand) + ";");
 	write_text_to_log_file("fwreef = " + std::to_string(XParam.fwreef) + ";");
 	write_text_to_log_file("roller = " + std::to_string(XParam.roller) + ";");
+	write_text_to_log_file("thetamin = " + std::to_string(XParam.thetamin) + ";");
+	write_text_to_log_file("thetamax = " + std::to_string(XParam.thetamax) + ";");
+	write_text_to_log_file("dtheta = " + std::to_string(XParam.dtheta) + "; ");
+	write_text_to_log_file("ntheta = " + std::to_string(XParam.ntheta) + "; ");
+	write_text_to_log_file("\n");
+	write_text_to_log_file("# Wave boundary parameters");
+	write_text_to_log_file("dtbc = " + std::to_string(XParam.dtbc) + "; ");
+	write_text_to_log_file("rtlength = " + std::to_string(XParam.rtlength) + "; ");
+	write_text_to_log_file("sprdthr = " + std::to_string(XParam.sprdthr) + "; ");
+	write_text_to_log_file("random = " + std::to_string(XParam.random) + "; ");
 	write_text_to_log_file("\n");
 	write_text_to_log_file("# Sediment parameters");
 	write_text_to_log_file("D50 = " + std::to_string(XParam.D50) + ";");
@@ -1127,12 +1632,25 @@ void SaveParamtolog(XBGPUParam XParam)
 	write_text_to_log_file("CFL = " + std::to_string(XParam.CFL) + ";");
 	write_text_to_log_file("sedstart = " + std::to_string(XParam.sedstart) + ";");
 	write_text_to_log_file("outputtimestep = " + std::to_string(XParam.outputtimestep) + ";");
+	std::string alloutvars= "";
+	for (int nvar = 0; nvar < XParam.outvars.size(); nvar++)
+	{
+		if (nvar > 0)
+		{
+			alloutvars = alloutvars + ", ";
+		}
+		alloutvars = alloutvars + XParam.outvars[nvar];
+	}
+	write_text_to_log_file("outvars = " + alloutvars + ";");
+
+
 	write_text_to_log_file("endtime = " + std::to_string(XParam.endtime) + ";");
 	write_text_to_log_file("\n");
 	write_text_to_log_file("# Files");
 	write_text_to_log_file("outfile = " + XParam.outfile + ";");
 	write_text_to_log_file("SedThkfile = " + XParam.SedThkfile + ";");
 	write_text_to_log_file("wavebndfile = " + XParam.wavebndfile + ";");
+	write_text_to_log_file("wavebndtype = " + std::to_string(XParam.wavebndtype) + ";");
 	write_text_to_log_file("slbndfile = " + XParam.slbnd + ";");
 	write_text_to_log_file("windbndfile = " + XParam.windfile + ";");
 	if (!XParam.TSoutfile.empty())

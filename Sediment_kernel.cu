@@ -1168,6 +1168,7 @@ __global__ void updatezom(int nx, int ny, DECNUM cf, DECNUM cf2, DECNUM fw, DECN
 	int tx = threadIdx.x;
 	int ty = threadIdx.y;
 
+	//printf("%d\n", i);
 
 	if (ix < nx && iy < ny)
 	{

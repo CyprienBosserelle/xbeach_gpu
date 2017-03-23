@@ -105,6 +105,7 @@ __global__ void addavg_var(int nx, int ny, DECNUM * Varmean, DECNUM * Var)
 
 }
 
+
 __global__ void divavg_var(int nx, int ny, DECNUM ntdiv, DECNUM * Varmean)
 {
 	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
@@ -132,6 +133,29 @@ __global__ void resetavg_var(int nx, int ny, DECNUM * Varmean)
 	{
 		Varmean[i] = 0.0f;
 	}
+}
+
+__global__ void max_var(int nx, int ny, DECNUM * Varmax, DECNUM * Var)
+{
+	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
+	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
+	unsigned int i = ix + iy*nx;
+	unsigned int tx = threadIdx.x;
+	unsigned int ty = threadIdx.y;
+
+	__shared__ DECNUM mvari[16][16];
+	__shared__ DECNUM vari[16][16];
+
+	if (ix < nx && iy < ny)
+	{
+
+		mvari[tx][ty] = Varmax[i];
+		vari[tx][ty] = Var[i];
+
+		Varmax[i] = max(mvari[tx][ty] , vari[tx][ty]);
+	}
+
+
 }
 
 __global__ void FLOWDT(int nx, int ny, DECNUM dx, DECNUM cfl, DECNUM *dtflow, DECNUM *hh)

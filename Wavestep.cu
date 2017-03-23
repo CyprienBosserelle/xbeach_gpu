@@ -10,14 +10,18 @@ void CUDA_CHECK(cudaError CUDerr)
 		fprintf(stderr, "Cuda error in file '%s' in line %i : %s.\n", \
 
 			__FILE__, __LINE__, cudaGetErrorString(CUDerr));
-
+		
+		write_text_to_log_file("Cuda error in file " + std::string(__FILE__) + " in line " + std::to_string(__LINE__) + " " + std::string(cudaGetErrorString(CUDerr)));
 		exit(EXIT_FAILURE);
 
 	}
 }
 
 
-void waveinitGPU(XBGPUParam Param)
+
+
+
+XBGPUParam waveinitGPU(XBGPUParam Param, std::vector<Wavebndparam> wavebnd)
 {
 	// Initialize wave model
 	int nx, ny;
@@ -25,52 +29,38 @@ void waveinitGPU(XBGPUParam Param)
 	ny = Param.ny;
 
 
-
-	//Wave input bnd
-	printf("Opening wave bnd\n");
-
-	if (Param.wavebndtype == 1)
+	
+	if (Param.dtheta > 0.0)
 	{
-
-		readbndhead(Param.wavebndfile.c_str(), thetamin, thetamax, dtheta, dtwavbnd, nwavbnd);
-
-
+		Param.ntheta = round((Param.thetamax - Param.thetamin) / Param.dtheta);
 	}
 	else
 	{
-		readXbbndhead(Param.wavebndfile.c_str(), thetamin, thetamax, dtheta, dtwavbnd, nwavbnd, nwavfile);
-
+		if (Param.ntheta == 0)
+		{
+			Param.ntheta = 1;
+		}
+		Param.dtheta = (Param.thetamax - Param.thetamin) / Param.ntheta;
 	}
 
+	
+	ntheta = Param.ntheta;
+	dtheta = Param.dtheta;
 
 
-
-	//printf("Hs=%f\tTp=%f\ta=%f\tscoef=%f\tgam=%f\trt=%f\n",hm0gew,fp,mainang,scoeff,gam,rt);
-
-	fp = 1 / fp;
-
-
-
-
-
-
-
-	//hm0gew=1.0f;//Significant wave height (m)
-	//fp=1.0f/12.0f; //Wave peak frequency (Hz)
-	//mainang=0; //wave mean direction (angle of incidence º)
-	//rt=1000; //Boundary duration
-	//scoeff=100;// spread coef n.u.
-	//gam=3.3f;//: peak enhancement factor, optional parameter (DEFAULT 3.3)
-
-	thetamin = thetamin*pi / 180;
-	thetamax = thetamax*pi / 180;
-	dtheta = dtheta*pi / 180;
-
-	ntheta = round((thetamax - thetamin) / dtheta);
 	printf("ntheta=%d\tdtheta=%f\n", ntheta, dtheta);
 	write_text_to_log_file("ntheta=" + std::to_string(ntheta) + "\t dtheta=" + std::to_string(dtheta));
 	//printf("nwavbnd=%d\n", nwavbnd);
 
+	if (Param.wavebndtype == 1)
+	{
+		nwavbnd = wavebnd.size(); // one Stfile/qfile will be used throughout the simulation
+	}
+	if (Param.wavebndtype >= 2)
+	{
+		nwavbnd = ceil(Param.rtlength / Param.dtbc)+1; // +1  needed here
+	}
+		
 	theta = (DECNUM *)malloc(ntheta*sizeof(DECNUM));
 
 	Stfile = (double *)malloc(ntheta*ny*nwavbnd*sizeof(double));
@@ -88,7 +78,7 @@ void waveinitGPU(XBGPUParam Param)
 
 	for (int i = 0; i < ntheta; i++)
 	{
-		theta[i] = i*(dtheta)+thetamin + 0.5f*dtheta;
+		theta[i] = i*(Param.dtheta)+Param.thetamin + 0.5f*Param.dtheta;
 		cxsth[i] = cos(theta[i]);
 		sxnth[i] = sin(theta[i]);
 
@@ -105,60 +95,223 @@ void waveinitGPU(XBGPUParam Param)
 
 	rr = (DECNUM *)malloc(nx*ny*ntheta*sizeof(DECNUM));
 
+	cgx = (DECNUM *)malloc(nx*ny*ntheta*sizeof(DECNUM));
+	cgy = (DECNUM *)malloc(nx*ny*ntheta*sizeof(DECNUM));
+	cx = (DECNUM *)malloc(nx*ny*ntheta*sizeof(DECNUM));
+	cy = (DECNUM *)malloc(nx*ny*ntheta*sizeof(DECNUM));
+	ctheta = (DECNUM *)malloc(nx*ny*ntheta*sizeof(DECNUM));
+	thet = (DECNUM *)malloc(nx*ny*ntheta*sizeof(DECNUM));
 	//drr=(DECNUM *)malloc(nx*ny*ntheta*sizeof(DECNUM));
 
 
-	printf("Reading bnd data\n");
-	write_text_to_log_file("Reading wave bnd data");
+	printf("Generating initial wave bnd data\n");
+	write_text_to_log_file("Generating initial wave bnd data");
 	if (Param.wavebndtype == 1)
 	{
-		readStatbnd(nx, ny, ntheta, Param.rho, Param.g, Param.wavebndfile.c_str(), Tpfile, Stfile);
-		Trepold = Tpfile[0];
-		Trepnew = Tpfile[1];
-		rt = dtwavbnd;
+		//GenCstWave(Param, wavebnd, Stfile, qfile, Tpfile);
+		GenCstWave(Param, wavebnd, theta, Stfile, qfile, Tpfile);
+		Trep = Tpfile[0];
+		//readStatbnd(nx, ny, ntheta, Param.rho, Param.g, Param.wavebndfile.c_str(), Tpfile, Stfile);
+		//Trepold = Tpfile[0];
+		//Trepnew = Tpfile[1];
+		//rt = dtwavbnd;
 
 	}
 
 	if (Param.wavebndtype == 2)
 	{
-		readXbbndstep(nx, ny, ntheta, Param.wavebndfile.c_str(), 1, Trepold, qfile, Stfile);
-
-
-		for (int ni = 0; ni < ny; ni++)
-		{
-			for (int itheta = 0; itheta < ntheta; itheta++)
-			{
-				Stold[ni + itheta*ny] = Stfile[ni + itheta*ny + nwbndstep*ny*ntheta];
-				Stnew[ni + itheta*ny] = Stfile[ni + itheta*ny + (nwbndstep + 1)*ny*ntheta];
-
-
-			}
-			for (int xi = 0; xi < 4; xi++)
-			{
-				qbndold[ni + xi*ny] = qfile[ni + xi*ny + nwbndstep*ny * 4];
-				qbndnew[ni + xi*ny] = qfile[ni + xi*ny + (nwbndstep + 1)*ny * 4];
-			}
-		}
-		//CUDA_CHECK( cudaMemcpy(qbndold_g,qbndold, 3*ny*sizeof(DECNUM ), cudaMemcpyHostToDevice) );
-		//CUDA_CHECK( cudaMemcpy(qbndnew_g,qbndnew, 3*ny*sizeof(DECNUM ), cudaMemcpyHostToDevice) );
-		//printf("qfile[0]=%f\n",qfile[0]);
+		//readXbbndstep(nx, ny, ntheta, Param.wavebndfile.c_str(), 1, Trepold, qfile, Stfile);
+		readXbbndstep(Param, wavebnd, 0, Trep, qfile, Stfile);
+				
 	}
-	else
+	if (Param.wavebndtype == 3)
 	{
+		// Reuse XBeach_GPU style wave boundary. same as normal XBeach but as a self documented netcdf file
+		read_reuse_bndnc(Param,  0, Trep, qfile, Stfile);
+	}
+	if (Param.wavebndtype == 4)
+	{
+		//JONSWAP
+		//First generate a Highres 2D spec
+		double * HRfreq;
+		double * HRdir;
+		double * HRSpec;
 
+		int nfHR, ndHR;
 
-		for (int ni = 0; ni < ny; ni++)
+		makjonswap(Param, wavebnd, 0, nfHR, ndHR, HRfreq, HRdir, HRSpec);
+		//create2dnc(nfHR, ndHR, HRfreq[1] - HRfreq[0], HRdir[1] - HRdir[0], 0.0, HRfreq, HRdir, HRSpec);
+		//Then generate wave group timeseries based on that spectra
+		//void GenWGnLBW(XBGPUParam Param, int nf, int ndir, double * HRfreq, double * HRdir, double * HRSpec, float Trep, double * qfile, double * Stfile)
+		GenWGnLBW(Param, nfHR, ndHR, HRfreq, HRdir, HRSpec, Trep, qfile, Stfile);
+		//create2dnc(nfHR, ndHR, HRfreq[1] - HRfreq[0], HRdir[1] - HRdir[0], 0.0, HRfreq, HRdir, HRSpec);
+
+		//////////////////////////////////////
+		//Save to Netcdf file
+		//////////////////////////////////////
+		double * yyfx, *ttfx, *thetafx;
+		double * qxtemp, *qytemp, *eetemp;
+		int tslenbc = nwavbnd;
+
+		qxtemp = (double *)malloc(ny*tslenbc*sizeof(double));
+		qytemp = (double *)malloc(ny*tslenbc*sizeof(double));
+		eetemp = (double *)malloc(ny*Param.ntheta*tslenbc*sizeof(double));
+
+		yyfx = (double *)malloc(ny*sizeof(double));
+		ttfx = (double *)malloc(tslenbc*sizeof(double));
+		thetafx = (double *)malloc(Param.ntheta*sizeof(double));
+
+		for (int j = 0; j < Param.ny; j++)
 		{
-			for (int itheta = 0; itheta < ntheta; itheta++)
-			{
-				Stold[ni + itheta*ny] = Stfile[itheta];
-				Stnew[ni + itheta*ny] = Stfile[itheta + ntheta];
-			}
-
+			yyfx[j] = j*Param.dx;
 		}
 
+		for (int m = 0; m < tslenbc; m++)
+		{
+			ttfx[m] = m*Param.dtbc;
+		}
+
+		for (int itheta = 0; itheta < Param.ntheta; itheta++)
+		{
+			thetafx[itheta] = itheta*(Param.dtheta) + Param.thetamin + 0.5f*Param.dtheta;
+		}
+
+		//for Debugging
+		//create2dnc(ny, tslen, Param.dx, dtin, 0.0, yyfx, tin, qx);
+		//create3dnc(ny, Param.ntheta, tslen, Param.dx, Param.dtheta, dtin, 0.0, yyfx, thetafx, tin, zeta);
+
+		for (int j = 0; j < Param.ny; j++)
+		{
+			for (int m = 0; m < tslenbc; m++)
+			{
+				qxtemp[m + j*tslenbc] = qfile[j + 0 * ny + m*ny * 4];
+				qytemp[m + j*tslenbc] = qfile[j + 1 * ny + m*ny * 4];
+
+				for (int itheta = 0; itheta < Param.ntheta; itheta++)
+				{
+					eetemp[m + j*tslenbc + itheta*ny*tslenbc] = Stfile[j + itheta*ny + m*ny*Param.ntheta];
+				}
+			}
+		}
+
+
+		createbndnc(tslenbc, ny, Param.ntheta, Param.dx, Param.dtheta, 0.0, wavebnd[0].Hs, Trep, wavebnd[0].Tp, wavebnd[0].Dp, ttfx, yyfx, thetafx, eetemp, qxtemp, qytemp);
+		//void createbndnc(int tslen, int ny, int ntheta, double dy, double dtheta, double totaltime, double Hs, double Trep, double Tp, double Dp, double * timevec, double *yy, double *theta, double * ee, double * qx, double * qy)
+
+		//Trep = 15.0;//
+		free(HRSpec);
+		free(HRfreq);
+		free(HRdir);
+
+		free(qxtemp);
+		free(qytemp);
+		free(eetemp);
+		free(yyfx);
+		free(ttfx);
+		free(thetafx);
+
+
+	}
+	if (Param.wavebndtype == 5)
+	{
+		//
+		//SWAN spectrum
+		//First read in the 2D spec
+		double * HRfreq;
+		double * HRdir;
+		double * HRSpec;
+
+		int nfHR, ndHR;
+
+		readSWANSPEC(Param, wavebnd, 0, nfHR, ndHR, HRfreq, HRdir, HRSpec);
+		//create2dnc(nfHR, ndHR, HRfreq[1] - HRfreq[0], HRdir[1] - HRdir[0], 0.0, HRfreq, HRdir, HRSpec);
+		//Then generate wave group timeseries based on that spectra
+		//void GenWGnLBW(XBGPUParam Param, int nf, int ndir, double * HRfreq, double * HRdir, double * HRSpec, float Trep, double * qfile, double * Stfile)
+		GenWGnLBW(Param, nfHR, ndHR, HRfreq, HRdir, HRSpec, Trep, qfile, Stfile);
+		//create2dnc(nfHR, ndHR, HRfreq[1] - HRfreq[0], HRdir[1] - HRdir[0], 0.0, HRfreq, HRdir, HRSpec);
+
+		//////////////////////////////////////
+		//Save to Netcdf file
+		//////////////////////////////////////
+		double * yyfx, *ttfx, *thetafx;
+		double * qxtemp, *qytemp, *eetemp;
+		int tslenbc = nwavbnd;
+
+		qxtemp = (double *)malloc(ny*tslenbc*sizeof(double));
+		qytemp = (double *)malloc(ny*tslenbc*sizeof(double));
+		eetemp = (double *)malloc(ny*Param.ntheta*tslenbc*sizeof(double));
+
+		yyfx = (double *)malloc(ny*sizeof(double));
+		ttfx = (double *)malloc(tslenbc*sizeof(double));
+		thetafx = (double *)malloc(Param.ntheta*sizeof(double));
+
+		for (int j = 0; j < Param.ny; j++)
+		{
+			yyfx[j] = j*Param.dx;
+		}
+
+		for (int m = 0; m < tslenbc; m++)
+		{
+			ttfx[m] = m*Param.dtbc;
+		}
+
+		for (int itheta = 0; itheta < Param.ntheta; itheta++)
+		{
+			thetafx[itheta] = itheta*(Param.dtheta) + Param.thetamin + 0.5f*Param.dtheta;
+		}
+
+		//for Debugging
+		//create2dnc(ny, tslen, Param.dx, dtin, 0.0, yyfx, tin, qx);
+		//create3dnc(ny, Param.ntheta, tslen, Param.dx, Param.dtheta, dtin, 0.0, yyfx, thetafx, tin, zeta);
+
+		for (int j = 0; j < Param.ny; j++)
+		{
+			for (int m = 0; m < tslenbc; m++)
+			{
+				qxtemp[m + j*tslenbc] = qfile[j + 0 * ny + m*ny * 4];
+				qytemp[m + j*tslenbc] = qfile[j + 1 * ny + m*ny * 4];
+
+				for (int itheta = 0; itheta < Param.ntheta; itheta++)
+				{
+					eetemp[m + j*tslenbc + itheta*ny*tslenbc] = Stfile[j + itheta*ny + m*ny*Param.ntheta];
+				}
+			}
+		}
+
+
+		createbndnc(tslenbc, ny, Param.ntheta, Param.dx, Param.dtheta, 0.0, wavebnd[0].Hs, Trep, wavebnd[0].Tp, wavebnd[0].Dp, ttfx, yyfx, thetafx, eetemp, qxtemp, qytemp);
+		//void createbndnc(int tslen, int ny, int ntheta, double dy, double dtheta, double totaltime, double Hs, double Trep, double Tp, double Dp, double * timevec, double *yy, double *theta, double * ee, double * qx, double * qy)
+
+		//Trep = 15.0;//
+		free(HRSpec);
+		free(HRfreq);
+		free(HRdir);
+
+		free(qxtemp);
+		free(qytemp);
+		free(eetemp);
+		free(yyfx);
+		free(ttfx);
+		free(thetafx);
 	}
 
+
+	nwbndstep = 0;
+	for (int ni = 0; ni < ny; ni++)
+	{
+		for (int itheta = 0; itheta < ntheta; itheta++)
+		{
+			Stold[ni + itheta*ny] = Stfile[ni + itheta*ny + nwbndstep*ny*ntheta];
+			Stnew[ni + itheta*ny] = Stfile[ni + itheta*ny + (nwbndstep + 1)*ny*ntheta];
+
+
+		}
+		for (int xi = 0; xi < 4; xi++)
+		{
+			qbndold[ni + xi*ny] = qfile[ni + xi*ny + nwbndstep*ny * 4];
+			qbndnew[ni + xi*ny] = qfile[ni + xi*ny + (nwbndstep + 1)*ny * 4];
+		}
+	}
 
 
 
@@ -172,9 +325,9 @@ void waveinitGPU(XBGPUParam Param)
 	//makjonswap(hm0gew,fp,mainang,rt,scoeff,gam,theta,ntheta,Trepnew, Stnew);
 
 
+	//Clac Stat
 
-
-	Trep = Trepold;
+	
 	for (int i = 0; i < ntheta; i++)                             //! Fill St
 	{
 		//St[i]=Stold[i];
@@ -197,7 +350,7 @@ void waveinitGPU(XBGPUParam Param)
 
 
 
-
+	// Apply bnd on CPU side
 
 	for (int ii = 0; ii < nx; ii++)
 	{
@@ -224,13 +377,13 @@ void waveinitGPU(XBGPUParam Param)
 
 	//run dispersion relation	
 
-
+	return Param;
 
 }
 
 
 
-void wavebnd(XBGPUParam Param)
+void wavebndOLD(XBGPUParam Param)
 {
 	int nx, ny;
 	nx = Param.nx;
@@ -240,7 +393,7 @@ void wavebnd(XBGPUParam Param)
 	{
 		if (Param.wavebndtype == 2)
 		{
-			readXbbndstep(nx, ny, ntheta, Param.wavebndfile.c_str(), wxstep, Trep, qfile, Stfile);
+			//readXbbndstep(nx, ny, ntheta, Param.wavebndfile.c_str(), wxstep, Trep, qfile, Stfile);
 
 		}
 		nwbndstep = 0;
@@ -356,6 +509,248 @@ void wavebnd(XBGPUParam Param)
 
 }
 
+void wavebnd(XBGPUParam Param, std::vector<Wavebndparam> wavebndvec)
+{
+	int nx, ny;
+	double timenext, timesincelast;
+	nx = Param.nx;
+	ny = Param.ny;
+	//update sl bnd
+
+	// find next timestep
+
+	double difft = wavebndvec[WAVstepinbnd].time - totaltime;
+
+	
+	if (difft < 0.0)
+	{
+		WAVstepinbnd++;
+
+		
+		if (Param.wavebndtype == 2)
+		{
+			//Read new STfile and qfile XBeach style
+			readXbbndstep(Param, wavebndvec, WAVstepinbnd - 1, Trep, qfile, Stfile);
+			
+		}
+
+		if (Param.wavebndtype == 3)
+		{
+			// Reuse XBeach_GPU style wave boundary. same as normal XBeach but as a self documented netcdf file
+			read_reuse_bndnc(Param, WAVstepinbnd - 1, Trep, qfile, Stfile);
+		}
+
+		if (Param.wavebndtype == 4)
+		{
+			//JONSWAP
+			//First generate a Highres 2D spec
+			double * HRfreq;
+			double * HRdir;
+			double * HRSpec;
+
+			int nfHR, ndHR;
+
+			makjonswap(Param, wavebndvec, WAVstepinbnd - 1, nfHR, ndHR, HRfreq, HRdir, HRSpec);
+			
+			//Then generate wave group timeseries based on that spectra
+			//void GenWGnLBW(XBGPUParam Param, int nf, int ndir, double * HRfreq, double * HRdir, double * HRSpec, float Trep, double * qfile, double * Stfile)
+			GenWGnLBW(Param, nfHR, ndHR, HRfreq, HRdir, HRSpec, Trep, qfile, Stfile);
+			//////////////////////////////////////
+			//Save to Netcdf file
+			//////////////////////////////////////
+
+			// Stfile is not ordered teh way we want to save it to file so we need a temporary storage to rearange
+			double * yyfx, *ttfx, *thetafx;
+			double * qxtemp, *qytemp, *eetemp;
+			int tslenbc = (int)ceil(Param.rtlength / Param.dtbc)+1;
+
+			qxtemp = (double *)malloc(ny*tslenbc*sizeof(double));
+			qytemp = (double *)malloc(ny*tslenbc*sizeof(double));
+			eetemp = (double *)malloc(ny*Param.ntheta*tslenbc*sizeof(double));
+
+			yyfx = (double *)malloc(ny*sizeof(double));
+			ttfx = (double *)malloc(tslenbc*sizeof(double));
+			thetafx = (double *)malloc(Param.ntheta*sizeof(double));
+
+			for (int j = 0; j < Param.ny; j++)
+			{
+				yyfx[j] = j*Param.dx;
+			}
+
+			for (int m = 0; m < tslenbc; m++)
+			{
+				ttfx[m] = m*Param.dtbc;
+			}
+
+			for (int itheta = 0; itheta < Param.ntheta; itheta++)
+			{
+				thetafx[itheta] = itheta*(Param.dtheta) + Param.thetamin + 0.5f*Param.dtheta;
+			}
+
+			//for Debugging
+			//create2dnc(ny, tslen, Param.dx, dtin, 0.0, yyfx, tin, qx);
+			//create3dnc(ny, Param.ntheta, tslen, Param.dx, Param.dtheta, dtin, 0.0, yyfx, thetafx, tin, zeta);
+
+			for (int j = 0; j < Param.ny; j++)
+			{
+				for (int m = 0; m < tslenbc; m++)
+				{
+					qxtemp[m + j*tslenbc] = qfile[j + 0 * ny + m*ny * 4];
+					qytemp[m + j*tslenbc] = qfile[j + 1 * ny + m*ny * 4];
+
+					for (int itheta = 0; itheta < Param.ntheta; itheta++)
+					{
+						eetemp[m + j*tslenbc + itheta*ny*tslenbc] = Stfile[j + itheta*ny + m*ny*Param.ntheta];
+					}
+				}
+			}
+
+
+			writebndnc(tslenbc, ny, Param.ntheta, Param.dx, Param.dtheta, wavebndvec[WAVstepinbnd - 1].time, wavebndvec[WAVstepinbnd - 1].Hs, Trep, wavebndvec[WAVstepinbnd - 1].Tp, wavebndvec[WAVstepinbnd - 1].Dp, ttfx, yyfx, thetafx, eetemp, qxtemp, qytemp);
+			//void writebndnc(int tslen, int ny, int ntheta, double dy, double dtheta, double totaltime, double Hs, double Trep, double Tp, double Dp, double * timevec, double *yy, double *theta, double * ee, double * qx, double * qy)
+
+			//Trep = 15.0;//
+			free(HRSpec);
+			free(HRfreq);
+			free(HRdir);
+
+		}
+		if (Param.wavebndtype == 5)
+		{
+			//
+			//SWAN spectrum
+			//First read in the 2D spec
+			double * HRfreq;
+			double * HRdir;
+			double * HRSpec;
+
+			int nfHR, ndHR;
+
+			readSWANSPEC(Param, wavebndvec, WAVstepinbnd - 1, nfHR, ndHR, HRfreq, HRdir, HRSpec);
+			//create2dnc(nfHR, ndHR, HRfreq[1] - HRfreq[0], HRdir[1] - HRdir[0], 0.0, HRfreq, HRdir, HRSpec);
+			//Then generate wave group timeseries based on that spectra
+			//void GenWGnLBW(XBGPUParam Param, int nf, int ndir, double * HRfreq, double * HRdir, double * HRSpec, float Trep, double * qfile, double * Stfile)
+			GenWGnLBW(Param, nfHR, ndHR, HRfreq, HRdir, HRSpec, Trep, qfile, Stfile);
+			//create2dnc(nfHR, ndHR, HRfreq[1] - HRfreq[0], HRdir[1] - HRdir[0], 0.0, HRfreq, HRdir, HRSpec);
+
+			//////////////////////////////////////
+			//Save to Netcdf file
+			//////////////////////////////////////
+			double * yyfx, *ttfx, *thetafx;
+			double * qxtemp, *qytemp, *eetemp;
+			int tslenbc = nwavbnd;
+
+			qxtemp = (double *)malloc(ny*tslenbc*sizeof(double));
+			qytemp = (double *)malloc(ny*tslenbc*sizeof(double));
+			eetemp = (double *)malloc(ny*Param.ntheta*tslenbc*sizeof(double));
+
+			yyfx = (double *)malloc(ny*sizeof(double));
+			ttfx = (double *)malloc(tslenbc*sizeof(double));
+			thetafx = (double *)malloc(Param.ntheta*sizeof(double));
+
+			for (int j = 0; j < Param.ny; j++)
+			{
+				yyfx[j] = j*Param.dx;
+			}
+
+			for (int m = 0; m < tslenbc; m++)
+			{
+				ttfx[m] = m*Param.dtbc;
+			}
+
+			for (int itheta = 0; itheta < Param.ntheta; itheta++)
+			{
+				thetafx[itheta] = itheta*(Param.dtheta) + Param.thetamin + 0.5f*Param.dtheta;
+			}
+
+			//for Debugging
+			//create2dnc(ny, tslen, Param.dx, dtin, 0.0, yyfx, tin, qx);
+			//create3dnc(ny, Param.ntheta, tslen, Param.dx, Param.dtheta, dtin, 0.0, yyfx, thetafx, tin, zeta);
+
+			for (int j = 0; j < Param.ny; j++)
+			{
+				for (int m = 0; m < tslenbc; m++)
+				{
+					qxtemp[m + j*tslenbc] = qfile[j + 0 * ny + m*ny * 4];
+					qytemp[m + j*tslenbc] = qfile[j + 1 * ny + m*ny * 4];
+
+					for (int itheta = 0; itheta < Param.ntheta; itheta++)
+					{
+						eetemp[m + j*tslenbc + itheta*ny*tslenbc] = Stfile[j + itheta*ny + m*ny*Param.ntheta];
+					}
+				}
+			}
+
+
+			writebndnc(tslenbc, ny, Param.ntheta, Param.dx, Param.dtheta, wavebndvec[WAVstepinbnd - 1].time, wavebndvec[WAVstepinbnd - 1].Hs, Trep, wavebndvec[WAVstepinbnd - 1].Tp, wavebndvec[WAVstepinbnd - 1].Dp, ttfx, yyfx, thetafx, eetemp, qxtemp, qytemp);
+			//void createbndnc(int tslen, int ny, int ntheta, double dy, double dtheta, double totaltime, double Hs, double Trep, double Tp, double Dp, double * timevec, double *yy, double *theta, double * ee, double * qx, double * qy)
+
+			//Trep = 15.0;//
+			free(HRSpec);
+			free(HRfreq);
+			free(HRdir);
+
+			free(qxtemp);
+			free(qytemp);
+			free(eetemp);
+			free(yyfx);
+			free(ttfx);
+			free(thetafx);
+		}
+	}
+	//spetial treatment when difft == 0.0
+
+	if (Param.wavebndtype == 1)
+	{
+		nwbndstep = WAVstepinbnd - 1;
+		timenext = wavebndvec[WAVstepinbnd].time - wavebndvec[WAVstepinbnd - 1].time;
+		timesincelast = (totaltime - wavebndvec[WAVstepinbnd - 1].time);
+
+	}
+	if (Param.wavebndtype >= 2)
+	{
+		nwbndstep = min(floor((totaltime - wavebndvec[WAVstepinbnd - 1].time) / Param.dtbc),ceil(Param.rtlength/Param.dtbc)-1);
+		//nwbndstep = nwbndstep + 1;// trying to solve discrepency between XB and XBGPU bnd
+		timenext = Param.dtbc;
+		timesincelast = totaltime - (nwbndstep*Param.dtbc + wavebndvec[WAVstepinbnd - 1].time);
+
+		//nwbndstep = nwbndstep + 1;//trying to solve discrepency between XB and XBGPU bnd
+	}
+
+
+
+	for (int ni = 0; ni < ny; ni++)
+	{
+		for (int itheta = 0; itheta < ntheta; itheta++)
+		{
+			Stold[ni + itheta*ny] = Stfile[ni + itheta*ny + nwbndstep*ny*ntheta];
+			Stnew[ni + itheta*ny] = Stfile[ni + itheta*ny + (nwbndstep + 1)*ny*ntheta];
+
+
+		}
+		for (int xi = 0; xi < 4; xi++)
+		{
+			qbndold[ni + xi*ny] = qfile[ni + xi*ny + nwbndstep*ny * 4];
+			qbndnew[ni + xi*ny] = qfile[ni + xi*ny + (nwbndstep + 1)*ny * 4];
+		}
+	}
+
+	for (int i = 0; i < ntheta; i++)                             //! Fill St
+	{
+		for (int ni = 0; ni < ny; ni++)
+		{
+			St[ni + i*ny] = interptime(Stnew[ni + i*ny], Stold[ni + i*ny], timenext, timesincelast);
+		}
+		
+	}
+
+	if (Param.flow == 1)
+	{
+		CUDA_CHECK(cudaMemcpy(qbndold_g, qbndold, 4 * ny*sizeof(DECNUM), cudaMemcpyHostToDevice));
+		CUDA_CHECK(cudaMemcpy(qbndnew_g, qbndnew, 4 * ny*sizeof(DECNUM), cudaMemcpyHostToDevice));
+	}
+
+}
 
 void wavestep(XBGPUParam Param)
 {
@@ -363,6 +758,7 @@ void wavestep(XBGPUParam Param)
 	nx = Param.nx;
 	ny = Param.ny;
 	double dt = Param.dt;
+	ntheta = Param.ntheta;
 	//Subroutine runs the wave model
 
 	dim3 blockDim(16, 16, 1);
@@ -392,6 +788,8 @@ void wavestep(XBGPUParam Param)
 	//	CUDA_CHECK( cudaMalloc((void **)&c_g, nx*ny*sizeof(DECNUM )) );
 	//CUDA_CHECK( cudaMalloc((void **)&cy_g, nx*ny*ntheta*sizeof(DECNUM )) );
 	//CUDA_CHECK( cudaMalloc((void **)&k_g, nx*ny*sizeof(DECNUM )) );
+
+	// not sure this is worth it we'd rather allocate from main and kill when it is all done...
 	CUDA_CHECK(cudaMalloc((void **)&kh_g, nx*ny*sizeof(DECNUM)));
 	CUDA_CHECK(cudaMalloc((void **)&sinh2kh_g, nx*ny*sizeof(DECNUM)));
 

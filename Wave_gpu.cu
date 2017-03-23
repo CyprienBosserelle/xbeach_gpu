@@ -26,6 +26,8 @@ using DECNUM = float;
 DECNUM Trep, Trepold, Trepnew;
 DECNUM * St, *Stnew, *Stold;
 double * Stfile;
+double * eebnd;
+double * qbnd;
 double * qfile;
 double * Tpfile;
 int nwbndstep = 0;
@@ -76,7 +78,7 @@ DECNUM wavbndtime;
 DECNUM slbndtime;
 DECNUM windtime;
 
-int SLstepinbnd, WNDstepinbnd;
+int SLstepinbnd, WNDstepinbnd, WAVstepinbnd;
 //DECNUM Cd; //Wind drag
 DECNUM fp, hm0gew, mainang, rt, scoeff, gam;
 int nwavbnd, nwavfile;
@@ -217,9 +219,9 @@ DECNUM * dhdx_g, *dhdy_g, *dudx_g, *dudy_g, *dvdx_g, *dvdy_g;
 DECNUM *dzsdx_g, *dzsdy_g;
 DECNUM *zeros;
 
-DECNUM * Hmean_g, *uumean_g, *vvmean_g, *hhmean_g, *zsmean_g, *Cmean_g;
+DECNUM * Hmean_g, *uumean_g, *vvmean_g, *hhmean_g, *zsmean_g, *Cmean_g,*zsmax_g;
 DECNUM *dtflow_g;
-DECNUM *Hmean, *uumean, *vvmean, *hhmean, *zsmean, *Cmean;
+DECNUM *Hmean, *uumean, *vvmean, *hhmean, *zsmean, *Cmean, *zsmax;
 
 
 
@@ -246,11 +248,11 @@ int wxstep = 1;
 #include "Flow_kernel.cu"
 #include "Sediment_kernel.cu"
 #include "Wavestep.cu"
+
+
 template <class T> const T& min(const T& a, const T& b) {
 	return !(b < a) ? a : b;     // or: return !comp(b,a)?a:b; for version (2)
 }
-
-
 
 
 
@@ -272,7 +274,7 @@ exit(EXIT_FAILURE);
 
 
 // Main loop that actually runs the model
-void mainloopGPU(XBGPUParam Param, std::vector<SLBnd> slbnd, std::vector<WindBnd> wndbnd)
+void mainloopGPU(XBGPUParam Param, std::vector<SLBnd> slbnd, std::vector<WindBnd> wndbnd, std::vector<Wavebndparam> wavebndparam)
 {
 	double dt = Param.dt;
 	int nx, ny;
@@ -282,15 +284,11 @@ void mainloopGPU(XBGPUParam Param, std::vector<SLBnd> slbnd, std::vector<WindBnd
 	
 	//Warning hard wired stuff here
 	
-	std::vector<SLBnd> zsout;
+	std::vector<Pointout> zsout;
 	
-	std::vector< std::vector< SLBnd > > zsAllout;
+	std::vector< std::vector< Pointout > > zsAllout;
 	
-	
-
-
-
-	SLBnd stepread;
+	Pointout stepread;
 	
 
 
@@ -306,11 +304,305 @@ void mainloopGPU(XBGPUParam Param, std::vector<SLBnd> slbnd, std::vector<WindBnd
 			fclose(fsSLTS);
 
 			// Add empty row for each output point
-			zsAllout.push_back(std::vector<SLBnd>());
+			zsAllout.push_back(std::vector<Pointout>());
 		}
 	}
 	
+	//Map a link between the variable s a string and the variable pointer
+	// This may need to be stored somewhere else??
+	std::map<std::string, DECNUM *> OutputVarMapCPU;
+	std::map<std::string, DECNUM *> OutputVarMapGPU;
+	std::map<std::string, int> OutputVarMaplen;
+
+	OutputVarMapCPU["zb"] = zb;
+	OutputVarMapGPU["zb"] = zb_g;
+	if (Param.morphology == 1)
+	{
+		OutputVarMaplen["zb"] = nx*ny;
+	}
+	else
+	{
+		OutputVarMaplen["zb"] = 0;
+	}
+	OutputVarMapCPU["uu"] = uu;
+	OutputVarMapGPU["uu"] = uu_g;
+	OutputVarMaplen["uu"] = nx*ny;
+
+	OutputVarMapCPU["vv"] = vv;
+	OutputVarMapGPU["vv"] = vv_g;
+	OutputVarMaplen["vv"] = nx*ny;
+
+	OutputVarMapCPU["zs"] = zs;
+	OutputVarMapGPU["zs"] = zs_g;
+	OutputVarMaplen["zs"] = nx*ny;
+
+	OutputVarMapCPU["hh"] = hh;
+	OutputVarMapGPU["hh"] = hh_g;
+	OutputVarMaplen["hh"] = nx*ny;
+
+	OutputVarMapCPU["H"] = H;
+	OutputVarMapGPU["H"] = H_g;
+	OutputVarMaplen["H"] = nx*ny;
+
+	OutputVarMapCPU["thetamean"] = thetamean;
+	OutputVarMapGPU["thetamean"] = thetamean_g;
+	OutputVarMaplen["thetamean"] = nx*ny;
+
+	OutputVarMapCPU["ee"] = ee;
+	OutputVarMapGPU["ee"] = ee_g;
+	OutputVarMaplen["ee"] = nx*ny*ntheta;
+
+	OutputVarMapCPU["rr"] = rr;
+	OutputVarMapGPU["rr"] = rr_g;
+	OutputVarMaplen["rr"] = nx*ny*ntheta;
+
+
+	OutputVarMapCPU["cfm"] = cfm;
+	OutputVarMapGPU["cfm"] = cfm_g;
+	OutputVarMaplen["cfm"] = nx*ny;
+
+	OutputVarMapCPU["dzb"] = dzb;
+	OutputVarMapGPU["dzb"] = dzb_g;
+	OutputVarMaplen["dzb"] = nx*ny;
+
+	OutputVarMapCPU["stdep"] = stdep;
+	OutputVarMapGPU["stdep"] = stdep_g;
+	OutputVarMaplen["stdep"] = nx*ny;
+
+	OutputVarMapCPU["Fx"] = Fx;
+	OutputVarMapGPU["Fx"] = Fx_g;
+	OutputVarMaplen["Fx"] = nx*ny;
+
+	OutputVarMapCPU["Fy"] = Fy;
+	OutputVarMapGPU["Fy"] = Fy_g;
+	OutputVarMaplen["Fy"] = nx*ny;
+
+	OutputVarMapCPU["cgx"] = cgx;
+	OutputVarMapGPU["cgx"] = cgx_g;
+	OutputVarMaplen["cgx"] = nx*ny*ntheta;
+
+	OutputVarMapCPU["cgy"] = cgy;
+	OutputVarMapGPU["cgy"] = cgy_g;
+	OutputVarMaplen["cgy"] = nx*ny*ntheta;
+
+	OutputVarMapCPU["cx"] = cx;
+	OutputVarMapGPU["cx"] = cx_g;
+	OutputVarMaplen["cx"] = nx*ny*ntheta;
+
+	OutputVarMapCPU["cy"] = cy;
+	OutputVarMapGPU["cy"] = cy_g;
+	OutputVarMaplen["cy"] = nx*ny*ntheta;
+
+	OutputVarMapCPU["ctheta"] = ctheta;
+	OutputVarMapGPU["ctheta"] = ctheta_g;
+	OutputVarMaplen["ctheta"] = nx*ny*ntheta;
+
+
+	OutputVarMapCPU["D"] = D;
+	OutputVarMapGPU["D"] = D_g;
+	OutputVarMaplen["D"] = nx*ny;
+
+	OutputVarMapCPU["E"] = E;
+	OutputVarMapGPU["E"] = E_g;
+	OutputVarMaplen["E"] = nx*ny;
+
+
+	OutputVarMapCPU["urms"] = urms;
+	OutputVarMapGPU["urms"] = urms_g;
+	OutputVarMaplen["urms"] = nx*ny;
+
+	OutputVarMapCPU["ueu"] = ueu;
+	OutputVarMapGPU["ueu"] = ueu_g;
+	OutputVarMaplen["ueu"] = nx*ny;
+
+	OutputVarMapCPU["vev"] = vev;
+	OutputVarMapGPU["vev"] = vev_g;
+	OutputVarMaplen["vev"] = nx*ny;
+
+
+	OutputVarMapCPU["hhmean"] = hhmean;
+	OutputVarMapGPU["hhmean"] = hhmean_g;
+	OutputVarMaplen["hhmean"] = nx*ny;
+
+	OutputVarMapCPU["uumean"] = uumean;
+	OutputVarMapGPU["uumean"] = uumean_g;
+	OutputVarMaplen["uumean"] = nx*ny;
+
+	OutputVarMapCPU["vvmean"] = vvmean;
+	OutputVarMapGPU["vvmean"] = vvmean_g;
+	OutputVarMaplen["vvmean"] = nx*ny;
+
+	OutputVarMapCPU["zsmean"] = zsmean;
+	OutputVarMapGPU["zsmean"] = zsmean_g;
+	OutputVarMaplen["zsmean"] = nx*ny;
+
+	OutputVarMapCPU["zsmax"] = zsmax;
+	OutputVarMapGPU["zsmax"] = zsmax_g;
+	OutputVarMaplen["zsmax"] = nx*ny;
+
+	OutputVarMapCPU["Hmean"] = Hmean;
+	OutputVarMapGPU["Hmean"] = Hmean_g;
+	OutputVarMaplen["Hmean"] = nx*ny;
+
+	OutputVarMapCPU["Cmean"] = Cmean;
+	OutputVarMapGPU["Cmean"] = Cmean_g;
+	OutputVarMaplen["Cmean"] = nx*ny;
+
+	OutputVarMapCPU["sigm"] = sigm;
+	OutputVarMapGPU["sigm"] = sigm_g;
+	OutputVarMaplen["sigm"] = nx*ny;
+
+	OutputVarMapCPU["k"] = k;
+	OutputVarMapGPU["k"] = k_g;
+	OutputVarMaplen["k"] = nx*ny;
+
+	OutputVarMapCPU["c"] = c;
+	OutputVarMapGPU["c"] = c_g;
+	OutputVarMaplen["c"] = nx*ny;
+
+	OutputVarMapCPU["kh"] = kh;
+	OutputVarMapGPU["kh"] = kh_g;
+	OutputVarMaplen["kh"] = nx*ny;
+
+	OutputVarMapCPU["cg"] = cg;
+	OutputVarMapGPU["cg"] = cg_g;
+	OutputVarMaplen["cg"] = nx*ny;
+
+	OutputVarMapCPU["sinh2kh"] = sinh2kh;
+	OutputVarMapGPU["sinh2kh"] = sinh2kh_g;
+	OutputVarMaplen["sinh2kh"] = nx*ny;
+
+	OutputVarMapCPU["dhdx"] = dhdx;
+	OutputVarMapGPU["dhdx"] = dhdx_g;
+	OutputVarMaplen["dhdx"] = nx*ny;
+
+	OutputVarMapCPU["dhdy"] = dhdy;
+	OutputVarMapGPU["dhdy"] = dhdy_g;
+	OutputVarMaplen["dhdy"] = nx*ny;
+
+	OutputVarMapCPU["dudx"] = dudx;
+	OutputVarMapGPU["dudx"] = dudx_g;
+	OutputVarMaplen["dudx"] = nx*ny;
+
+	OutputVarMapCPU["dudy"] = dudy;
+	OutputVarMapGPU["dudy"] = dudy_g;
+	OutputVarMaplen["dudy"] = nx*ny;
+
+	OutputVarMapCPU["dvdx"] = dvdx;
+	OutputVarMapGPU["dvdx"] = dvdx_g;
+	OutputVarMaplen["dvdx"] = nx*ny;
+
+	OutputVarMapCPU["dvdy"] = dvdy;
+	OutputVarMapGPU["dvdy"] = dvdy_g;
+	OutputVarMaplen["dvdy"] = nx*ny;
+
+	OutputVarMapCPU["C"] = C;
+	OutputVarMapGPU["C"] = Cc_g;
+	OutputVarMaplen["C"] = nx*ny;
+
+	OutputVarMapCPU["R"] = R;
+	OutputVarMapGPU["R"] = R_g;
+	OutputVarMaplen["R"] = nx*ny;
+
+	OutputVarMapCPU["DR"] = DR;
+	OutputVarMapGPU["DR"] = DR_g;
+	OutputVarMaplen["DR"] = nx*ny;
+
+	///////////////////////////////////////////////////////
+	// Warning the variable bellow were never allocted on the CPU
+	// This could lead to errors if asynchroneous meme copy is to be implemented for output
+
+	OutputVarMapCPU["wci"] = dummy;
+	OutputVarMapGPU["wci"] = wci_g;
+	OutputVarMaplen["wci"] = nx*ny;
+
+	OutputVarMapCPU["vmageu"] = dummy;
+	OutputVarMapGPU["vmageu"] = vmageu_g;
+	OutputVarMaplen["vmageu"] = nx*ny;
+
+	OutputVarMapCPU["vmagev"] = dummy;
+	OutputVarMapGPU["vmagev"] = vmagev_g;
+	OutputVarMaplen["vmagev"] = nx*ny;
+
+	OutputVarMapCPU["dzsdx"] = dummy;
+	OutputVarMapGPU["dzsdx"] = dzsdx_g;
+	OutputVarMaplen["dzsdx"] = nx*ny;
+
+	OutputVarMapCPU["dzsdy"] = dummy;
+	OutputVarMapGPU["dzsdy"] = dzsdy_g;
+	OutputVarMaplen["dzsdy"] = nx*ny;
 	
+	OutputVarMapCPU["dzsdt"] = dummy;
+	OutputVarMapGPU["dzsdt"] = dzsdt_g;
+	OutputVarMaplen["dzsdt"] = nx*ny;
+
+	OutputVarMapCPU["fwm"] = dummy;
+	OutputVarMapGPU["fwm"] = fwm_g;
+	OutputVarMaplen["fwm"] = nx*ny;
+
+	OutputVarMapCPU["hu"] = dummy;
+	OutputVarMapGPU["hu"] = hu_g;
+	OutputVarMaplen["hu"] = nx*ny;
+
+	OutputVarMapCPU["hv"] = dummy;
+	OutputVarMapGPU["hv"] = hv_g;
+	OutputVarMaplen["hv"] = nx*ny;
+
+	OutputVarMapCPU["hum"] = dummy;
+	OutputVarMapGPU["hum"] = hum_g;
+	OutputVarMaplen["hum"] = nx*ny;
+
+	OutputVarMapCPU["hvm"] = dummy;
+	OutputVarMapGPU["hvm"] = hvm_g;
+	OutputVarMaplen["hvm"] = nx*ny;
+
+	OutputVarMapCPU["uv"] = dummy;
+	OutputVarMapGPU["uv"] = uv_g;
+	OutputVarMaplen["uv"] = nx*ny;
+
+	OutputVarMapCPU["vu"] = dummy;
+	OutputVarMapGPU["vu"] = vu_g;
+	OutputVarMaplen["vu"] = nx*ny;
+
+	//OutputVarMapCPU["wetu"] = dummy;
+	//OutputVarMapGPU["wetu"] = wetu_g;
+	//OutputVarMaplen["wetu"] = nx*ny;
+
+	//OutputVarMapCPU["wetv"] = dummy;
+	//OutputVarMapGPU["wetv"] = wetv_g;
+	//OutputVarMaplen["wetv"] = nx*ny;
+
+	OutputVarMapCPU["ududx"] = dummy;
+	OutputVarMapGPU["ududx"] = ududx_g;
+	OutputVarMaplen["ududx"] = nx*ny;
+
+	OutputVarMapCPU["vdvdy"] = dummy;
+	OutputVarMapGPU["vdvdy"] = vdvdy_g;
+	OutputVarMaplen["vdvdy"] = nx*ny;
+
+	OutputVarMapCPU["udvdx"] = dummy;
+	OutputVarMapGPU["udvdx"] = udvdx_g;
+	OutputVarMaplen["udvdx"] = nx*ny;
+
+	OutputVarMapCPU["vdudy"] = dummy;
+	OutputVarMapGPU["vdudy"] = ududx_g;
+	OutputVarMaplen["vdudy"] = nx*ny;
+
+	OutputVarMapCPU["ust"] = dummy;
+	OutputVarMapGPU["ust"] = ust_g;
+	OutputVarMaplen["ust"] = nx*ny;
+
+	OutputVarMapCPU["kturb"] = dummy;
+	OutputVarMapGPU["kturb"] = kturb_g;
+	OutputVarMaplen["kturb"] = nx*ny;
+
+	OutputVarMapCPU["rolthick"] = dummy;
+	OutputVarMapGPU["rolthick"] = rolthick_g;
+	OutputVarMaplen["rolthick"] = nx*ny;
+
+	OutputVarMapCPU["ceqsg"] = dummy;
+	OutputVarMapGPU["ceqsg"] = ceqsg_g;
+	OutputVarMaplen["ceqsg"] = nx*ny;
 
 	//< or <= ? crashes with <= if the boundary limit is == to endtime
 	while (totaltime < Param.endtime)
@@ -343,6 +635,14 @@ void mainloopGPU(XBGPUParam Param, std::vector<SLBnd> slbnd, std::vector<WindBnd
 		CUDA_CHECK(cudaMemcpy(arrmin, arrmin_g, nx*ny*sizeof(DECNUM), cudaMemcpyDeviceToHost));
 
 		dt = arrmin[0] * 0.5; // Not sure why this is but it is in the original XBeach!!
+
+		// Sanity check here if hh contains a NaN or inf then the model crashed??
+		if (dt == 0.0 || std::isinf(dt) || std::isnan(dt))
+		{
+			printf("Model crashed! Exciting now\n");
+			write_text_to_log_file("Model crashed!. Exiting.");
+			exit(1);
+		}
 
 		
 		
@@ -399,18 +699,18 @@ void mainloopGPU(XBGPUParam Param, std::vector<SLBnd> slbnd, std::vector<WindBnd
 
 		if (Param.swave == 1 )
 		{
-			wavebnd(Param); // Calculate the boundary condition for this step
+			wavebnd(Param, wavebndparam); // Calculate the boundary condition for this step
 		}
 
 		if (Param.flow == 1)
 		{
-			flowbnd(Param, slbnd, wndbnd);// Calculate the flow boundary for this step
+			flowbnd(Param, slbnd, wndbnd, wavebndparam);// Calculate the flow boundary for this step
 		}
 
 		if (Param.swave == 1 )
 		{
 
-			wavestep(Param); // Calculate the wave action ballance for this step
+			wavestep(Param); // Calculate the wave action balance for this step
 		}
 
 
@@ -446,6 +746,10 @@ void mainloopGPU(XBGPUParam Param, std::vector<SLBnd> slbnd, std::vector<WindBnd
 		//CUT_CHECK_ERROR("Add avg execution failed\n");
 		CUDA_CHECK(cudaDeviceSynchronize());
 
+		max_var << <gridDim, blockDim, 0 >> >(nx, ny, zsmax_g, zs_g);
+		//CUT_CHECK_ERROR("Add avg execution failed\n");
+		CUDA_CHECK(cudaDeviceSynchronize());
+
 		addavg_var << <gridDim, blockDim, 0 >> >(nx, ny, Cmean_g, Cc_g);
 		//CUT_CHECK_ERROR("Add avg execution failed\n");
 		CUDA_CHECK(cudaDeviceSynchronize());
@@ -453,11 +757,13 @@ void mainloopGPU(XBGPUParam Param, std::vector<SLBnd> slbnd, std::vector<WindBnd
 
 		//////////////////////////////////////////
 		//BIG
-		//WARNING HERE -- NEED TO MAKE ASYNC
+		//WARNING HERE -- NEED TO MAKE ASYNC to hide latency 
 		/////////////////////////////////////////
-
-		CUDA_CHECK(cudaMemcpy(zs, zs_g, nx*ny*sizeof(DECNUM), cudaMemcpyDeviceToHost));
-
+		if (!Param.TSnodesout.empty())
+		{
+			CUDA_CHECK(cudaMemcpy(zs, zs_g, nx*ny*sizeof(DECNUM), cudaMemcpyDeviceToHost));
+			CUDA_CHECK(cudaMemcpy(H, H_g, nx*ny*sizeof(DECNUM), cudaMemcpyDeviceToHost));
+		}
 		//after the transfert
 
 
@@ -466,7 +772,8 @@ void mainloopGPU(XBGPUParam Param, std::vector<SLBnd> slbnd, std::vector<WindBnd
 			for (int o=0; o < Param.TSnodesout.size(); o++)
 			{
 				stepread.time = totaltime;
-				stepread.wlev = zs[Param.TSnodesout[o].i + Param.TSnodesout[o].j*nx];
+				stepread.zs = zs[Param.TSnodesout[o].i + Param.TSnodesout[o].j*nx];
+				stepread.H = H[Param.TSnodesout[o].i + Param.TSnodesout[o].j*nx];
 				zsAllout[o].push_back(stepread);
 			}
 		}
@@ -505,42 +812,62 @@ void mainloopGPU(XBGPUParam Param, std::vector<SLBnd> slbnd, std::vector<WindBnd
 			//CUT_CHECK_ERROR("Div avg execution failed\n");
 			CUDA_CHECK(cudaDeviceSynchronize());
 
+			//For each requested variables
+
+			if (!Param.outvars.empty())
+			{
+				writenctimestep(Param, totaltime);
+				
+				for (int ivar = 0; ivar < Param.outvars.size(); ivar++)
+				{
+					if (OutputVarMaplen[Param.outvars[ivar]] > 0)
+					{
+						//Should be async
+						CUDA_CHECK(cudaMemcpy(OutputVarMapCPU[Param.outvars[ivar]], OutputVarMapGPU[Param.outvars[ivar]], OutputVarMaplen[Param.outvars[ivar]] * sizeof(DECNUM), cudaMemcpyDeviceToHost));
+						//Create definition for each variable and store it
+						writencvarstep(Param, Param.outvars[ivar], OutputVarMapCPU[Param.outvars[ivar]]);
+					}
+				}
+			}
+
+
+
 			// Download mean vars
-			CUDA_CHECK(cudaMemcpy(Hmean, Hmean_g, nx*ny*sizeof(DECNUM), cudaMemcpyDeviceToHost));
-			CUDA_CHECK(cudaMemcpy(uumean, uumean_g, nx*ny*sizeof(DECNUM), cudaMemcpyDeviceToHost));
-			CUDA_CHECK(cudaMemcpy(vvmean, vvmean_g, nx*ny*sizeof(DECNUM), cudaMemcpyDeviceToHost));
-			CUDA_CHECK(cudaMemcpy(hhmean, hhmean_g, nx*ny*sizeof(DECNUM), cudaMemcpyDeviceToHost));
-			CUDA_CHECK(cudaMemcpy(zsmean, zsmean_g, nx*ny*sizeof(DECNUM), cudaMemcpyDeviceToHost));
-			CUDA_CHECK(cudaMemcpy(Cmean, Cmean_g, nx*ny*sizeof(DECNUM), cudaMemcpyDeviceToHost));
+			//CUDA_CHECK(cudaMemcpy(Hmean, Hmean_g, nx*ny*sizeof(DECNUM), cudaMemcpyDeviceToHost));
+			//CUDA_CHECK(cudaMemcpy(uumean, uumean_g, nx*ny*sizeof(DECNUM), cudaMemcpyDeviceToHost));
+			//CUDA_CHECK(cudaMemcpy(vvmean, vvmean_g, nx*ny*sizeof(DECNUM), cudaMemcpyDeviceToHost));
+			//CUDA_CHECK(cudaMemcpy(hhmean, hhmean_g, nx*ny*sizeof(DECNUM), cudaMemcpyDeviceToHost));
+			//CUDA_CHECK(cudaMemcpy(zsmean, zsmean_g, nx*ny*sizeof(DECNUM), cudaMemcpyDeviceToHost));
+			//CUDA_CHECK(cudaMemcpy(Cmean, Cmean_g, nx*ny*sizeof(DECNUM), cudaMemcpyDeviceToHost));
 
 
-			CUDA_CHECK(cudaMemcpy(H, H_g, nx*ny*sizeof(DECNUM), cudaMemcpyDeviceToHost));
-			CUDA_CHECK(cudaMemcpy(uu, uu_g, nx*ny*sizeof(DECNUM), cudaMemcpyDeviceToHost));
-			CUDA_CHECK(cudaMemcpy(vv, vv_g, nx*ny*sizeof(DECNUM), cudaMemcpyDeviceToHost));
+			//CUDA_CHECK(cudaMemcpy(H, H_g, nx*ny*sizeof(DECNUM), cudaMemcpyDeviceToHost));
+			//CUDA_CHECK(cudaMemcpy(uu, uu_g, nx*ny*sizeof(DECNUM), cudaMemcpyDeviceToHost));
+			//CUDA_CHECK(cudaMemcpy(vv, vv_g, nx*ny*sizeof(DECNUM), cudaMemcpyDeviceToHost));
 			//CUDA_CHECK(cudaMemcpy(zs, zs_g, nx*ny*sizeof(DECNUM), cudaMemcpyDeviceToHost));
-			CUDA_CHECK(cudaMemcpy(Fx, Fx_g, nx*ny*sizeof(DECNUM), cudaMemcpyDeviceToHost));
-			CUDA_CHECK(cudaMemcpy(Fy, Fy_g, nx*ny*sizeof(DECNUM), cudaMemcpyDeviceToHost));
-			CUDA_CHECK(cudaMemcpy(thetamean, thetamean_g, nx*ny*sizeof(DECNUM), cudaMemcpyDeviceToHost));
-			CUDA_CHECK(cudaMemcpy(D, D_g, nx*ny*sizeof(DECNUM), cudaMemcpyDeviceToHost));
-			CUDA_CHECK(cudaMemcpy(urms, urms_g, nx*ny*sizeof(DECNUM), cudaMemcpyDeviceToHost));
-			CUDA_CHECK(cudaMemcpy(ueu, ueu_g, nx*ny*sizeof(DECNUM), cudaMemcpyDeviceToHost));
-			CUDA_CHECK(cudaMemcpy(vev, vev_g, nx*ny*sizeof(DECNUM), cudaMemcpyDeviceToHost));
+			//CUDA_CHECK(cudaMemcpy(Fx, Fx_g, nx*ny*sizeof(DECNUM), cudaMemcpyDeviceToHost));
+			//CUDA_CHECK(cudaMemcpy(Fy, Fy_g, nx*ny*sizeof(DECNUM), cudaMemcpyDeviceToHost));
+			//CUDA_CHECK(cudaMemcpy(thetamean, thetamean_g, nx*ny*sizeof(DECNUM), cudaMemcpyDeviceToHost));
+			//CUDA_CHECK(cudaMemcpy(D, D_g, nx*ny*sizeof(DECNUM), cudaMemcpyDeviceToHost));
+			//CUDA_CHECK(cudaMemcpy(urms, urms_g, nx*ny*sizeof(DECNUM), cudaMemcpyDeviceToHost));
+			//CUDA_CHECK(cudaMemcpy(ueu, ueu_g, nx*ny*sizeof(DECNUM), cudaMemcpyDeviceToHost));
+			//CUDA_CHECK(cudaMemcpy(vev, vev_g, nx*ny*sizeof(DECNUM), cudaMemcpyDeviceToHost));
 			//CUDA_CHECK( cudaMemcpy(C, ceqsg_g, nx*ny*sizeof(DECNUM ), cudaMemcpyDeviceToHost) );
-			CUDA_CHECK(cudaMemcpy(C, hum_g, nx*ny*sizeof(DECNUM), cudaMemcpyDeviceToHost));
+			//CUDA_CHECK(cudaMemcpy(C, hum_g, nx*ny*sizeof(DECNUM), cudaMemcpyDeviceToHost));
 			//CUDA_CHECK( cudaMemcpy(C,k_g, nx*ny*sizeof(DECNUM ), cudaMemcpyDeviceToHost) );
 			//CUDA_CHECK( cudaMemcpy(ctheta,ee_g, nx*ny*ntheta*sizeof(DECNUM ), cudaMemcpyDeviceToHost) );
-			CUDA_CHECK(cudaMemcpy(hh, hh_g, nx*ny*sizeof(DECNUM), cudaMemcpyDeviceToHost));
-			if (Param.morphology == 1 )// If moprhology is on
-			{
-				CUDA_CHECK(cudaMemcpy(zb, zb_g, nx*ny*sizeof(DECNUM), cudaMemcpyDeviceToHost));
-				CUDA_CHECK(cudaMemcpy(dzb, dzb_g, nx*ny*sizeof(DECNUM), cudaMemcpyDeviceToHost));
-			}
+			//CUDA_CHECK(cudaMemcpy(hh, hh_g, nx*ny*sizeof(DECNUM), cudaMemcpyDeviceToHost));
+			//if (Param.morphology == 1 )// If moprhology is on
+			//{
+			//	CUDA_CHECK(cudaMemcpy(zb, zb_g, nx*ny*sizeof(DECNUM), cudaMemcpyDeviceToHost));
+			//	CUDA_CHECK(cudaMemcpy(dzb, dzb_g, nx*ny*sizeof(DECNUM), cudaMemcpyDeviceToHost));
+			//}
 			//CUDA_CHECK( cudaMemcpy(xxp, xxp_g, npart*sizeof(DECNUM ), cudaMemcpyDeviceToHost) );
 			//CUDA_CHECK( cudaMemcpy(yyp, yyp_g, npart*sizeof(DECNUM ), cudaMemcpyDeviceToHost) );
 			printf("Writing output, totaltime:%f s, Mean dt=%f\n", totaltime, Param.outputtimestep/nstep);
 			write_text_to_log_file("Writing outputs, totaltime: " + std::to_string(totaltime) + ", Mean dt= " + std::to_string(Param.outputtimestep / nstep));
 			//writestep2nc(tsoutfile, nx, ny,/*npart,*/(float) totaltime, imodel,/*xxp,yyp,*/zb, zs, uu, vv, H, H, thetamean, D, urms, ueu, vev, C, dzb, Fx, Fy, hh, Hmean, uumean, vvmean, hhmean, zsmean, Cmean);
-			writestep2nc(Param,(float)totaltime, zb, zs, uu, vv, H, H, thetamean, D, urms, ueu, vev, C, dzb, Fx, Fy, hh, Hmean, uumean, vvmean, hhmean, zsmean, Cmean);
+			//writestep2nc(Param,(float)totaltime, zb, zs, uu, vv, H, H, thetamean, D, urms, ueu, vev, C, dzb, Fx, Fy, hh, Hmean, uumean, vvmean, hhmean, zsmean, Cmean);
 			
 			// Write a sigle timeseries in the file
 			if (!Param.TSoutfile.empty())
@@ -551,7 +878,7 @@ void mainloopGPU(XBGPUParam Param, std::vector<SLBnd> slbnd, std::vector<WindBnd
 					fsSLTS = fopen(Param.TSoutfile[o].c_str(), "a");
 					for (int n = 0; n < zsAllout[o].size(); n++)
 					{
-						fprintf(fsSLTS, "%f\t%.4f\n", zsAllout[o][n].time, zsAllout[o][n].wlev);
+						fprintf(fsSLTS, "%f\t%.4f\t%.4f\n", zsAllout[o][n].time, zsAllout[o][n].zs, zsAllout[o][n].H);
 					}
 					fclose(fsSLTS);
 					//reset zsout
@@ -589,6 +916,10 @@ void mainloopGPU(XBGPUParam Param, std::vector<SLBnd> slbnd, std::vector<WindBnd
 			//CUT_CHECK_ERROR("Reset avg execution failed\n");
 			CUDA_CHECK(cudaDeviceSynchronize());
 
+			resetavg_var << <gridDim, blockDim, 0 >> >(nx, ny, zsmax_g);
+			//CUT_CHECK_ERROR("Reset avg execution failed\n");
+			CUDA_CHECK(cudaDeviceSynchronize());
+
 			resetavg_var << <gridDim, blockDim, 0 >> >(nx, ny, Cmean_g);
 			//CUT_CHECK_ERROR("Reset avg execution failed\n");
 			CUDA_CHECK(cudaDeviceSynchronize());
@@ -603,7 +934,7 @@ void mainloopGPU(XBGPUParam Param, std::vector<SLBnd> slbnd, std::vector<WindBnd
 }
 
 
-void mainloopCPU(XBGPUParam Param,std::vector<SLBnd> slbnd, std::vector<WindBnd> wndbnd)
+void mainloopCPU(XBGPUParam Param, std::vector<SLBnd> slbnd, std::vector<WindBnd> wndbnd, std::vector<Wavebndparam> wavebndparam)
 {
 	printf("Computing CPU mode\n");
 
@@ -622,12 +953,12 @@ void mainloopCPU(XBGPUParam Param,std::vector<SLBnd> slbnd, std::vector<WindBnd>
 
 		if (Param.swave == 1 )
 		{
-			wavebnd(Param); // Calculate the boundary condition for this step
+			wavebnd(Param,wavebndparam); // Calculate the boundary condition for this step
 		}
 
 		if (Param.flow == 1)
 		{
-			flowbnd(Param,slbnd,wndbnd);// Calculate the flow boundary for this step
+			flowbnd(Param, slbnd, wndbnd, wavebndparam);// Calculate the flow boundary for this step
 		}
 		if (Param.swave == 1)
 		{
@@ -684,13 +1015,15 @@ void mainloopCPU(XBGPUParam Param,std::vector<SLBnd> slbnd, std::vector<WindBnd>
 
 
 
-void flowbnd(XBGPUParam Param,std::vector<SLBnd> slbnd, std::vector<WindBnd> wndbnd)
+void flowbnd(XBGPUParam Param, std::vector<SLBnd> slbnd, std::vector<WindBnd> wndbnd, std::vector<Wavebndparam> wavebndvec)
 {
 	
 	double zsbndi;
 	int stepinbnd;
 	int nx, ny;
 	
+	double timenext, timesincelast;
+
 	nx = Param.nx;
 	ny = Param.ny;
 	//update sl bnd
@@ -707,50 +1040,41 @@ void flowbnd(XBGPUParam Param,std::vector<SLBnd> slbnd, std::vector<WindBnd> wnd
 	zsbndi = interptime(slbnd[SLstepinbnd].wlev, slbnd[SLstepinbnd - 1].wlev, slbnd[SLstepinbnd].time - slbnd[SLstepinbnd - 1].time, totaltime - slbnd[SLstepinbnd - 1].time);
 
 
-	//std::cout << "i= " << stepinbnd << "; " << zsbndi << "\n" << std::endl;
-
-
-
-	//if (totaltime >= slbndtime)
-	//{
-
-	//	zsbndold = zsbndnew;
-	//	rtsl = slbndtime;
-	//	fscanf(fsl, "%f\t%f", &slbndtime, &zsbndnew);
-		//slbndtime=+rtsl;
-		//zsbnd=zsbndold+(t-slbndtime+rtsl)*(zsbndnew-zsbndold)/rtsl;
-	//}
-
-
-
-
-
 	if (Param.wavebndtype == 1)
 	{
-		for (int ni = 0; ni < ny; ni++)
-		{
-			zsbnd[ni] = zsbndi;//zsbndold + ((float) totaltime - rtsl)*(zsbndnew - zsbndold) / (slbndtime - rtsl);
-		}
+		timenext = wavebndvec[WAVstepinbnd].time - wavebndvec[WAVstepinbnd - 1].time;
+		timesincelast = (totaltime - wavebndvec[WAVstepinbnd - 1].time);
+
+	}
+	if (Param.wavebndtype >= 2)
+	{
+		timenext = Param.dtbc;
+		timesincelast = totaltime - (nwbndstep*Param.dtbc + wavebndvec[WAVstepinbnd - 1].time);
 	}
 
-	if (Param.wavebndtype == 2)
+	
+	if (Param.GPUDEVICE >= 0)
 	{
-		if (Param.GPUDEVICE >= 0)
-		{
 			dim3 blockDim(16, 16, 1);
 			dim3 gridDim(ceil((nx*1.0f) / blockDim.x), ceil((ny*1.0f) / blockDim.y), 1);
 			// FLow abs_2d should be here not at the flow step		
 			// Set weakly reflective offshore boundary
-			ubnd1D << <gridDim, blockDim, 0 >> >(nx, ny, Param.dx, Param.dt, Param.g, Param.rho, (float)totaltime, wavbndtime, dtwavbnd, zsbndi, Trep, qbndold_g, qbndnew_g, zs_g, uu_g, vv_g, vu_g, umeanbnd_g, vmeanbnd_g, zb_g, cg_g, hum_g, cfm_g, Fx_g, hh_g);
+			ubnd1D << <gridDim, blockDim, 0 >> >(nx, ny, Param.dx, Param.dt, Param.g, Param.rho, (float)totaltime, timesincelast, timenext, zsbndi, Trep, qbndold_g, qbndnew_g, zs_g, uu_g, vv_g, vu_g, umeanbnd_g, vmeanbnd_g, zb_g, cg_g, hum_g, cfm_g, Fx_g, hh_g);
 			//CUT_CHECK_ERROR("ubnd execution failed\n");
 			CUDA_CHECK(cudaDeviceSynchronize());
-		}
-		else
-		{
+
+			//uuvvzslatbnd << <gridDim, blockDim, 0 >> >(nx, ny, uu_g, vv_g, zs_g);
+			//CUT_CHECK_ERROR("uu vv zs lateral bnd execution failed\n");
+			//CUDA_CHECK(cudaDeviceSynchronize());
+
+
+	}
+	else
+	{
 			ubndCPU(nx, ny, Param.dx, Param.dt, Param.g, Param.rho, (float)totaltime, wavbndtime, dtwavbnd, zsbndi, Trep, qbndold_g, qbndnew_g, zs_g, uu_g, vv_g, vu_g, umeanbnd_g, vmeanbnd_g, zb_g, cg_g, hum_g, cfm_g, Fx_g, hh_g);
 
-		}
 	}
+	
 
 	
 	difft = wndbnd[WNDstepinbnd].time - totaltime;
@@ -1222,6 +1546,18 @@ void sedimentstep(XBGPUParam Param)
 
 int main(int argc, char **argv)
 {
+	//Model starts Here//
+
+	//The main function setups all the init of the model and then calls the mainloop to actually run the model
+
+
+	//First part reads the inputs to the model 
+	//then allocate memory on GPU and CPU
+	//Then prepare and initialise memory and arrays on CPU and GPU
+	// Prepare output file
+	// Run main loop
+	// Clean up and close
+
 
 	// Start timer to keep track of time 
 	clock_t startcputime, endcputime;
@@ -1233,11 +1569,13 @@ int main(int argc, char **argv)
 	totaltime = 0.0;
 	nextoutputtime = 0.0;
 
-
+	// This is just for temporary use
 	int nx, ny;
 	float dx, grdalpha;
 	double dt;
 	
+	
+
 
 	// Reset the log file 
 	FILE * flog;
@@ -1267,15 +1605,18 @@ int main(int argc, char **argv)
 
 	std::vector<SLBnd> slbnd;
 	std::vector<WindBnd> wndbnd;
+	std::vector<Wavebndparam> wavebnd;
 
-	std::ifstream fs("XBG_param.txt");
+
+		std::ifstream fs("XBG_param.txt");
 
 	if (fs.fail()){
 		std::cerr << "XBG_param.txt file could not be opened" << std::endl;
-		write_text_to_log_file("ERROR: XBG_param.txt file could not be opened...Exiting");
+		write_text_to_log_file("ERROR: XBG_param.txt file could not be opened...use this log file to create a file named XBG_param.txt");
+		SaveParamtolog(XParam);
 		exit(1);
 	}
-
+	// Read and interpret each line of the XBG_param.txt
 	std::string line;
 	while (std::getline(fs, line))
 	{
@@ -1340,7 +1681,7 @@ int main(int argc, char **argv)
 		//fid = fopen(XParam.Bathymetryfile.c_str(), "r");
 		//fscanf(fid, "%u\t%u\t%lf\t%*f\t%lf", &XParam.nx, &XParam.ny, &XParam.dx, &XParam.grdalpha);
 		printf("nx=%d\tny=%d\tdx=%f\talpha=%f\n", XParam.nx, XParam.ny, XParam.dx, XParam.grdalpha*180/pi);
-		write_text_to_log_file("nx=" + std::to_string(XParam.nx) + " ny=" + std::to_string(XParam.ny) + " dx=" + std::to_string(XParam.dx) + " rdalpha=" + std::to_string(XParam.grdalpha));
+		write_text_to_log_file("nx=" + std::to_string(XParam.nx) + " ny=" + std::to_string(XParam.ny) + " dx=" + std::to_string(XParam.dx) + " grdalpha=" + std::to_string(XParam.grdalpha*180.0/pi));
 	}
 	else
 	{
@@ -1356,7 +1697,7 @@ int main(int argc, char **argv)
 	//fiz=fopen("zsinit.md","r");
 	//fscanf(fiz,"%u\t%u\t%f\t%*f\t%f",&nx,&ny,&dx,&grdalpha);
 
-	XParam.grdalpha = XParam.grdalpha*pi / 180; // grid rotation
+	//XParam.grdalpha = XParam.grdalpha*pi / 180; // grid rotation
 
 	printf("Opening sea level bnd...");
 	write_text_to_log_file("Opening sea level bnd...");
@@ -1387,7 +1728,7 @@ int main(int argc, char **argv)
 	}
 	
 	
-	//Note: the first rtsl should be 0 
+	
 	
 	SLstepinbnd = 1;
 
@@ -1424,13 +1765,84 @@ int main(int argc, char **argv)
 		wndbnd.push_back(wndbndline);
 		
 	}
-	WNDstepinbnd = 1;
+	WNDstepinbnd = 1; // Should be stored in XParam
 
 	printf("done\n");
 	write_text_to_log_file("done");
-	XParam = checkparamsanity(XParam, slbnd,wndbnd);
 	
+	
+	// Read Wind forcing
+	printf("Read wave forcing...");
+	write_text_to_log_file("Reading wave forcing...");
+	if (!XParam.wavebndfile.empty())
+	{
+		// A wave bnd file was specified
+		if (XParam.wavebndtype == 1)
+		{
+			//Constant wave boundary (no wave group)
+			wavebnd = ReadCstBnd(XParam);
+			//Need to set rtlength?
+		}
+		if (XParam.wavebndtype == 2)
+		{
+			//Reuse XBeach boundary files, this requires a specific input file
+			XParam = readXbbndhead(XParam);
+			wavebnd = readXbbndfile(XParam);
+		}
+		if (XParam.wavebndtype == 3)
+		{
+			//Reuse XBeach_GPU boundary. Similar to XBeach but in netcdf format and all self explanatory
+			XParam = read_reuse_bndnc_head(XParam);
+			wavebnd = read_reuse_bndnc_vec(XParam);
+		}
+		if (XParam.wavebndtype == 4)
+		{
+			//Generate wave group for JONSWAP parameters
+			wavebnd=ReadJSWPBnd(XParam);
+		}
+		if (XParam.wavebndtype == 5)
+		{
+			//Generate wave group for input spectrum
+			wavebnd = ReadSPECBnd(XParam);
+		}
 
+	}
+	else
+	{
+		// No files specified that implies no wave forcing
+		// no wave forcing means constant waves at 0.0f (if swave is on or not because we need Fx and Fy to be null)
+		XParam.wavebndtype = 1;
+		Wavebndparam waveline;
+		waveline.time = 0.0;
+		waveline.Hs = 0.0001; //not zero?
+		waveline.Tp = 10.0;
+		// make bnd normal wave direction
+		waveline.Dp = (1.5*pi - XParam.grdalpha); // Why make it in degree?
+		waveline.s = 1000.0;
+		wavebnd.push_back(waveline);
+
+		waveline.time = max(XParam.endtime, slbnd.back().time);
+		waveline.Hs = 0.0001; //not zero?
+		waveline.Tp = 10.0;
+		// make bnd normal wave direction
+		waveline.Dp = (1.5*pi - XParam.grdalpha) ; // Why make it in degree?
+		waveline.s = 1000.0;
+		wavebnd.push_back(waveline);
+
+		//Now create the Specbnd array and the Wavebnd class for constant forcing
+		//This should be part of wave init?
+		//MakeCstSpec(XParam,wavebnd);
+
+
+
+	}
+
+	WAVstepinbnd = 1;
+
+
+	///////////////////////////////////////////////////////////////////
+	// Check input sanity
+	XParam = checkparamsanity(XParam, slbnd, wndbnd,wavebnd);
 
 
 	nx = XParam.nx;
@@ -1448,10 +1860,11 @@ int main(int argc, char **argv)
 	dzb = (DECNUM *)malloc(nx*ny*sizeof(DECNUM));
 	stdep = (DECNUM *)malloc(nx*ny*sizeof(DECNUM));
 	zeros = (DECNUM *)malloc(nx*ny*sizeof(DECNUM));
+	dummy = (DECNUM *)malloc(nx*ny*sizeof(DECNUM));
 	umeanbnd = (DECNUM *)malloc(ny*sizeof(DECNUM));
 	
-
-
+	
+	
 
 	// set initital condition and read bathy file
 	printf("Read bathy data...");
@@ -1498,13 +1911,15 @@ int main(int argc, char **argv)
 			//hh[inod+(jread-1)*nx]=max(zb[inod+(jread-1)*nx]+zs[inod+(jreadzs-1)*nx],eps);
 			//zs[inod+(jread-1)*nx]=max(zs[inod+(jreadzs-1)*nx],-1*zb[inod+(jread-1)*nx]);
 
-			zs[inod + (fnod - 1)*nx] = max(slbnd[0].wlev*1.0f, -1 * zb[inod + (fnod - 1)*nx]);
+			zs[inod + (fnod - 1)*nx] = max((float)slbnd[0].wlev, -1 * zb[inod + (fnod - 1)*nx]);
 			hh[inod + (fnod - 1)*nx] = max(zb[inod + (fnod - 1)*nx] + slbnd[0].wlev, XParam.eps);
 
 
 
 		}
 	}
+
+	XParam.offdepth = hh[0+(int)floor(ny*0.5)*nx]; // zb offshore should be uniform
 
 	//fclose(fid);
 	printf("...done\n");
@@ -1564,12 +1979,10 @@ int main(int argc, char **argv)
 	Fy = (DECNUM *)malloc(nx*ny*sizeof(DECNUM));
 	zsbnd = (DECNUM *)malloc(ny*sizeof(DECNUM));
 
-	cgx = (DECNUM *)malloc(nx*ny*ntheta*sizeof(DECNUM));
-	cgy = (DECNUM *)malloc(nx*ny*ntheta*sizeof(DECNUM));
-	cx = (DECNUM *)malloc(nx*ny*ntheta*sizeof(DECNUM));
-	cy = (DECNUM *)malloc(nx*ny*ntheta*sizeof(DECNUM));
-	ctheta = (DECNUM *)malloc(nx*ny*ntheta*sizeof(DECNUM));
+	
 
+	
+	
 
 
 	usd = (DECNUM *)malloc(nx*ny*sizeof(DECNUM));
@@ -1581,33 +1994,39 @@ int main(int argc, char **argv)
 	vev = (DECNUM *)malloc(nx*ny*sizeof(DECNUM));
 	thetamean = (DECNUM *)malloc(nx*ny*sizeof(DECNUM));
 
+	
+
 
 	Hmean = (DECNUM *)malloc(nx*ny*sizeof(DECNUM));
 	uumean = (DECNUM *)malloc(nx*ny*sizeof(DECNUM));
 	vvmean = (DECNUM *)malloc(nx*ny*sizeof(DECNUM));
 	hhmean = (DECNUM *)malloc(nx*ny*sizeof(DECNUM));
 	zsmean = (DECNUM *)malloc(nx*ny*sizeof(DECNUM));
+	zsmax = (DECNUM *)malloc(nx*ny*sizeof(DECNUM));
 	Cmean = (DECNUM *)malloc(nx*ny*sizeof(DECNUM));
 	arrmax = (DECNUM *)malloc(nx*ny*sizeof(DECNUM));
 	arrmin = (DECNUM *)malloc(nx*ny*sizeof(DECNUM));
 
 
+	
 
 	omega = 2 * pi / Trep;
 
 	sigm = (DECNUM *)malloc(nx*ny*sizeof(DECNUM));
 	//sigt= (DECNUM *)malloc(nx*ny*ntheta*sizeof(DECNUM));
-	thet = (DECNUM *)malloc(nx*ny*ntheta*sizeof(DECNUM));
+	
 	//costhet=(DECNUM *)malloc(nx*ny*ntheta*sizeof(DECNUM));
 	//sinthet=(DECNUM *)malloc(nx*ny*ntheta*sizeof(DECNUM));
 
-
+	
 
 	k = (DECNUM *)malloc(nx*ny*sizeof(DECNUM));
 	c = (DECNUM *)malloc(nx*ny*sizeof(DECNUM));
 	kh = (DECNUM *)malloc(nx*ny*sizeof(DECNUM));
 	cg = (DECNUM *)malloc(nx*ny*sizeof(DECNUM));
 	sinh2kh = (DECNUM *)malloc(nx*ny*sizeof(DECNUM));
+
+	
 
 	dhdx = (DECNUM *)malloc(nx*ny*sizeof(DECNUM));
 	dhdy = (DECNUM *)malloc(nx*ny*sizeof(DECNUM));
@@ -1616,12 +2035,15 @@ int main(int argc, char **argv)
 	dvdx = (DECNUM *)malloc(nx*ny*sizeof(DECNUM));
 	dvdy = (DECNUM *)malloc(nx*ny*sizeof(DECNUM));
 
+	
 	C = (DECNUM *)malloc(nx*ny*sizeof(DECNUM));
 	R = (DECNUM *)malloc(nx*ny*sizeof(DECNUM));
 	DR = (DECNUM *)malloc(nx*ny*sizeof(DECNUM));
 
+	
 
 
+	
 	//ONLY FOR GPU BELOW CPU
 
 
@@ -1634,7 +2056,9 @@ int main(int argc, char **argv)
 
 		if (XParam.swave == 1)
 		{
-			waveinitGPU(XParam);
+			XParam=waveinitGPU(XParam, wavebnd);
+
+			//Trep
 		}
 
 		//CUT_DEVICE_INIT(argc, argv);
@@ -1725,6 +2149,7 @@ int main(int argc, char **argv)
 		CUDA_CHECK(cudaMalloc((void **)&vvmean_g, nx*ny*sizeof(DECNUM)));
 		CUDA_CHECK(cudaMalloc((void **)&hhmean_g, nx*ny*sizeof(DECNUM)));
 		CUDA_CHECK(cudaMalloc((void **)&zsmean_g, nx*ny*sizeof(DECNUM)));
+		CUDA_CHECK(cudaMalloc((void **)&zsmax_g, nx*ny*sizeof(DECNUM)));
 		CUDA_CHECK(cudaMalloc((void **)&Cmean_g, nx*ny*sizeof(DECNUM)));
 		CUDA_CHECK(cudaMalloc((void **)&ceqsg_g, nx*ny*sizeof(DECNUM)));
 		CUDA_CHECK(cudaMalloc((void **)&arrmin_g, nx*ny*sizeof(DECNUM)));
@@ -1741,7 +2166,8 @@ int main(int argc, char **argv)
 
 		if (XParam.swave == 1 )
 		{
-			waveinitGPU(XParam);
+			XParam=waveinitGPU(XParam, wavebnd);
+			//Trep
 		}
 
 		//Allocate GPU memory
@@ -1831,6 +2257,7 @@ int main(int argc, char **argv)
 		vvmean_g = (DECNUM *)malloc(nx*ny*sizeof(DECNUM));
 		hhmean_g = (DECNUM *)malloc(nx*ny*sizeof(DECNUM));
 		zsmean_g = (DECNUM *)malloc(nx*ny*sizeof(DECNUM));
+		zsmax_g = (DECNUM *)malloc(nx*ny*sizeof(DECNUM));
 		Cmean_g = (DECNUM *)malloc(nx*ny*sizeof(DECNUM));
 		ceqsg_g = (DECNUM *)malloc(nx*ny*sizeof(DECNUM));
 		kh_g = (DECNUM *)malloc(nx*ny*sizeof(DECNUM));
@@ -1858,7 +2285,9 @@ int main(int argc, char **argv)
 		////////////////////////////////////////////////////////////////////////////////////////////
 		// Copy CPU array to the GPU                                                       /////////
 		////////////////////////////////////////////////////////////////////////////////////////////
+		
 
+		//Should be replaced by cudaMemset
 
 
 		CUDA_CHECK(cudaMemcpy(hh_g, hh, nx*ny*sizeof(DECNUM), cudaMemcpyHostToDevice));
@@ -1922,6 +2351,7 @@ int main(int argc, char **argv)
 		CUDA_CHECK(cudaMemcpy(zsmean_g, uu, nx*ny*sizeof(DECNUM), cudaMemcpyHostToDevice));
 		CUDA_CHECK(cudaMemcpy(Cmean_g, uu, nx*ny*sizeof(DECNUM), cudaMemcpyHostToDevice));
 
+		CUDA_CHECK(cudaMemset(zsmax_g, 0.0f, nx*ny*sizeof(DECNUM)));
 
 		/*CUDA_CHECK( cudaMemcpy(xxp_g, xxp, npart*sizeof(DECNUM ), cudaMemcpyHostToDevice) );
 		CUDA_CHECK( cudaMemcpy(yyp_g, yyp, npart*sizeof(DECNUM ), cudaMemcpyHostToDevice) );
@@ -1999,6 +2429,8 @@ int main(int argc, char **argv)
 				hhmean_g[ii + jj*nx] = uu[ii + jj*nx];
 				zsmean_g[ii + jj*nx] = uu[ii + jj*nx];
 				Cmean_g[ii + jj*nx] = uu[ii + jj*nx];
+
+				zsmean_g[ii + jj*nx] = 0.0f;
 			}
 		}
 	}
@@ -2053,7 +2485,7 @@ int main(int argc, char **argv)
 		// Calculate initial maximum timestep
 
 
-		FLOWDT << <gridDim, blockDim, 0 >> >(nx, ny, dx, 0.5*XParam.CFL, dtflow_g, hh_g);
+		FLOWDT << <gridDim, blockDim, 0 >> >(nx, ny, dx, 0.5f*XParam.CFL, dtflow_g, hh_g);
 		CUDA_CHECK(cudaDeviceSynchronize());
 
 
@@ -2132,15 +2564,249 @@ int main(int argc, char **argv)
 
 		}
 	}
+
+	//Map a link between the variable s a string and the variable pointer
+	//{ "hh", "uu", "vv", "zs", "zb", "cfm", "dzb", "stdep", "Fx", "Fy", "cgx", "cgy", "cx", "cy", "ctheta", "usd", "D", "E", "H", "urms", "ueu", "vev", "thetamean", "Hmean", "uumean", "vvmean", "hhmean", "zsmean", "Cmean", "sigm", "k", "c", "kh", "cg", "sinh2kh", "dhdx", "dhdy", "dudx", "dudy", "dvdx", "dvdy", "C", "R", "DR" };
+	std::map<std::string, DECNUM *> OutputVarMapCPU;
+	std::map<std::string, int> OutputVarMapndim;
+
+	
+	OutputVarMapCPU["hh"] = hh;
+	OutputVarMapndim["hh"] = 3;
+
+	OutputVarMapCPU["uu"] = uu;
+	OutputVarMapndim["uu"] = 3;
+
+	OutputVarMapCPU["vv"] = vv;
+	OutputVarMapndim["vv"] = 3;
+
+	OutputVarMapCPU["zs"] = zs;
+	OutputVarMapndim["zs"] = 3;
+	
+	OutputVarMapCPU["zb"] = zb;
+	if (XParam.morphology == 1)
+	{
+		OutputVarMapndim["zb"] = 3;
+	}
+	else
+	{
+		OutputVarMapndim["zb"] = 2;
+	}
+	
+	OutputVarMapCPU["cfm"] = cfm;
+	OutputVarMapndim["cfm"] = 3;
+
+	OutputVarMapCPU["dzb"] = dzb;
+	OutputVarMapndim["dzb"] = 3;
+
+	OutputVarMapCPU["stdep"] = stdep;
+	OutputVarMapndim["stdep"] = 3;
+
+	OutputVarMapCPU["Fx"] = Fx;
+	OutputVarMapndim["Fx"] = 3;
+
+	OutputVarMapCPU["Fy"] = Fy;
+	OutputVarMapndim["Fy"] = 3;
+
+	OutputVarMapCPU["cgx"] = cgx;
+	OutputVarMapndim["cgx"] = 4;
+
+	OutputVarMapCPU["cgy"] = cgy;
+	OutputVarMapndim["cgy"] = 4;
+
+	OutputVarMapCPU["cx"] = cx;
+	OutputVarMapndim["cx"] = 4;
+
+	OutputVarMapCPU["cy"] = cy;
+	OutputVarMapndim["cy"] = 4;
+
+	OutputVarMapCPU["ctheta"] = ctheta;
+	OutputVarMapndim["ctheta"] = 4;
+
+	OutputVarMapCPU["ee"] = ee;
+	OutputVarMapndim["ee"] = 4;
+
+	OutputVarMapCPU["rr"] = rr;
+	OutputVarMapndim["rr"] = 4;
+
+	OutputVarMapCPU["D"] = D;
+	OutputVarMapndim["D"] = 3;
+
+	OutputVarMapCPU["E"] = E;
+	OutputVarMapndim["E"] = 3;
+
+	OutputVarMapCPU["H"] = H;
+	OutputVarMapndim["H"] = 3;
+
+	OutputVarMapCPU["thetamean"] = thetamean;
+	OutputVarMapndim["thetamean"] = 3;
+
+	OutputVarMapCPU["urms"] = urms;
+	OutputVarMapndim["urms"] = 3;
+
+	OutputVarMapCPU["ueu"] = ueu;
+	OutputVarMapndim["ueu"] = 3;
+
+	OutputVarMapCPU["vev"] = vev;
+	OutputVarMapndim["vev"] = 3;
+
+
+	OutputVarMapCPU["hhmean"] = hhmean;
+	OutputVarMapndim["hhmean"] = 3;
+
+	OutputVarMapCPU["uumean"] = uumean;
+	OutputVarMapndim["uumean"] = 3;
+
+	OutputVarMapCPU["vvmean"] = vvmean;
+	OutputVarMapndim["vvmean"] = 3;
+
+	OutputVarMapCPU["zsmean"] = zsmean;
+	OutputVarMapndim["zsmean"] = 3;
+
+	OutputVarMapCPU["zsmax"] = zsmax;
+	OutputVarMapndim["zsmax"] = 3;
+
+	OutputVarMapCPU["Hmean"] = Hmean;
+	OutputVarMapndim["Hmean"] = 3;
+
+	OutputVarMapCPU["Cmean"] = Cmean;
+	OutputVarMapndim["Cmean"] = 3;
+
+	OutputVarMapCPU["sigm"] = sigm;
+	OutputVarMapndim["sigm"] = 3;
+
+	OutputVarMapCPU["k"] = k;
+	OutputVarMapndim["k"] = 3;
+
+	OutputVarMapCPU["c"] = c;
+	OutputVarMapndim["c"] = 3;
+
+	OutputVarMapCPU["kh"] = kh;
+	OutputVarMapndim["kh"] = 3;
+
+	OutputVarMapCPU["cg"] = cg;
+	OutputVarMapndim["cg"] = 3;
+
+	OutputVarMapCPU["sinh2kh"] = sinh2kh;
+	OutputVarMapndim["sinh2kh"] = 3;
+
+	OutputVarMapCPU["dhdx"] = dhdx;
+	OutputVarMapndim["dhdx"] = 3;
+
+	OutputVarMapCPU["dhdy"] = dhdy;
+	OutputVarMapndim["dhdy"] = 3;
+
+	OutputVarMapCPU["dudx"] = dudx;
+	OutputVarMapndim["dudx"] = 3;
+
+	OutputVarMapCPU["dudy"] = dudy;
+	OutputVarMapndim["dudy"] = 3;
+
+	OutputVarMapCPU["dvdx"] = dvdx;
+	OutputVarMapndim["dvdx"] = 3;
+
+	OutputVarMapCPU["dvdy"] = dvdy;
+	OutputVarMapndim["dvdy"] = 3;
+
+	OutputVarMapCPU["C"] = C;
+	OutputVarMapndim["C"] = 3;
+
+	OutputVarMapCPU["R"] = R;
+	OutputVarMapndim["R"] = 3;
+
+	OutputVarMapCPU["DR"] = DR;
+	OutputVarMapndim["DR"] = 3;
+
+	OutputVarMapCPU["wci"] = zeros;
+	OutputVarMapndim["wci"] = 3;
+
+	OutputVarMapCPU["vmageu"] = zeros;
+	OutputVarMapndim["vmageu"] = 3;
+
+	OutputVarMapCPU["vmagev"] = zeros;
+	OutputVarMapndim["vmagev"] = 3;
+
+	OutputVarMapCPU["dzsdx"] = zeros;
+	OutputVarMapndim["dzsdx"] = 3;
+
+	OutputVarMapCPU["dzsdy"] = zeros;
+	OutputVarMapndim["dzsdy"] = 3;
+
+	OutputVarMapCPU["dzsdt"] = zeros;
+	OutputVarMapndim["dzsdt"] = 3;
+
+	OutputVarMapCPU["fwm"] = zeros;
+	OutputVarMapndim["fwm"] = 3;
+
+	OutputVarMapCPU["hu"] = hh;
+	OutputVarMapndim["hu"] = 3;
+
+	OutputVarMapCPU["hv"] = hh;
+	OutputVarMapndim["hv"] = 3;
+
+	OutputVarMapCPU["hum"] = hh;
+	OutputVarMapndim["hum"] = 3;
+
+	OutputVarMapCPU["hvm"] = hh;
+	OutputVarMapndim["hvm"] = 3;
+
+	OutputVarMapCPU["uv"] = zeros;
+	OutputVarMapndim["uv"] = 3;
+
+	OutputVarMapCPU["vu"] = zeros;
+	OutputVarMapndim["vu"] = 3;
+
+	OutputVarMapCPU["ududx"] = zeros;
+	OutputVarMapndim["ududx"] = 3;
+
+	OutputVarMapCPU["vdvdy"] = zeros;
+	OutputVarMapndim["vdvdy"] = 3;
+
+	OutputVarMapCPU["vdudy"] = zeros;
+	OutputVarMapndim["vdudy"] = 3;
+
+	OutputVarMapCPU["udvdx"] = zeros;
+	OutputVarMapndim["udvdx"] = 3;
+
+	OutputVarMapCPU["ust"] = zeros;
+	OutputVarMapndim["ust"] = 3;
+
+	OutputVarMapCPU["stdep"] = stdep;
+	OutputVarMapndim["stdep"] = 3;
+
+	OutputVarMapCPU["kturb"] = zeros;
+	OutputVarMapndim["kturb"] = 3;
+
+	OutputVarMapCPU["rolthick"] = zeros;
+	OutputVarMapndim["rolthick"] = 3;
+
+	OutputVarMapCPU["ceqsg"] = zeros;
+	OutputVarMapndim["ceqsg"] = 3;
+
 	// prepare output file
 	printf("prepare output");
 	write_text_to_log_file("prepare output");
+
+	// Proof of concept for map
 	//creatncfile(tsoutfile, nx, ny, dx, 0.0f, imodel, zb, zs, uu, vv, H, H, thetamean, uu, uu, uu, uu, uu, uu, uu, hh, uu, uu, uu, uu, uu, uu);
-	creatncfile(XParam, 0.0f, zb, zs, uu, vv, H, H, thetamean, uu, uu, uu, uu, uu, uu, uu, hh, uu, uu, uu, uu, uu, uu);
+	//creatncfile(XParam, 0.0f, OutputVarMapCPU["zb"], OutputVarMapCPU["zs"], OutputVarMapCPU["uu"], OutputVarMapCPU["vv"], H, H, thetamean, uu, uu, uu, uu, uu, uu, uu, hh, uu, uu, uu, uu, uu, uu);
+
+	if (!XParam.outvars.empty())
+	{
+		//create nc file with no variables
+		creatncfileUD(XParam, 0.0, ntheta, dtheta, thetamin, thetamax);
+		for (int ivar = 0; ivar < XParam.outvars.size(); ivar++)
+		{
+			//Create definition for each variable and store it
+			defncvar(XParam, XParam.outvars[ivar], OutputVarMapndim[XParam.outvars[ivar]], OutputVarMapCPU[XParam.outvars[ivar]]);
+		}
+	}
+
+
 
 	//create3dnc(nx,ny,ntheta,dx,0.0f,theta,ctheta);
 
-	istepout = istepout + nstepout; // Depreciated
+	istepout = istepout + nstepout; // Depreciated ?
 	nextoutputtime = nextoutputtime + XParam.outputtimestep;
 
 	printf("...done\n");
@@ -2172,11 +2838,11 @@ int main(int argc, char **argv)
 	// Run the model
 	if (XParam.GPUDEVICE >= 0)
 	{
-		mainloopGPU(XParam, slbnd,wndbnd);
+		mainloopGPU(XParam, slbnd, wndbnd, wavebnd);
 	}
 	else
 	{
-		mainloopCPU(XParam, slbnd,wndbnd);
+		mainloopCPU(XParam, slbnd, wndbnd, wavebnd);
 	}
 
 
@@ -2192,6 +2858,8 @@ int main(int argc, char **argv)
 	write_text_to_log_file("End Computation");
 	write_text_to_log_file("#################################");
 	write_text_to_log_file("Total runtime= " + std::to_string((endcputime - startcputime) / CLOCKS_PER_SEC) + " seconds");
+		
+	
 	cudaDeviceReset();
 
 	//CUT_EXIT(argc, argv);
