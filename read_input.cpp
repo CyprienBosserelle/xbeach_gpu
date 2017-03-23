@@ -528,6 +528,67 @@ std::vector<Wavebndparam> ReadJSWPBnd(XBGPUParam XParam)
 	return wavebnd;
 }
 
+std::vector<Wavebndparam> ReadSPECBnd(XBGPUParam XParam)
+{
+	std::vector<Wavebndparam> wavebnd;
+
+
+	std::ifstream fs(XParam.wavebndfile);
+
+	if (fs.fail()){
+		std::cerr << XParam.wavebndfile << " Wave bnd file could not be opened" << std::endl;
+		write_text_to_log_file("ERROR: Wave bnd file could not be opened ");
+		exit(1);
+	}
+
+	std::string line;
+	std::vector<std::string> lineelements;
+	Wavebndparam waveline;
+
+	while (std::getline(fs, line))
+	{
+		//std::cout << line << std::endl;
+
+		// skip empty lines
+		if (!line.empty())
+		{
+			//Data should be in teh format :
+
+			//by default we expect tab delimitation
+			lineelements = split(line, '\t');
+			if (lineelements.size() < 2) // If we cant find all the elements it must be space delimited
+			{
+				lineelements.clear();
+				lineelements = split(line, ' ');
+			}
+			if (lineelements.size() < 2) // If we cant find all the elements it must be space delimited
+			{
+				lineelements.clear();
+				lineelements = split(line, ',');
+			}
+			if (lineelements.size() < 2) // Give up
+			{
+				// Giving up now! Could not read the files
+				//issue a warning and exit
+				std::cerr << XParam.wavebndfile << "ERROR Wave bnd file format error. only " << lineelements.size() << " where 2 were expected. Exiting." << std::endl;
+				write_text_to_log_file("ERROR:  Wind bnd file (" + XParam.wavebndfile + ") format error. only " + std::to_string(lineelements.size()) + " where 2 were expected. Exiting.");
+				write_text_to_log_file(line);
+				exit(1);
+			}
+
+			waveline.time = std::stod(lineelements[0]);
+			waveline.Swanfile = lineelements[1];
+			wavebnd.push_back(waveline);
+		}
+	}
+	fs.close();
+
+	waveline.time = wavebnd.back().time + XParam.rtlength;
+	wavebnd.push_back(waveline);
+
+	return wavebnd;
+}
+
 XBGPUParam readparamstr(std::string line, XBGPUParam param)
 {
 
@@ -1407,6 +1468,7 @@ std::string trim(const std::string& str, const std::string& whitespace)
 
 	return str.substr(strBegin, strRange);
 }
+
 
 
 

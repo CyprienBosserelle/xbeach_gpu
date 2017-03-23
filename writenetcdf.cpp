@@ -1283,3 +1283,181 @@ void read_reuse_bndnc(XBGPUParam Param, int rec, float &Trep, double * &qfile, d
 	free(eetemp);
 
 }
+
+
+void readSWANSPEC(XBGPUParam Param, std::vector<Wavebndparam> wavebnd, int step, int &nf, int &nd, double *&freq, double *&dir, double*&Spec)
+{
+	//
+	int status;
+	int ncid, varid, xvarid, yvarid;
+
+	int nx, ny;
+
+	int  ndimshh, ndims;
+	double *xcoord, *ycoord;
+
+	int dimids[NC_MAX_VAR_DIMS];   /* dimension IDs */
+	char coordname[NC_MAX_NAME + 1];
+	size_t  *ddimhh;
+
+	std::vector<std::string> splittedstr;
+	std::string mainvarname, filename;
+	// first look fo an question mark
+	// If present then the user specified the main variable name, if absent we have to figure it out
+	splittedstr = split(wavebnd[step].Swanfile, '?');
+
+	if (splittedstr.size() > 1)
+	{
+		filename = splittedstr[0];
+		mainvarname = splittedstr[1];
+	}
+	else
+	{
+		filename = wavebnd[step].Swanfile;
+		mainvarname = "z";
+
+	}
+
+	status = nc_open(filename.c_str(), NC_NOWRITE, &ncid);
+	if (status != NC_NOERR)	handle_error(status);
+
+	status = nc_inq_varid(ncid, mainvarname.c_str(), &varid);
+	if (status != NC_NOERR)	handle_error(status);
+
+	status = nc_inq_varndims(ncid, varid, &ndimshh);
+	if (status != NC_NOERR) handle_error(status);
+	//printf("hhVar:%d dims\n", ndimshh);
+
+	status = nc_inq_vardimid(ncid, varid, dimids);
+	if (status != NC_NOERR) handle_error(status);
+
+	ddimhh = (size_t *)malloc(ndimshh*sizeof(size_t));
+
+	//Read dimensions nx_u ny_u 
+	for (int iddim = 0; iddim < ndimshh; iddim++)
+	{
+		status = nc_inq_dimlen(ncid, dimids[iddim], &ddimhh[iddim]);
+		if (status != NC_NOERR) handle_error(status);
+
+		//printf("dim:%d=%d\n", iddim, ddimhh[iddim]);
+	}
+	
+	int ycovar, xcovar;
+	
+	ny = ddimhh[0];
+	nx = ddimhh[1];
+	
+	ycovar = dimids[0];
+	xcovar = dimids[1];
+
+	//allocate
+	xcoord = (double *)malloc(nx*sizeof(double));
+	ycoord = (double *)malloc(ny*sizeof(double));
+
+	status = nc_inq_dimname(ncid, ycovar, coordname);
+	if (status != NC_NOERR) handle_error(status);
+
+	status = nc_inq_varid(ncid, coordname, &yvarid);
+	if (status != NC_NOERR) handle_error(status);
+	
+	size_t starty[] = { 0 };
+	size_t county[] = { ny };
+	status = nc_get_vara_double(ncid, yvarid, starty, county, ycoord);
+	if (status != NC_NOERR) handle_error(status);
+	
+	//xcoord
+	//xcoord
+	status = nc_inq_dimname(ncid, xcovar, coordname);
+	if (status != NC_NOERR) handle_error(status);
+
+	status = nc_inq_varid(ncid, coordname, &xvarid);
+	if (status != NC_NOERR) handle_error(status);
+
+	size_t startx[] = { 0 };
+	size_t countx[] = { nx };
+	status = nc_get_vara_double(ncid, xvarid, startx, countx, xcoord);
+	if (status != NC_NOERR) handle_error(status);
+
+	// zz
+
+	double * zz;
+	zz = (double *)malloc(nx*ny*sizeof(double));
+
+
+	size_t start[] = { 0, 0 };
+	size_t count[] = { ny, nx };
+	status = nc_get_vara_double(ncid, varid, start, count, zz);
+	if (status != NC_NOERR) handle_error(status);
+
+	// direction should be in  from North
+	//Check fpor negative valiues and values larger than say 10
+	//Check xcorrd
+	int xvisdir = 0;
+	for (int i = 0; i < nx; i++)
+	{
+		if (xcoord[i]<0.0 || xcoord[i]>10.0)
+		{
+			xvisdir = 1;
+			break;
+		}
+	}
+
+	// now if xvisdir==1: dir=xcoord freq=ycoord transpose Spec
+	// now if xvisdir==0: frreq=xcoord dir=ycoord no need to transpose Spec
+	
+	Spec = (double *)malloc(ny*nx*sizeof(double));
+
+	if (xvisdir == 1)
+	{
+		nf = ny;
+		nd = nx;
+
+		dir = (double *)malloc(nx*sizeof(double));
+		freq = (double *)malloc(ny*sizeof(double));
+		for (int i = 0; i < nx; i++)
+		{
+			dir[i] = (1.5*pi - Param.grdalpha) - xcoord[i] * pi / 180;
+			for (int j = 0; j < ny; j++)
+			{
+				if (i == 0)
+				{
+					freq[j] = ycoord[j];
+				}
+				Spec[i + j*nx] = zz[j + i*ny]*180/pi; // convert to m2/Hz/rad
+
+				//
+			}
+		}
+
+
+
+	}
+	else
+	{
+		nf = nx;
+		nd = ny;
+
+		dir = (double *)malloc(ny*sizeof(double));
+		freq = (double *)malloc(nx*sizeof(double));
+		for (int i = 0; i < nx; i++)
+		{
+			freq[i] = xcoord[i];
+			for (int j = 0; j < ny; j++)
+			{
+				if (i == 0)
+				{
+					dir[j] = (1.5*pi - Param.grdalpha) - ycoord[j] * pi / 180;
+					//(1.5*pi - XParam.grdalpha) - std::stod(lineelements[3])*pi / 180;
+				}
+				Spec[i + j*nx] = zz[i + j*nx] * 180 / pi;
+
+				//
+			}
+		}
+	}
+
+
+	//close file
+	status = nc_close(ncid);
+	//
+}

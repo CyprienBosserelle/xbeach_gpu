@@ -1223,7 +1223,29 @@ __global__ void eulervstep(int nx, int ny, DECNUM dx, DECNUM dt, DECNUM g, DECNU
 	}
 }
 
+__global__ void flowsecO_advUV(int nx, int ny, DECNUM *uuold, DECNUM *vvold, DECNUM *uu, DECNUM *vv)
+{
+	float mindepth;
+	
+	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
+	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
+	unsigned int i = ix + iy*nx;
 
+	unsigned int tx = threadIdx.x;
+	unsigned int ty = threadIdx.y;
+
+
+	if (ix < nx && iy < ny)
+	{
+		unsigned int xminus = mminus(ix, nx);
+		unsigned int xplus = pplus(ix, nx);
+		unsigned int xminus2 = mminus2(ix, nx);
+		unsigned int xplus2 = pplus2(ix, nx);
+		
+		//
+		mindepth = 0.0;//
+	}
+}
 
 
 __global__ void continuity(int nx, int ny, DECNUM dx, DECNUM dt, DECNUM eps, DECNUM * uu, DECNUM* hu, DECNUM* vv, DECNUM* hv, DECNUM* zs, DECNUM *hh, DECNUM *zb, DECNUM * dzsdt)

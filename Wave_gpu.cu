@@ -1546,6 +1546,18 @@ void sedimentstep(XBGPUParam Param)
 
 int main(int argc, char **argv)
 {
+	//Model starts Here//
+
+	//The main function setups all the init of the model and then calls the mainloop to actually run the model
+
+
+	//First part reads the inputs to the model 
+	//then allocate memory on GPU and CPU
+	//Then prepare and initialise memory and arrays on CPU and GPU
+	// Prepare output file
+	// Run main loop
+	// Clean up and close
+
 
 	// Start timer to keep track of time 
 	clock_t startcputime, endcputime;
@@ -1557,7 +1569,7 @@ int main(int argc, char **argv)
 	totaltime = 0.0;
 	nextoutputtime = 0.0;
 
-
+	// This is just for temporary use
 	int nx, ny;
 	float dx, grdalpha;
 	double dt;
@@ -1604,7 +1616,7 @@ int main(int argc, char **argv)
 		SaveParamtolog(XParam);
 		exit(1);
 	}
-
+	// Read and interpret each line of the XBG_param.txt
 	std::string line;
 	while (std::getline(fs, line))
 	{
@@ -1788,6 +1800,12 @@ int main(int argc, char **argv)
 			//Generate wave group for JONSWAP parameters
 			wavebnd=ReadJSWPBnd(XParam);
 		}
+		if (XParam.wavebndtype == 5)
+		{
+			//Generate wave group for input spectrum
+			wavebnd = ReadSPECBnd(XParam);
+		}
+
 	}
 	else
 	{

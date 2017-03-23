@@ -327,6 +327,9 @@ extern "C" void defncvar(XBGPUParam XParam, std::string varst, int vdim, float *
 extern "C" void writencvarstep(XBGPUParam XParam, std::string varst, float * var);
 extern "C" void writenctimestep(XBGPUParam XParam, double totaltime);
 
+std::vector<Wavebndparam> ReadSPECBnd(XBGPUParam XParam);
+void readSWANSPEC(XBGPUParam Param, std::vector<Wavebndparam> wavebnd, int step, int &nf, int &nd, double *&freq, double *&dir, double*&Spec);
+
 
 void ifft(CArray& x);
 void fft(CArray& x);

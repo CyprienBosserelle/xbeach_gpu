@@ -212,6 +212,90 @@ XBGPUParam waveinitGPU(XBGPUParam Param, std::vector<Wavebndparam> wavebnd)
 
 
 	}
+	if (Param.wavebndtype == 5)
+	{
+		//
+		//SWAN spectrum
+		//First read in the 2D spec
+		double * HRfreq;
+		double * HRdir;
+		double * HRSpec;
+
+		int nfHR, ndHR;
+
+		readSWANSPEC(Param, wavebnd, 0, nfHR, ndHR, HRfreq, HRdir, HRSpec);
+		//create2dnc(nfHR, ndHR, HRfreq[1] - HRfreq[0], HRdir[1] - HRdir[0], 0.0, HRfreq, HRdir, HRSpec);
+		//Then generate wave group timeseries based on that spectra
+		//void GenWGnLBW(XBGPUParam Param, int nf, int ndir, double * HRfreq, double * HRdir, double * HRSpec, float Trep, double * qfile, double * Stfile)
+		GenWGnLBW(Param, nfHR, ndHR, HRfreq, HRdir, HRSpec, Trep, qfile, Stfile);
+		//create2dnc(nfHR, ndHR, HRfreq[1] - HRfreq[0], HRdir[1] - HRdir[0], 0.0, HRfreq, HRdir, HRSpec);
+
+		//////////////////////////////////////
+		//Save to Netcdf file
+		//////////////////////////////////////
+		double * yyfx, *ttfx, *thetafx;
+		double * qxtemp, *qytemp, *eetemp;
+		int tslenbc = nwavbnd;
+
+		qxtemp = (double *)malloc(ny*tslenbc*sizeof(double));
+		qytemp = (double *)malloc(ny*tslenbc*sizeof(double));
+		eetemp = (double *)malloc(ny*Param.ntheta*tslenbc*sizeof(double));
+
+		yyfx = (double *)malloc(ny*sizeof(double));
+		ttfx = (double *)malloc(tslenbc*sizeof(double));
+		thetafx = (double *)malloc(Param.ntheta*sizeof(double));
+
+		for (int j = 0; j < Param.ny; j++)
+		{
+			yyfx[j] = j*Param.dx;
+		}
+
+		for (int m = 0; m < tslenbc; m++)
+		{
+			ttfx[m] = m*Param.dtbc;
+		}
+
+		for (int itheta = 0; itheta < Param.ntheta; itheta++)
+		{
+			thetafx[itheta] = itheta*(Param.dtheta) + Param.thetamin + 0.5f*Param.dtheta;
+		}
+
+		//for Debugging
+		//create2dnc(ny, tslen, Param.dx, dtin, 0.0, yyfx, tin, qx);
+		//create3dnc(ny, Param.ntheta, tslen, Param.dx, Param.dtheta, dtin, 0.0, yyfx, thetafx, tin, zeta);
+
+		for (int j = 0; j < Param.ny; j++)
+		{
+			for (int m = 0; m < tslenbc; m++)
+			{
+				qxtemp[m + j*tslenbc] = qfile[j + 0 * ny + m*ny * 4];
+				qytemp[m + j*tslenbc] = qfile[j + 1 * ny + m*ny * 4];
+
+				for (int itheta = 0; itheta < Param.ntheta; itheta++)
+				{
+					eetemp[m + j*tslenbc + itheta*ny*tslenbc] = Stfile[j + itheta*ny + m*ny*Param.ntheta];
+				}
+			}
+		}
+
+
+		createbndnc(tslenbc, ny, Param.ntheta, Param.dx, Param.dtheta, 0.0, wavebnd[0].Hs, Trep, wavebnd[0].Tp, wavebnd[0].Dp, ttfx, yyfx, thetafx, eetemp, qxtemp, qytemp);
+		//void createbndnc(int tslen, int ny, int ntheta, double dy, double dtheta, double totaltime, double Hs, double Trep, double Tp, double Dp, double * timevec, double *yy, double *theta, double * ee, double * qx, double * qy)
+
+		//Trep = 15.0;//
+		free(HRSpec);
+		free(HRfreq);
+		free(HRdir);
+
+		free(qxtemp);
+		free(qytemp);
+		free(eetemp);
+		free(yyfx);
+		free(ttfx);
+		free(thetafx);
+	}
+
+
 	nwbndstep = 0;
 	for (int ni = 0; ni < ny; ni++)
 	{
@@ -530,6 +614,88 @@ void wavebnd(XBGPUParam Param, std::vector<Wavebndparam> wavebndvec)
 			free(HRfreq);
 			free(HRdir);
 
+		}
+		if (Param.wavebndtype == 5)
+		{
+			//
+			//SWAN spectrum
+			//First read in the 2D spec
+			double * HRfreq;
+			double * HRdir;
+			double * HRSpec;
+
+			int nfHR, ndHR;
+
+			readSWANSPEC(Param, wavebndvec, WAVstepinbnd - 1, nfHR, ndHR, HRfreq, HRdir, HRSpec);
+			//create2dnc(nfHR, ndHR, HRfreq[1] - HRfreq[0], HRdir[1] - HRdir[0], 0.0, HRfreq, HRdir, HRSpec);
+			//Then generate wave group timeseries based on that spectra
+			//void GenWGnLBW(XBGPUParam Param, int nf, int ndir, double * HRfreq, double * HRdir, double * HRSpec, float Trep, double * qfile, double * Stfile)
+			GenWGnLBW(Param, nfHR, ndHR, HRfreq, HRdir, HRSpec, Trep, qfile, Stfile);
+			//create2dnc(nfHR, ndHR, HRfreq[1] - HRfreq[0], HRdir[1] - HRdir[0], 0.0, HRfreq, HRdir, HRSpec);
+
+			//////////////////////////////////////
+			//Save to Netcdf file
+			//////////////////////////////////////
+			double * yyfx, *ttfx, *thetafx;
+			double * qxtemp, *qytemp, *eetemp;
+			int tslenbc = nwavbnd;
+
+			qxtemp = (double *)malloc(ny*tslenbc*sizeof(double));
+			qytemp = (double *)malloc(ny*tslenbc*sizeof(double));
+			eetemp = (double *)malloc(ny*Param.ntheta*tslenbc*sizeof(double));
+
+			yyfx = (double *)malloc(ny*sizeof(double));
+			ttfx = (double *)malloc(tslenbc*sizeof(double));
+			thetafx = (double *)malloc(Param.ntheta*sizeof(double));
+
+			for (int j = 0; j < Param.ny; j++)
+			{
+				yyfx[j] = j*Param.dx;
+			}
+
+			for (int m = 0; m < tslenbc; m++)
+			{
+				ttfx[m] = m*Param.dtbc;
+			}
+
+			for (int itheta = 0; itheta < Param.ntheta; itheta++)
+			{
+				thetafx[itheta] = itheta*(Param.dtheta) + Param.thetamin + 0.5f*Param.dtheta;
+			}
+
+			//for Debugging
+			//create2dnc(ny, tslen, Param.dx, dtin, 0.0, yyfx, tin, qx);
+			//create3dnc(ny, Param.ntheta, tslen, Param.dx, Param.dtheta, dtin, 0.0, yyfx, thetafx, tin, zeta);
+
+			for (int j = 0; j < Param.ny; j++)
+			{
+				for (int m = 0; m < tslenbc; m++)
+				{
+					qxtemp[m + j*tslenbc] = qfile[j + 0 * ny + m*ny * 4];
+					qytemp[m + j*tslenbc] = qfile[j + 1 * ny + m*ny * 4];
+
+					for (int itheta = 0; itheta < Param.ntheta; itheta++)
+					{
+						eetemp[m + j*tslenbc + itheta*ny*tslenbc] = Stfile[j + itheta*ny + m*ny*Param.ntheta];
+					}
+				}
+			}
+
+
+			writebndnc(tslenbc, ny, Param.ntheta, Param.dx, Param.dtheta, wavebndvec[WAVstepinbnd - 1].time, wavebndvec[WAVstepinbnd - 1].Hs, Trep, wavebndvec[WAVstepinbnd - 1].Tp, wavebndvec[WAVstepinbnd - 1].Dp, ttfx, yyfx, thetafx, eetemp, qxtemp, qytemp);
+			//void createbndnc(int tslen, int ny, int ntheta, double dy, double dtheta, double totaltime, double Hs, double Trep, double Tp, double Dp, double * timevec, double *yy, double *theta, double * ee, double * qx, double * qy)
+
+			//Trep = 15.0;//
+			free(HRSpec);
+			free(HRfreq);
+			free(HRdir);
+
+			free(qxtemp);
+			free(qytemp);
+			free(eetemp);
+			free(yyfx);
+			free(ttfx);
+			free(thetafx);
 		}
 	}
 	//spetial treatment when difft == 0.0
