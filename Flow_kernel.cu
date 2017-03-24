@@ -561,7 +561,7 @@ __global__ void ududx_adv(int nx, int ny, DECNUM dx, DECNUM * hu, DECNUM * hum, 
 	unsigned int i = ix + iy*nx;
 	unsigned int tx = threadIdx.x;
 	unsigned int ty = threadIdx.y;
-	DECNUM qin, uududx;
+	DECNUM qin, uududx, du;
 
 	__shared__ DECNUM uui[16][16];
 	__shared__ DECNUM uur[16][16];
@@ -595,15 +595,33 @@ __global__ void ududx_adv(int nx, int ny, DECNUM dx, DECNUM * hu, DECNUM * hum, 
 
 		uududx = 0.0f;
 		qin = 0.5f*(hui[tx][ty] * uui[tx][ty] + hu[xminus + iy*nx] * uul[tx][ty]);
+		du = uui[tx][ty] - uul[tx][ty];
 		//ududx
 		if (qin > 0.0f)
 		{
-			uududx = uududx + qin / humi[tx][ty] * (uui[tx][ty] - uul[tx][ty]) / dx;
+			if (du > 0.5f)
+			{
+				uududx = uududx + 0.5f*(uul[tx][ty] + uui[tx][ty])* (uui[tx][ty] - uul[tx][ty]) / dx;
+			}
+			else
+			{
+				uududx = uududx + qin / humi[tx][ty] * (uui[tx][ty] - uul[tx][ty]) / dx;
+			}
+			
 		}
 		qin = -0.5f*(hui[tx][ty] * uui[tx][ty] + hu[xplus + iy*nx] * uur[tx][ty]);
+		du = uur[tx][ty] - uui[tx][ty];
 		if (qin > 0.0f)
 		{
-			uududx = uududx + qin / humi[tx][ty] * (uui[tx][ty] - uur[tx][ty]) / dx;
+			if (du > 0.5f)
+			{
+				uududx = uududx - 0.5f*(uur[tx][ty] + uui[tx][ty])* (uui[tx][ty] - uur[tx][ty]) / dx;
+			}
+			else
+			{
+				uududx = uududx + qin / humi[tx][ty] * (uui[tx][ty] - uur[tx][ty]) / dx;
+			}
+			
 		}
 		ududx[i] = uududx;
 	}
@@ -680,7 +698,7 @@ __global__ void vdudy_adv(int nx, int ny, DECNUM dx, DECNUM * hv, DECNUM * hum, 
 	unsigned int ty = threadIdx.y;
 
 
-	DECNUM qin, vvdudy;
+	DECNUM qin, dv, vvdudy;
 
 	__shared__ DECNUM uui[16][16];
 	__shared__ DECNUM uut[16][16];
@@ -700,14 +718,35 @@ __global__ void vdudy_adv(int nx, int ny, DECNUM dx, DECNUM * hv, DECNUM * hum, 
 		vvdudy = 0.0f;
 
 		qin = 0.5f*(vv[ix + yminus*nx] * hv[ix + yminus*nx] + vv[xplus + yminus*nx] * hv[xplus + yminus*nx]);
+		dv = vv[i] - vv[ix + yminus*nx];
 		if (qin > 0.0f)
 		{
-			vvdudy = vvdudy + qin / hum[i] * (uui[tx][ty] - uub[tx][ty]) / dx;
+			if (dv > 0.5f)
+			{
+				// Conservation of energy head
+				vvdudy = vvdudy + 0.5f*(vv[ix + yminus*nx] + vv[xplus + yminus*nx])*(uui[tx][ty]-uub[tx][ty])/dx;//
+			}
+			else
+			{
+				// Conservation of momentum
+				vvdudy = vvdudy + qin / hum[i] * (uui[tx][ty] - uub[tx][ty]) / dx;
+			}
 		}
 		qin = -0.5f*(vv[i] * hv[i] + vv[xplus + iy*nx] * hv[xplus + iy*nx]);
+		dv = vv[ix+yplus*nx] - vv[i];
 		if (qin > 0.0f)
 		{
-			vvdudy = vvdudy + qin / hum[i] * (uui[tx][ty] - uut[tx][ty]) / dx;
+			if (dv > 0.5f)
+			{
+				// Conservation of energy head
+				vvdudy = vvdudy - 0.5f*(vv[i] + vv[xplus + iy*nx])*(uui[tx][ty] - uut[tx][ty]) / dx;;
+			}
+			else
+			{
+				//Conservation of momentum
+				vvdudy = vvdudy + qin / hum[i] * (uui[tx][ty] - uut[tx][ty]) / dx;
+
+			}
 		}
 		vdudy[i] = vvdudy;
 	}
@@ -793,7 +832,7 @@ __global__ void vdvdy_adv(int nx, int ny, DECNUM dx, DECNUM * hv, DECNUM * hvm, 
 	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
 	unsigned int i = ix + iy*nx;
 
-	DECNUM qin, vvdvdy;
+	DECNUM qin,dv, vvdvdy;
 	if (ix < nx && iy < ny)
 	{
 		unsigned int xminus = mminus(ix, nx);
@@ -806,14 +845,32 @@ __global__ void vdvdy_adv(int nx, int ny, DECNUM dx, DECNUM * hv, DECNUM * hvm, 
 		vvdvdy = 0.0f;
 
 		qin = 0.5f*(vv[i] * hv[i] + vv[ix + yminus*nx] * hv[ix + yminus*nx]);
+		dv = vv[i] - vv[ix + yminus*nx];
 		if (qin > 0.0f)
 		{
-			vvdvdy = vvdvdy + qin / hvm[i] * (vv[i] - vv[ix + (yminus)*nx]) / (dx);
+			if (dv > 0.5f)
+			{
+				vvdvdy = vvdvdy + 0.5f*(vv[ix + (yminus)*nx] - vv[i]) * (vv[i] - vv[ix + (yminus)*nx]) / (dx);
+			}
+			else
+			{
+				vvdvdy = vvdvdy + qin / hvm[i] * (vv[i] - vv[ix + (yminus)*nx]) / (dx);
+			}
+			
 		}
 		qin = -0.5f*(hv[i] * vv[i] + hv[ix + (yplus)*nx] * vv[ix + (yplus)*nx]);
+		dv = vv[ix + (yplus)*nx] - vv[i];
 		if (qin > 0.0f)
 		{
-			vvdvdy = vvdvdy + qin / hvm[i] * (vv[i] - vv[ix + (yplus)*nx]) / (dx);
+			if (dv > 0.5f)
+			{
+				vvdvdy = vvdvdy - 0.5f*(vv[ix + (yplus)*nx] + vv[i]) * (vv[i] - vv[ix + (yplus)*nx]) / (dx);
+			}
+			else
+			{
+				vvdvdy = vvdvdy + qin / hvm[i] * (vv[i] - vv[ix + (yplus)*nx]) / (dx);
+			}
+			
 		}
 		vdvdy[i] = vvdvdy;
 	}
@@ -881,7 +938,7 @@ __global__ void udvdx_adv(int nx, int ny, DECNUM dx, DECNUM * hu, DECNUM * hvm, 
 	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
 	unsigned int i = ix + iy*nx;
 
-	DECNUM qin, uudvdx;
+	DECNUM qin,du, uudvdx;
 
 	if (ix < nx && iy < ny)
 	{
@@ -894,14 +951,32 @@ __global__ void udvdx_adv(int nx, int ny, DECNUM dx, DECNUM * hu, DECNUM * hvm, 
 
 		uudvdx = 0.0f;
 		qin = 0.5*(uu[xminus + iy*nx] * hu[xminus + iy*nx] + uu[xminus + yplus*nx] * hu[xminus + yplus*nx]);
+		du = uu[i] - uu[xminus + iy*nx];
 		if (qin > 0.0f)
 		{
-			uudvdx = uudvdx + qin / hvm[i] * (vv[i] - vv[xminus + iy*nx]) / (dx);
+			if (du > 0.5f)
+			{
+				uudvdx = uudvdx + 0.5f* (uu[xminus+iy*nx]+uu[xminus+yplus*nx]) * (vv[i] - vv[xminus + iy*nx]) / (dx);
+			}
+			else
+			{
+				uudvdx = uudvdx + qin / hvm[i] * (vv[i] - vv[xminus + iy*nx]) / (dx);
+			}
+			
 		}
 		qin = -0.5*(uu[i] * hu[i] + uu[ix + yplus*nx] * hu[ix + yplus*nx]);
+		du = uu[xplus + iy*nx]-uu[i];
 		if (qin > 0.0f)
 		{
-			uudvdx = uudvdx + qin / hvm[i] * (vv[i] - vv[xplus + iy*nx]) / (dx);
+			if (du > 0.5f)
+			{
+				uudvdx = uudvdx -0.5f*(uu[i]+uu[xplus+iy*nx]) * (vv[i] - vv[xplus + iy*nx]) / (dx);
+			}
+			else
+			{
+				uudvdx = uudvdx + qin / hvm[i] * (vv[i] - vv[xplus + iy*nx]) / (dx);
+			}
+			
 		}
 
 		udvdx[i] = uudvdx;
@@ -980,7 +1055,7 @@ __global__ void udvdx_adv2(int nx, int ny, DECNUM dx, DECNUM * hu, DECNUM * hvm,
 }
 
 
-__global__ void smago(int nx, int ny, DECNUM dx, DECNUM * uu, DECNUM * vv, DECNUM nuh, DECNUM * nuhgrid, int usesmago)
+__global__ void smago(int nx, int ny, DECNUM dx, DECNUM rho, DECNUM nuhfac, DECNUM *hh, DECNUM * uu, DECNUM * vv, DECNUM nuh, DECNUM * nuhgrid, DECNUM * DR, int usesmago)
 {
 	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
 	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
@@ -1004,11 +1079,12 @@ __global__ void smago(int nx, int ny, DECNUM dx, DECNUM * uu, DECNUM * vv, DECNU
 			dvdy = (vv[i] - vv[ix + yminus*nx]) / dx;
 			dvdx = 0.50f*(vv[xplus + iy*nx] - vv[xminus + iy*nx] + vv[xplus + yminus*nx] - vv[xminus + yminus*nx]) / dx;
 			tau = sqrt(2.0f*dudx*dudx + 2.0f*dvdy*dvdy + powf(dudy + dvdx, 2.0f));
-			nuhgrid[i] = nuh*nuh*dx*dx*tau;
+			nuhgrid[i] = max(nuh*nuh*dx*dx*tau, nuhfac*hh[i] * powf(DR[i] / rho, 1.0f / 3.0f));
 		}
 		else
 		{
-			nuhgrid[i] = nuh;
+			//nuhgrid[i] = nuh;
+			nuhgrid[i] = max(nuh, nuhfac*hh[i] * powf(DR[i] / rho, 1.0f / 3.0f));
 		}
 
 	}
@@ -1016,7 +1092,7 @@ __global__ void smago(int nx, int ny, DECNUM dx, DECNUM * uu, DECNUM * vv, DECNU
 
 }
 
-__global__ void viscou(int nx, int ny, DECNUM dx, DECNUM rho, DECNUM eps, DECNUM nuhfac, DECNUM * nuhgrid, DECNUM *hh, DECNUM *hum, DECNUM *hvm, DECNUM * DR, DECNUM *uu, int * wetu, DECNUM * viscu)
+__global__ void viscou1(int nx, int ny, DECNUM dx, DECNUM rho, DECNUM eps, DECNUM nuhfac, DECNUM * nuhgrid, DECNUM *hh, DECNUM *hum, DECNUM *hvm, DECNUM * DR, DECNUM *uu, int * wetu, DECNUM * viscu)
 {
 	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
 	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
@@ -1032,29 +1108,71 @@ __global__ void viscou(int nx, int ny, DECNUM dx, DECNUM rho, DECNUM eps, DECNUM
 		unsigned int yplus = pplus(iy, ny);
 
 
-		DECNUM nuh = nuhgrid[i];
-
-		DECNUM nnuh, dudx1, dudx2, dudy1, dudy2;
+		DECNUM nuh1, nuh2;
+		nuh1= nuhgrid[xplus+iy*nx];
+		nuh2 = nuhgrid[i];
+		DECNUM dudx1, dudx2, dudy1, dudy2;
 
 		//if(ix>3)
 		//{
-		nnuh = max(nuh, nuhfac*hh[i] * powf(DR[i] / rho, 1.0f / 3.0f));
+		//nnuh = max(nuh, nuhfac*hh[i] * powf(DR[i] / rho, 1.0f / 3.0f));
 		//}
 		//else
 		//{
 		//	nnuh=nuh*10;
 		//}
-		dudx1 = hh[xplus + iy*nx] * (uu[xplus + iy*nx] - uu[i]) / dx;
-		dudx2 = hh[i] * (uu[i] - uu[xminus + iy*nx]) / dx;
-		dudy1 = 0.5f*(hvm[i] + hvm[xplus + iy*nx])*(uu[ix + yplus*nx] - uu[i]) / dx;
-		dudy2 = 0.5f*(hvm[ix + yminus*nx] + hvm[xplus + yminus*nx])*(uu[i] - uu[ix + yminus*nx]) / dx;
-		viscu[i] = nnuh / hum[i] * ((dudx1 - dudx2) / (dx)*wetu[xplus + iy*nx] * wetu[xminus + iy*nx] + (dudy1 - dudy2) / dx*wetu[ix + yplus*nx] * wetu[ix + yminus*nx]);
+		dudx1 = nuh1 * hh[xplus + iy*nx] * (uu[xplus + iy*nx] - uu[i]) / dx;
+		dudx2 = nuh2 * hh[i] * (uu[i] - uu[xminus + iy*nx]) / dx;
+		//dudy1 = 0.5f*(hvm[i] + hvm[xplus + iy*nx])*(uu[ix + yplus*nx] - uu[i]) / dx;
+		//dudy2 = 0.5f*(hvm[ix + yminus*nx] + hvm[xplus + yminus*nx])*(uu[i] - uu[ix + yminus*nx]) / dx;
+		viscu[i] = (1.0f / hum[i]) * (2.0f*(dudx1 - dudx2) / (dx));
 
 		//*wetu[xplus+iy*nx]*wetu[xplus+iy*nx]
 	}
 }
 
-__global__ void viscov(int nx, int ny, DECNUM dx, DECNUM rho, DECNUM eps, DECNUM nuhfac, DECNUM * nuhgrid, DECNUM *hh, DECNUM *hum, DECNUM *hvm, DECNUM * DR, DECNUM *vv, int * wetv, DECNUM * viscv)
+__global__ void viscou2(int nx, int ny, DECNUM dx, DECNUM rho, DECNUM eps, DECNUM nuhfac, DECNUM * nuhgrid, DECNUM *hh, DECNUM *hum, DECNUM *hvm, DECNUM * DR, DECNUM *uu, int * wetu, DECNUM * viscu)
+{
+	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
+	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
+	unsigned int i = ix + iy*nx;
+
+
+
+	if (ix < nx && iy < ny)
+	{
+		unsigned int xminus = mminus(ix, nx);
+		unsigned int xplus = pplus(ix, nx);
+		unsigned int yminus = mminus(iy, ny);
+		unsigned int yplus = pplus(iy, ny);
+
+
+		DECNUM nnuh = nuhgrid[i];
+
+		DECNUM nuh1, nuh2, dudx1, dudx2, dudy1, dudy2;
+
+		nuh1 = 0.25f*(nuhgrid[i] + nuhgrid[xplus + iy*nx] + nuhgrid[xplus + yplus*nx] + nuhgrid[ix + yplus*nx]);
+		nuh2 = 0.25f*(nuhgrid[i] + nuhgrid[xplus + iy*nx] + nuhgrid[xplus + yminus*nx] + nuhgrid[ix + yminus*nx]);
+
+		//if(ix>3)
+		//{
+		//nnuh = max(nuh, nuhfac*hh[i] * powf(DR[i] / rho, 1.0f / 3.0f));
+		//}
+		//else
+		//{
+		//	nnuh=nuh*10;
+		//}
+		//dudx1 = hh[xplus + iy*nx] * (uu[xplus + iy*nx] - uu[i]) / dx;
+		//dudx2 = hh[i] * (uu[i] - uu[xminus + iy*nx]) / dx;
+		dudy1 = nuh1*0.5f*(hvm[i] + hvm[xplus + iy*nx])*(uu[ix + yplus*nx] - uu[i]) / dx;
+		dudy2 = nuh2*0.5f*(hvm[ix + yminus*nx] + hvm[xplus + yminus*nx])*(uu[i] - uu[ix + yminus*nx]) / dx;
+		viscu[i] = viscu[i] +(1.0f/ hum[i]) * (2.0f*(dudy1 - dudy2) / dx*wetu[ix + yplus*nx] * wetu[ix + yminus*nx]);
+
+		//*wetu[xplus+iy*nx]*wetu[xplus+iy*nx]
+	}
+}
+
+__global__ void viscov1(int nx, int ny, DECNUM dx, DECNUM rho, DECNUM eps, DECNUM nuhfac, DECNUM * nuhgrid, DECNUM *hh, DECNUM *hum, DECNUM *hvm, DECNUM * DR, DECNUM *vv, int * wetv, DECNUM * viscv)
 {
 	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
 	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
@@ -1069,17 +1187,50 @@ __global__ void viscov(int nx, int ny, DECNUM dx, DECNUM rho, DECNUM eps, DECNUM
 		unsigned int yplus = pplus(iy, ny);
 
 
-		DECNUM nuh = nuhgrid[i];
+		DECNUM nuh1, nuh2;
+		nuh1 = nuhgrid[ix+yplus*nx];
+		nuh2 = nuhgrid[i];
 
 		DECNUM nnuh, dvdx1, dvdx2, dvdy1, dvdy2;
 
-		nnuh = max(nuh, nuhfac*hh[i] * powf(DR[i] / rho, 1.0f / 3.0f));
+		//nnuh = max(nuh, nuhfac*hh[i] * powf(DR[i] / rho, 1.0f / 3.0f));
 
-		dvdx1 = 0.5f*(hum[i] + hum[ix + yplus*nx])*(vv[xplus + iy*nx] - vv[i]) / dx;
-		dvdx2 = 0.5f*(hum[xminus + iy*nx] + hum[xminus + yplus*nx])*(vv[i] - vv[xminus + iy*nx]) / dx;
-		dvdy1 = hh[ix + yplus*nx] * (vv[ix + yplus*nx] - vv[i]) / dx;
-		dvdy2 = hh[i] * (vv[i] - vv[ix + yminus*nx]) / dx;
-		viscv[i] = nnuh / hvm[i] * ((dvdx1 - dvdx2) / (dx)*wetv[xplus + iy*nx] * wetv[xminus + iy*nx] + (dvdy1 - dvdy2) / dx*wetv[ix + yplus*nx] * wetv[ix + yminus*nx]);
+		//dvdx1 = 0.5f*(hum[i] + hum[ix + yplus*nx])*(vv[xplus + iy*nx] - vv[i]) / dx;
+		//dvdx2 = 0.5f*(hum[xminus + iy*nx] + hum[xminus + yplus*nx])*(vv[i] - vv[xminus + iy*nx]) / dx;
+		dvdy1 = nuh1*hh[ix + yplus*nx] * (vv[ix + yplus*nx] - vv[i]) / dx;
+		dvdy2 = nuh2*hh[i] * (vv[i] - vv[ix + yminus*nx]) / dx;
+		//viscv[i] = nnuh / hvm[i] * ((dvdx1 - dvdx2) / (dx)*wetv[xplus + iy*nx] * wetv[xminus + iy*nx] + (dvdy1 - dvdy2) / dx*wetv[ix + yplus*nx] * wetv[ix + yminus*nx]);
+		viscv[i] = (1.0f / hvm[i]) * 2.0f * (dvdy1 - dvdy2) / dx*wetv[ix + yplus*nx] * wetv[ix + yminus*nx];
+	}
+}
+__global__ void viscov2(int nx, int ny, DECNUM dx, DECNUM rho, DECNUM eps, DECNUM nuhfac, DECNUM * nuhgrid, DECNUM *hh, DECNUM *hum, DECNUM *hvm, DECNUM * DR, DECNUM *vv, int * wetv, DECNUM * viscv)
+{
+	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
+	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
+	unsigned int i = ix + iy*nx;
+
+
+	if (ix < nx && iy < ny)
+	{
+		unsigned int xminus = mminus(ix, nx);
+		unsigned int xplus = pplus(ix, nx);
+		unsigned int yminus = mminus(iy, ny);
+		unsigned int yplus = pplus(iy, ny);
+
+
+		DECNUM nuh1, nuh2;
+		nuh1 = 0.25f*(nuhgrid[i] + nuhgrid[xplus + iy*nx] + nuhgrid[xplus + yplus*nx] + nuhgrid[ix + yplus*nx]);
+		nuh2 = 0.25f*(nuhgrid[i] + nuhgrid[xminus + iy*nx] + nuhgrid[xminus + yplus*nx] + nuhgrid[ix + yplus*nx]);
+
+		DECNUM nnuh, dvdx1, dvdx2, dvdy1, dvdy2;
+
+		//nnuh = max(nuh, nuhfac*hh[i] * powf(DR[i] / rho, 1.0f / 3.0f));
+
+		dvdx1 = nuh1*0.5f*(hum[i] + hum[ix + yplus*nx])*(vv[xplus + iy*nx] - vv[i]) / dx;
+		dvdx2 = nuh2*0.5f*(hum[xminus + iy*nx] + hum[xminus + yplus*nx])*(vv[i] - vv[xminus + iy*nx]) / dx;
+		//dvdy1 = hh[ix + yplus*nx] * (vv[ix + yplus*nx] - vv[i]) / dx;
+		//dvdy2 = hh[i] * (vv[i] - vv[ix + yminus*nx]) / dx;
+		viscv[i] = viscv[i] + (1.0f / hvm[i]) *2.0f* ((dvdx1 - dvdx2) / (dx)*wetv[xplus + iy*nx] * wetv[xminus + iy*nx] );
 	}
 }
 
@@ -1096,7 +1247,7 @@ __global__ void viscovbnd(int nx, int ny, DECNUM * viscv)
 		unsigned int yminus = mminus(iy, ny);
 		unsigned int yplus = pplus(iy, ny);
 
-		if (iy == ny - 1)
+		if (iy == ny - 2)
 		{
 			viscv[i] = viscv[ix + yminus*nx];
 		}
@@ -1181,7 +1332,7 @@ __global__ void eulervstep(int nx, int ny, DECNUM dx, DECNUM dt, DECNUM g, DECNU
 	__shared__ DECNUM  vmagvi[16][16];
 	__shared__ DECNUM  hvmi[16][16];
 
-	if (ix < nx && iy < ny)
+	if (ix < nx && iy < ny-1)
 	{
 		unsigned int xminus = mminus(ix, nx);
 		unsigned int xplus = pplus(ix, nx);
@@ -1334,16 +1485,7 @@ __global__ void hsbnd(int nx, int ny, DECNUM eps, DECNUM * hh, DECNUM *zb, DECNU
 
 	if (ix < nx && iy < ny)
 	{
-		unsigned int xminus = mminus(ix, nx);
-		unsigned int xplus = pplus(ix, nx);
-		unsigned int yminus = mminus(iy, ny);
-		unsigned int yplus = pplus(iy, ny);
-
-		Fi[tx][ty] = max(hh[i], eps);
-		Ft[tx][ty] = max(hh[ix + yplus*nx], eps);
-		Fb[tx][ty] = max(hh[ix + yminus*nx], eps);
-		Fr[tx][ty] = max(hh[xplus + iy*nx], eps);
-
+		
 		//hh[i]=Fi[tx][ty];
 
 
@@ -1418,6 +1560,76 @@ __global__ void uvlatbnd(int nx, int ny, DECNUM * vu, DECNUM * uv, DECNUM * ueu,
 		}
 	}
 }
+
+
+__global__ void latbnd(int nx, int ny, DECNUM * uu)
+{
+	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
+	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
+	unsigned int i = ix + iy*nx;
+	int tx = threadIdx.x;
+	int ty = threadIdx.y;
+	
+	__shared__ DECNUM uut[16][16];
+	__shared__ DECNUM uub[16][16];
+
+	if (ix < nx && iy < ny)
+	{
+		unsigned int yminus = mminus(iy, ny);
+		unsigned int yminus2 = mminus2(iy, ny);
+		unsigned int yplus = pplus(iy, ny);
+
+
+		uut[tx][ty] = uu[ix + yplus*nx];
+		uub[tx][ty] = uu[ix + yminus*nx];
+
+		if (iy == 0)
+		{
+			uu[i] = uut[tx][ty];
+		}
+		if (iy == ny - 1)
+		{
+			uu[i] = uub[tx][ty];
+		}
+	}
+	//
+}
+
+
+__global__ void vvlatbnd(int nx, int ny, DECNUM * uu)
+{
+	// Neumann_v boundary
+	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
+	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
+	unsigned int i = ix + iy*nx;
+	int tx = threadIdx.x;
+	int ty = threadIdx.y;
+
+	__shared__ DECNUM uut[16][16];
+	__shared__ DECNUM uub[16][16];
+
+	if (ix < nx && iy < ny)
+	{
+		unsigned int yminus = mminus(iy, ny);
+		unsigned int yminus2 = mminus2(iy, ny);
+		unsigned int yplus = pplus(iy, ny);
+
+
+		uut[tx][ty] = uu[ix + yplus*nx];
+		uub[tx][ty] = uu[ix + yminus*nx];
+
+		if (iy == 0)
+		{
+			uu[i] = uut[tx][ty];
+		}
+		if (iy == ny - 2)
+		{
+			uu[i] = uub[tx][ty];
+		}
+	}
+	//
+}
+
 
 
 __global__ void uuvvzslatbnd(int nx, int ny, DECNUM * uu, DECNUM * vv, DECNUM *zs)

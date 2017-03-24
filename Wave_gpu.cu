@@ -1152,13 +1152,13 @@ void flowstep(XBGPUParam Param)
 	// Advection in the x direction using 2n order finite difference
 	//
 
-	ududx_adv2 << <gridDim, blockDim, 0 >> >(nx, ny, Param.dx, hu_g, hum_g, uu_g, ududx_g);
+	ududx_adv << <gridDim, blockDim, 0 >> >(nx, ny, Param.dx, hu_g, hum_g, uu_g, ududx_g);
 	//CUT_CHECK_ERROR("uadvec execution failed\n");
 	CUDA_CHECK(cudaDeviceSynchronize());
 
 
 	//vdudy
-	vdudy_adv2 << <gridDim, blockDim, 0 >> >(nx, ny, Param.dx, hv_g, hum_g, uu_g, vv_g, vdudy_g);
+	vdudy_adv << <gridDim, blockDim, 0 >> >(nx, ny, Param.dx, hv_g, hum_g, uu_g, vv_g, vdudy_g);
 	//CUT_CHECK_ERROR("uadvec execution failed\n");
 	CUDA_CHECK(cudaDeviceSynchronize());
 
@@ -1169,7 +1169,9 @@ void flowstep(XBGPUParam Param)
 	// Smagorinsky formulation or Normal eddy viscosity
 	//
 	CUDA_CHECK(cudaMalloc((void **)&nuh_g, nx*ny*sizeof(DECNUM)));
-	smago << <gridDim, blockDim, 0 >> >(nx, ny, Param.dx, uu_g, vv_g, Param.nuh, nuh_g, Param.usesmago);
+	//smago << <gridDim, blockDim, 0 >> >(nx, ny, Param.dx, uu_g, vv_g, Param.nuh, nuh_g, Param.usesmago);
+	smago << <gridDim, blockDim, 0 >> >(nx, ny, Param.dx, Param.rho, Param.nuhfac, hh_g, uu_g, vv_g, Param.nuh, nuh_g, DR_g, Param.usesmago);
+
 	//CUT_CHECK_ERROR("uadvec execution failed\n");
 	CUDA_CHECK(cudaDeviceSynchronize());
 
@@ -1177,7 +1179,11 @@ void flowstep(XBGPUParam Param)
 	// increase eddy viscosity by wave induced breaking as in Reniers 2004 & Set viscu = 0.0 near water line
 	//
 	CUDA_CHECK(cudaMalloc((void **)&viscu_g, nx*ny*sizeof(DECNUM)));
-	viscou << <gridDim, blockDim, 0 >> >(nx, ny, Param.dx, Param.rho, Param.eps, Param.nuhfac, nuh_g, hh_g, hum_g, hvm_g, DR_g, uu_g, wetu_g, viscu_g);
+	viscou1 << <gridDim, blockDim, 0 >> >(nx, ny, Param.dx, Param.rho, Param.eps, Param.nuhfac, nuh_g, hh_g, hum_g, hvm_g, DR_g, uu_g, wetu_g, viscu_g);
+	//CUT_CHECK_ERROR("visco execution failed\n");
+	CUDA_CHECK(cudaDeviceSynchronize());
+
+	viscou2 << <gridDim, blockDim, 0 >> >(nx, ny, Param.dx, Param.rho, Param.eps, Param.nuhfac, nuh_g, hh_g, hum_g, hvm_g, DR_g, uu_g, wetu_g, viscu_g);
 	//CUT_CHECK_ERROR("visco execution failed\n");
 	CUDA_CHECK(cudaDeviceSynchronize());
 
@@ -1194,7 +1200,7 @@ void flowstep(XBGPUParam Param)
 	//
 	// Adjust lateral bnds
 	//
-	uuvvzslatbnd << <gridDim, blockDim, 0 >> >(nx, ny, uu_g, vv_g, zs_g);
+	latbnd <<<gridDim, blockDim, 0 >> >(nx, ny, uu_g);
 	//CUT_CHECK_ERROR("uu vv zs lateral bnd execution failed\n");
 	CUDA_CHECK(cudaDeviceSynchronize());
 
@@ -1203,12 +1209,12 @@ void flowstep(XBGPUParam Param)
 	// Advection in the y direction using 2n order finite difference
 	//
 	//vdvdy
-	vdvdy_adv2 << <gridDim, blockDim, 0 >> >(nx, ny, Param.dx, hv_g, hvm_g, vv_g, vdvdy_g);
+	vdvdy_adv << <gridDim, blockDim, 0 >> >(nx, ny, Param.dx, hv_g, hvm_g, vv_g, vdvdy_g);
 	//CUT_CHECK_ERROR("vadvec for v execution failed\n");
 	CUDA_CHECK(cudaDeviceSynchronize());
 	//udvdx
 
-	udvdx_adv2 << <gridDim, blockDim, 0 >> >(nx, ny, Param.dx, hu_g, hvm_g, uu_g, vv_g, udvdx_g);
+	udvdx_adv << <gridDim, blockDim, 0 >> >(nx, ny, Param.dx, hu_g, hvm_g, uu_g, vv_g, udvdx_g);
 	//CUT_CHECK_ERROR("vadvec for v execution failed\n");
 	CUDA_CHECK(cudaDeviceSynchronize());
 
@@ -1216,17 +1222,20 @@ void flowstep(XBGPUParam Param)
 	// increase eddy viscosity by wave induced breaking as in Reniers 2004 & Set viscv = 0.0 near water line
 	//
 	CUDA_CHECK(cudaMalloc((void **)&viscv_g, nx*ny*sizeof(DECNUM)));
-	viscov << <gridDim, blockDim, 0 >> >(nx, ny, Param.dx, Param.rho, Param.eps, Param.nuhfac, nuh_g, hh_g, hum_g, hvm_g, DR_g, vv_g, wetv_g, viscv_g);
+	viscov1 << <gridDim, blockDim, 0 >> >(nx, ny, Param.dx, Param.rho, Param.eps, Param.nuhfac, nuh_g, hh_g, hum_g, hvm_g, DR_g, vv_g, wetv_g, viscv_g);
 	//CUT_CHECK_ERROR("visco v execution failed\n");
 	CUDA_CHECK(cudaDeviceSynchronize());
-	CUDA_CHECK(cudaFree(nuh_g));
-
-
+	
+	
 	viscovbnd << <gridDim, blockDim, 0 >> >(nx, ny, viscv_g);
 	//CUT_CHECK_ERROR("visco v execution failed\n");
 	CUDA_CHECK(cudaDeviceSynchronize());
 
+	viscov2 << <gridDim, blockDim, 0 >> >(nx, ny, Param.dx, Param.rho, Param.eps, Param.nuhfac, nuh_g, hh_g, hum_g, hvm_g, DR_g, vv_g, wetv_g, viscv_g);
+	//CUT_CHECK_ERROR("visco v execution failed\n");
+	CUDA_CHECK(cudaDeviceSynchronize());
 
+	CUDA_CHECK(cudaFree(nuh_g));
 	//
 	// Explicit Euler step momentum v-direction
 	//
@@ -1238,7 +1247,7 @@ void flowstep(XBGPUParam Param)
 	//
 	// Adjust lateral bnds
 	//
-	uuvvzslatbnd << <gridDim, blockDim, 0 >> >(nx, ny, uu_g, vv_g, zs_g);
+	vvlatbnd << <gridDim, blockDim, 0 >> >(nx, ny, vv_g);
 	//CUT_CHECK_ERROR("uu vv zs lateral bnd execution failed\n");
 	CUDA_CHECK(cudaDeviceSynchronize());
 
@@ -1293,7 +1302,7 @@ void flowstep(XBGPUParam Param)
 	//
 	// Adjust lateral bnds
 	//
-	uuvvzslatbnd << <gridDim, blockDim, 0 >> >(nx, ny, uu_g, vv_g, zs_g);
+	latbnd << <gridDim, blockDim, 0 >> >(nx, ny, zs_g);
 	//CUT_CHECK_ERROR("uu vv zs lateral bnd execution failed\n");
 	CUDA_CHECK(cudaDeviceSynchronize());
 
