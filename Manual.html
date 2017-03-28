@@ -98,17 +98,262 @@
 # You can use the traditional XBeach way of specifying the parameter
 # Remenber that you can only put one parameter per line
 gamma = 0.4
-#any number of leading space or space between the parameter name and the equal sign will be accepted. Tabs are not acceptable
+#Any number of leading space or space between the parameter name and the equal sign will be accepted. Tabs are not acceptable
          beta       =      0.15
-#Obviously you have to put the right name down otherwise the line will be ignored
+#Obviously you have to put the right name down (spelling and case sensitive) otherwise the line will be ignored
 bbeettaa = 0.22
 
 #If you want to add a comment at the end of a line with a parameter you can do it after putting a semi column
 n = 9; Was 10 before
 
-#XBGPU has only one required parameter and that is teh bathymetry grid name
+#XBGPU has only one required parameter and that is the bathymetry grid name
 
             </code></pre>
+            <h2>Parameters</h2>
+            <p>all the parameters below can be assigned one or several values. The default is also highlighted here: </p>
+            <h3>General Parameters</h3>
+            <table class="table table-hover">
+              <thead>
+                <tr>
+                  <th>Parameter name</th>
+                  <th>Default Value</th>
+                  <th>Description</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>swave</td>
+                  <td>1</td>
+                  <td>switch for using the short wave model. the wave group modulationcomes from the wave boundary.</td>
+                </tr>
+                <tr>
+                  <td>flow</td>
+                  <td>1</td>
+                  <td>Switch to use the coupled hydrodynamics model.</td>
+                </tr>
+                <tr>
+                  <td>sedtrans</td>
+                  <td>0</td>
+                  <td>Switch to run the sediment transport module</td>
+                </tr>
+                <tr>
+                  <td>morphology</td>
+                  <td>0</td>
+                  <td>Switch to run the morphology modeule to apply the sediment source and sink to the bathymetry</td>
+                </tr>
+                <tr>
+                  <td>GPUDEVICE</td>
+                  <td>0</td>
+                  <td>What GPU device to use default is the firt one availabe (i.e. 0) and 1 for second GPU etc...</td>
+                </tr>
+                <tr>
+                  <td>nx, ny</td>
+                  <td>0</td>
+                  <td>Bathymetry grid size. Only required when using XBeach style bathymetry. Will be overwritten when using .md or .nc bathy input</td>
+                </tr>
+                <tr>
+                  <td>dx</td>
+                  <td>0.0</td>
+                  <td>Bathymetry grid resolution. Only required when using XBeach style bathymetry need to be >0.0. Will be overwritten when using .md or .nc bathy input</td>
+                </tr>
+                <tr>
+                  <td>grdalfa</td>
+                  <td>0.0</td>
+                  <td>Bathymetry grid rotation. Only required when using XBeach style bathymetry or netcdf. Will be overwritten when using .md bathy input and can be included in the netcdf file explicitely</td>
+                </tr>
+              </tbody>
+            </table>
+            <h3>Flow Parameters</h3>
+            <table class="table table-hover">
+              <thead>
+                <tr>
+                  <th>Parameter name</th>
+                  <th>Default Value</th>
+                  <th>Description</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>g</td>
+                  <td>9.81</td>
+                  <td>Acceleration of gravity [m/s2] for Mars use 3.71m/s2</td>
+                </tr>
+                <tr>
+                  <td>rho</td>
+                  <td>1025.0</td>
+                  <td>Density of Water in kg/m3 for rum use 940.0 kg/m3</td>
+                </tr>
+
+                <tr>
+                  <td>eps</td>
+                  <td>0.01</td>
+                  <td>Drying height [m].</td>
+                </tr>
+                <tr>
+                  <td>cf, cfsand, cfreef</td>
+                  <td>0.01</td>
+                  <td>Bottom friction (Chezy formulation). a specific value can be given to Sand(cfsand) or Bedrock(cfreef). the location of outcropping bedrock is determined with the sediment thickness file and updated at every Morphology step.</td>
+
+                </tr>
+                <tr>
+                  <td>nuh</td>
+                  <td>1.0</td>
+                  <td>Eddy viscosity [m2/s] </td>
+                </tr>
+                <tr>
+                  <td>nuhfac</td>
+                  <td>1.0</td>
+                  <td>viscosity coefficient for roller induced turbulent horizontal viscosity [0 - 1]</td>
+                </tr>
+                <tr>
+                  <td>usesmago</td>
+                  <td>1</td>
+                  <td>Uses smagorynsky formulation to calculate viscosity 0: No 1: Yes</td>
+                </tr>
+                <tr>
+                  <td>smag</td>
+                  <td>0.3</td>
+                  <td>Smagorinsky coeff only used if usesmago = 1</td>
+                </tr>
+                <tr>
+                  <td>lat</td>
+                  <td>0.0</td>
+                  <td>Latitude of the grid</td>
+                </tr>
+                <tr>
+                  <td>fc</td>
+                  <td>0.0</td>
+                  <td>Coriolis force. AUtomatically calculated for earth when setting up lat</td>
+                </tr>
+                <tr>
+                  <td>Cd</td>
+                  <td>0.002</td>
+                  <td>Wind drag coeff</td>
+                </tr>
+                <tr>
+                  <td>wci</td>
+                  <td>0.0</td>
+                  <td>Wave current interaction (0: no; 1: yes, 0.1-0.9: When model is not stable)</td>
+                </tr>
+                <tr>
+                  <td>hwci</td>
+                  <td>0.1</td>
+                  <td>min depth for wci. aka no wci in water depth shallower than this</td>
+                </tr>
+
+              </tbody>
+            </table>
+            <h3>Wave Parameters</h3>
+            <table class="table table-hover">
+              <thead>
+                <tr>
+                  <th>Parameter name</th>
+                  <th>Default Value</th>
+                  <th>Description</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>breakmodel</td>
+                  <td>1</td>
+                  <td>Wave dissipation model 1: roelvink 2: Baldock. use 1 for unsteady runs (i.e. with wave group) and use 2 when not forcing wave group</td>
+                </tr>
+                <tr>
+                  <td>gamma</td>
+                  <td>0.6</td>
+                  <td> Wave breaking gamma param</td>
+                </tr>
+                <tr>
+                  <td>n</td>
+                  <td>8.0</td>
+                  <td> exponential in Roelving breaking model</td>
+                </tr>
+                <tr>
+                  <td>alpha</td>
+                  <td>1.0</td>
+                  <td> calibration factorfor wave dissipation (should be 1.0)</td>
+                </tr>
+                <tr>
+                  <td>gammax</td>
+                  <td>2.0</td>
+                  <td> maximum ratio Hrms/hh</td>
+                </tr>
+                <tr>
+                  <td>beta</td>
+                  <td>0.15</td>
+                  <td> Roller slope dissipation parameter</td>
+                </tr>
+                <tr>
+                  <td>fw, fwsand, fwreef</td>
+                  <td>0.001</td>
+                  <td> Wave bottom dissipation parameters. A specific value can be given to Sand(cfsand) or Bedrock(cfreef). the location of outcropping bedrock is determined with the sediment thickness file and updated at every Morphology step.</td>
+                </tr>
+                <tr>
+                  <td>roller</td>
+                  <td>1</td>
+                  <td> Switch for roller model</td>
+                </tr>
+                <tr>
+                  <td>thetamin</td>
+                  <td>-90</td>
+                  <td> Minimum value for directional space in the wave model. This is only required when using wave boundary type 1, 4 and 5</td>
+                </tr>
+                <tr>
+                  <td>thetamax</td>
+                  <td>90</td>
+                  <td> Maximum value for directional space in the wave model. This is only required when using wave boundary type 1, 4 and 5</td>
+                </tr>
+                <tr>
+                  <td>dtheta</td>
+                  <td>N/A</td>
+                  <td>Directional space resolution [degrees] . Value calculated from ntheta. If specified ntheta will be calculated from dtheta instead</td>
+                </tr>
+                <tr>
+                  <td>ntheta</td>
+                  <td>1</td>
+                  <td> Number of directional bins. If ntheta is not specified but dtheta is specified by the user then ntheta will be calculated from dtheta. This is only required when using wave boundary type 1, 4 and 5</td>
+                </tr>
+
+              </tbody>
+            </table>
+            <h3>Sediment Parameters (Only needed when sedtrans=1)</h3>
+            <table class="table table-hover">
+              <thead>
+                <tr>
+                  <th>Parameter name</th>
+                  <th>Default Value</th>
+                  <th>Description</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>D50</td>
+                  <td>0.00038</td>
+                  <td> D50 sediment size in [m]. </td>
+                </tr>
+                <tr>
+                  <td>D90</td>
+                  <td>0.00053</td>
+                  <td> D90 sediment size in [m]</td>
+                </tr>
+                <tr>
+                  <td>rhosed</td>
+                  <td>2650.0</td>
+                  <td> Sand density in kg/m3</td>
+                </tr>
+                <tr>
+                  <td>wws</td>
+                  <td>0.0509</td>
+                  <td> sand fall velocity (should be calculated) m/s</td>
+                </tr>
+                <tr>
+                  <td>drydzmax=1.0, wetdzmax=2.0</td>
+                  <td>1.0, 2.0</td>
+                  <td>Wet/dry max slope in avalanching model</td>
+                </tr>
+
+              </tbody>
+            </table>
             <h2>Bathymetry</h2>
             <p>3 types of bathymetry files are recognize by XBGPU. </p>
             <ol>
@@ -150,7 +395,7 @@ n = 9; Was 10 before
                 </tr>
                 <tr class="danger">
                   <td>5</td>
-                  <td>Generate wave group from an input spectrum. (Not yet implemented)</td>
+                  <td>Generate wave group from an input spectrum. (Not fully tested)</td>
 
                 </tr>
               </tbody>
@@ -241,81 +486,81 @@ n = 9; Was 10 before
             <ul>
             <li><p><strong> zb</strong>: Bathymetry, [m] positive down</p></li>
 
-          	<li><p><strong> uu</strong>:</p></li>
+          	<li><p><strong> uu</strong>: U velocity [m/s] at u-point of the cell. </p></li>
 
-          	<li><p><strong> vv</strong>:</p></li>
+          	<li><p><strong> vv</strong>: V velocity [m/s] at v-point of the cell.</p></li>
 
-          	<li><p><strong> zs</strong>:</p></li>
+          	<li><p><strong> zs</strong>: Water level above datum [m].</p></li>
 
-          	<li><p><strong> hh</strong>:</p></li>
+          	<li><p><strong> hh</strong>: Water depth [m]</p></li>
 
-          	<li><p><strong> H</strong>:</p></li>
+          	<li><p><strong> H</strong>: RMS wave height [m]</p></li>
 
-          	<li><p><strong> thetamean</strong>:</p></li>
+          	<li><p><strong> thetamean</strong>: Mean wave direction [Deg to, math convention, 0 is perpendicular to the offshore boundary traveling to the shore ] </p></li>
 
-          	<li><p><strong> ee</strong>:</p></li>
+          	<li><p><strong> ee</strong>: Wave energy []</p></li>
 
-          	<li><p><strong> rr</strong>:</p></li>
-
-
-          	<li><p><strong> cfm</strong>:</p></li>
-
-          	<li><p><strong> dzb</strong>:</p></li>
-
-          	<li><p><strong> stdep</strong>:</p></li>
-
-          	<li><p><strong> Fx</strong>:</p></li>
-
-          	<li><p><strong> Fy</strong>:</p></li>
-
-          	<li><p><strong> cgx</strong>:</p></li>
-
-          	<li><p><strong> cgy</strong>:</p></li>
-
-          	<li><p><strong> cx</strong>:</p></li>
-
-          	<li><p><strong> cy</strong>:</p></li>
-
-          	<li><p><strong> ctheta</strong>:</p></li>
+          	<li><p><strong> rr</strong>: Roller energy []</p></li>
 
 
-          	<li><p><strong> D</strong>:</p></li>
+          	<li><p><strong> cfm</strong>: Bottom friction cf</p></li>
 
-          	<li><p><strong> E</strong>:</p></li>
+          	<li><p><strong> dzb</strong>: Relative change in the bathymetry [m since last step] (only when morphology is on)</p></li>
+
+          	<li><p><strong> stdep</strong>: Sediment Thickness [m]</p></li>
+
+          	<li><p><strong> Fx</strong>: Wave force in the x direction []</p></li>
+
+          	<li><p><strong> Fy</strong>: Wave force in the y direction []</p></li>
+
+          	<li><p><strong> cgx</strong>: Group wave celerity in the x direction [m/s]</p></li>
+
+          	<li><p><strong> cgy</strong>: Group wave celerity in the y direction [m/s]</p></li>
+
+          	<li><p><strong> cx</strong>: Wave celerity in the x direction [m/s]</p></li>
+
+          	<li><p><strong> cy</strong>: Wave celerity in the y direction [m/s]</p></li>
+
+          	<li><p><strong> ctheta</strong>: Wave celerity in the directional space [deg/s]</p></li>
 
 
-          	<li><p><strong> urms</strong>:</p></li>
+          	<li><p><strong> D</strong>: Wave energy dissipation rate</p></li>
 
-          	<li><p><strong> ueu</strong>:</p></li>
-
-          	<li><p><strong> vev</strong>:</p></li>
+          	<li><p><strong> E</strong>: Wave energy integrated over directional bins []</p></li>
 
 
-          	<li><p><strong> hhmean</strong>:</p></li>
+          	<li><p><strong> urms</strong>: RMS bottom orbital velocity [m/s]</p></li>
 
-          	<li><p><strong> uumean</strong>:</p></li>
+          	<li><p><strong> ueu</strong>: Eulerian velocity at u-point [m/s]</p></li>
 
-          	<li><p><strong> vvmean</strong>:</p></li>
+          	<li><p><strong> vev</strong>: Eulerian velocity at v-points [m/s]</p></li>
 
-          	<li><p><strong> zsmean</strong>:</p></li>
 
-          	<li><p><strong> zsmax</strong>:</p></li>
+          	<li><p><strong> hhmean</strong>: Mean water depth since last output [m]</p></li>
 
-          	<li><p><strong> Hmean</strong>:</p></li>
+          	<li><p><strong> uumean</strong>: Mean u velocity at u-points since last output [m/s]</p></li>
 
-          	<li><p><strong> Cmean</strong>:</p></li>
+          	<li><p><strong> vvmean</strong>: Mean v velocity at v-points since last output [m/s]</p></li>
 
-          	<li><p><strong> sigm</strong>:</p></li>
+          	<li><p><strong> zsmean</strong>: Mean water elevation since last output [m]</p></li>
 
-          	<li><p><strong> k</strong>:</p></li>
+          	<li><p><strong> zsmax</strong>: Max water elevation since last output [m]</p></li>
 
-          	<li><p><strong> c</strong>:</p></li>
+          	<li><p><strong> Hmean</strong>: Mean RMS wave height since last output [m]</p></li>
 
-          	<li><p><strong> kh</strong>:</p></li>
+          	<li><p><strong> Cmean</strong>: Mean Sediment concentration since last output [g/l]</p></li>
 
-          	<li><p><strong> cg</strong>:</p></li>
+          	<li><p><strong> sigm</strong>:Angular frequency [rad/s]</p></li>
 
-          	<li><p><strong> sinh2kh</strong>:</p></li>
+          	<li><p><strong> k</strong>: Wave number [rad/m]</p></li>
+
+          	<li><p><strong> c</strong>: Wave celerity [m/s]</p></li>
+
+          	<li><p><strong> kh</strong>:Wave number x depth [rad]</p></li>
+
+          	<li><p><strong> cg</strong>:Group velocity [m/s]</p></li>
+
+          	<li><p><strong> sinh2kh</strong>: </p></li>
 
           	<li><p><strong> dhdx</strong>:</p></li>
 
