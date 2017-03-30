@@ -1212,6 +1212,11 @@ void flowstep(XBGPUParam Param)
 	vdvdy_adv << <gridDim, blockDim, 0 >> >(nx, ny, Param.dx, hv_g, hvm_g, vv_g, vdvdy_g);
 	//CUT_CHECK_ERROR("vadvec for v execution failed\n");
 	CUDA_CHECK(cudaDeviceSynchronize());
+	
+
+	vdvdy_fixbnd << <gridDim, blockDim, 0 >> >(nx, ny, Param.dx, hv_g, hvm_g, vv_g, vdvdy_g);
+	//CUT_CHECK_ERROR("vadvec for v execution failed\n");
+	CUDA_CHECK(cudaDeviceSynchronize());
 	//udvdx
 
 	udvdx_adv << <gridDim, blockDim, 0 >> >(nx, ny, Param.dx, hu_g, hvm_g, uu_g, vv_g, udvdx_g);
@@ -1253,20 +1258,7 @@ void flowstep(XBGPUParam Param)
 
 
 
-	//
-	//v velocities at u pts and u velocities at v pts
-	//
-
-	calcuvvu << <gridDim, blockDim, 0 >> >(nx, ny, Param.dx, uu_g, vv_g, vu_g, uv_g, ust_g, thetamean_g, ueu_g, vev_g, vmageu_g, vmagev_g, wetu_g, wetv_g);
-	//CUT_CHECK_ERROR("calcuvvu execution failed\n");
-	CUDA_CHECK(cudaDeviceSynchronize());
-
-
-	uvlatbnd << <gridDim, blockDim, 0 >> >(nx, ny, vu_g, uv_g, ueu_g, vev_g, vmageu_g, vmagev_g);
-	//fix side bnd for vu
-	//twodimbndnoix<<<gridDim, blockDim, 0>>>(nx,ny,eps,hh_g,vu_g);
-	//CUT_CHECK_ERROR("wave force X bnd execution failed\n");
-	CUDA_CHECK(cudaDeviceSynchronize());
+	
 
 
 
@@ -1311,7 +1303,20 @@ void flowstep(XBGPUParam Param)
 	//CUT_CHECK_ERROR("hh lateral bnd execution failed\n");
 	CUDA_CHECK(cudaDeviceSynchronize());
 
+	//
+	//v velocities at u pts and u velocities at v pts
+	//
 
+	calcuvvu << <gridDim, blockDim, 0 >> >(nx, ny, Param.dx, uu_g, vv_g, vu_g, uv_g, ust_g, thetamean_g, ueu_g, vev_g, vmageu_g, vmagev_g, wetu_g, wetv_g);
+	//CUT_CHECK_ERROR("calcuvvu execution failed\n");
+	CUDA_CHECK(cudaDeviceSynchronize());
+
+
+	uvlatbnd << <gridDim, blockDim, 0 >> >(nx, ny, vu_g, uv_g, ueu_g, vev_g, vmageu_g, vmagev_g);
+	//fix side bnd for vu
+	//twodimbndnoix<<<gridDim, blockDim, 0>>>(nx,ny,eps,hh_g,vu_g);
+	//CUT_CHECK_ERROR("wave force X bnd execution failed\n");
+	CUDA_CHECK(cudaDeviceSynchronize());
 
 	CUDA_CHECK(cudaFree(viscu_g));
 	CUDA_CHECK(cudaFree(viscv_g));

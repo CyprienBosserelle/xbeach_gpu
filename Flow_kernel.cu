@@ -183,13 +183,16 @@ __global__ void ubnd1D(int nx, int ny, DECNUM dx, DECNUM dt, DECNUM g, DECNUM rh
 			vi = qy / ht;
 			ur = -1.0f*sqrtf(g/hh[i])*(zsplus - zsbnd);
 			
-
-			
-
+			float uuavg = 0.0f;
+			for (int n = 0; n < ny; n++)
+			{
+				uuavg = uuavg + uu[ix + n*nx];
+			}
+			uuavg = uuavg / ny;
 			
 
 			//Tidetype=velocity
-			uumean = factime*uu[i] + umean[iy] * (1 - factime);
+			uumean = factime*uuavg + umean[iy] * (1 - factime);
 			//vvmean = factime*vvmm + vmean[iy] * (1 - factime);
 			umean[iy] = uumean;
 			//vmean[iy] = vvmean;
@@ -833,7 +836,8 @@ __global__ void vdvdy_adv(int nx, int ny, DECNUM dx, DECNUM * hv, DECNUM * hvm, 
 	unsigned int i = ix + iy*nx;
 
 	DECNUM qin,dv, vvdvdy;
-	if (ix < nx && iy < ny)
+	vvdvdy = 0.0f;
+	if (ix < nx && ix>0 && iy>0 && iy < (ny-2) )
 	{
 		unsigned int xminus = mminus(ix, nx);
 		unsigned int xplus = pplus(ix, nx);
@@ -842,7 +846,7 @@ __global__ void vdvdy_adv(int nx, int ny, DECNUM dx, DECNUM * hv, DECNUM * hvm, 
 
 
 
-		vvdvdy = 0.0f;
+		
 
 		qin = 0.5f*(vv[i] * hv[i] + vv[ix + yminus*nx] * hv[ix + yminus*nx]);
 		dv = vv[i] - vv[ix + yminus*nx];
@@ -872,9 +876,37 @@ __global__ void vdvdy_adv(int nx, int ny, DECNUM dx, DECNUM * hv, DECNUM * hvm, 
 			}
 			
 		}
-		vdvdy[i] = vvdvdy;
+		
 	}
+	vdvdy[i] = vvdvdy;
 }
+
+__global__ void vdvdy_fixbnd(int nx, int ny, DECNUM dx, DECNUM * hv, DECNUM * hvm, DECNUM * vv, DECNUM * vdvdy)
+{
+	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
+	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
+	unsigned int i = ix + iy*nx;
+
+	DECNUM qin, dv, vvdvdy;
+	
+	if (ix < nx && ix>0 && iy > 0 && iy == (ny - 1))
+	{
+		unsigned int xminus = mminus(ix, nx);
+		unsigned int xplus = pplus(ix, nx);
+		unsigned int yminus = mminus(iy, ny);
+		unsigned int yplus = pplus(iy, ny);
+
+
+		qin = 0.5f*(vv[i] * hv[i] + vv[ix + yminus*nx] * hv[ix + yminus*nx]);
+		if (qin > 0.0f)
+		{
+			vvdvdy = vdvdy[i] + qin / hvm[i] * (vv[i] - vv[ix + (yminus)*nx]) / (dx);
+		}
+
+	}
+	vdvdy[i] = vvdvdy;
+}
+
 
 __global__ void vdvdy_adv2(int nx, int ny, DECNUM dx, DECNUM * hv, DECNUM * hvm, DECNUM * vv, DECNUM * vdvdy)
 {
@@ -1125,8 +1157,8 @@ __global__ void viscou1(int nx, int ny, DECNUM dx, DECNUM rho, DECNUM eps, DECNU
 		dudx2 = nuh2 * hh[i] * (uu[i] - uu[xminus + iy*nx]) / dx;
 		//dudy1 = 0.5f*(hvm[i] + hvm[xplus + iy*nx])*(uu[ix + yplus*nx] - uu[i]) / dx;
 		//dudy2 = 0.5f*(hvm[ix + yminus*nx] + hvm[xplus + yminus*nx])*(uu[i] - uu[ix + yminus*nx]) / dx;
-		viscu[i] = (1.0f / hum[i]) * (2.0f*(dudx1 - dudx2) / (dx));
-
+		//viscu[i] = (1.0f / hum[i]) * (2.0f*(dudx1 - dudx2) / (2.0f*dx));
+		viscu[i] = (1.0f / hum[i]) * ((dudx1 - dudx2) / (dx));
 		//*wetu[xplus+iy*nx]*wetu[xplus+iy*nx]
 	}
 }
@@ -1166,7 +1198,7 @@ __global__ void viscou2(int nx, int ny, DECNUM dx, DECNUM rho, DECNUM eps, DECNU
 		//dudx2 = hh[i] * (uu[i] - uu[xminus + iy*nx]) / dx;
 		dudy1 = nuh1*0.5f*(hvm[i] + hvm[xplus + iy*nx])*(uu[ix + yplus*nx] - uu[i]) / dx;
 		dudy2 = nuh2*0.5f*(hvm[ix + yminus*nx] + hvm[xplus + yminus*nx])*(uu[i] - uu[ix + yminus*nx]) / dx;
-		viscu[i] = viscu[i] +(1.0f/ hum[i]) * (2.0f*(dudy1 - dudy2) / dx*wetu[ix + yplus*nx] * wetu[ix + yminus*nx]);
+		viscu[i] = viscu[i] +(1.0f/ hum[i]) * ((dudy1 - dudy2) / dx*wetu[ix + yplus*nx] * wetu[ix + yminus*nx]);
 
 		//*wetu[xplus+iy*nx]*wetu[xplus+iy*nx]
 	}
@@ -1200,7 +1232,7 @@ __global__ void viscov1(int nx, int ny, DECNUM dx, DECNUM rho, DECNUM eps, DECNU
 		dvdy1 = nuh1*hh[ix + yplus*nx] * (vv[ix + yplus*nx] - vv[i]) / dx;
 		dvdy2 = nuh2*hh[i] * (vv[i] - vv[ix + yminus*nx]) / dx;
 		//viscv[i] = nnuh / hvm[i] * ((dvdx1 - dvdx2) / (dx)*wetv[xplus + iy*nx] * wetv[xminus + iy*nx] + (dvdy1 - dvdy2) / dx*wetv[ix + yplus*nx] * wetv[ix + yminus*nx]);
-		viscv[i] = (1.0f / hvm[i]) * 2.0f * (dvdy1 - dvdy2) / dx*wetv[ix + yplus*nx] * wetv[ix + yminus*nx];
+		viscv[i] = (1.0f / hvm[i]) * (dvdy1 - dvdy2) / dx*wetv[ix + yplus*nx] * wetv[ix + yminus*nx];
 	}
 }
 __global__ void viscov2(int nx, int ny, DECNUM dx, DECNUM rho, DECNUM eps, DECNUM nuhfac, DECNUM * nuhgrid, DECNUM *hh, DECNUM *hum, DECNUM *hvm, DECNUM * DR, DECNUM *vv, int * wetv, DECNUM * viscv)
@@ -1230,7 +1262,7 @@ __global__ void viscov2(int nx, int ny, DECNUM dx, DECNUM rho, DECNUM eps, DECNU
 		dvdx2 = nuh2*0.5f*(hum[xminus + iy*nx] + hum[xminus + yplus*nx])*(vv[i] - vv[xminus + iy*nx]) / dx;
 		//dvdy1 = hh[ix + yplus*nx] * (vv[ix + yplus*nx] - vv[i]) / dx;
 		//dvdy2 = hh[i] * (vv[i] - vv[ix + yminus*nx]) / dx;
-		viscv[i] = viscv[i] + (1.0f / hvm[i]) *2.0f* ((dvdx1 - dvdx2) / (dx)*wetv[xplus + iy*nx] * wetv[xminus + iy*nx] );
+		viscv[i] = viscv[i] + (1.0f / hvm[i]) * ((dvdx1 - dvdx2) / (dx)*wetv[xplus + iy*nx] * wetv[xminus + iy*nx] );
 	}
 }
 
@@ -1307,7 +1339,7 @@ __global__ void eulerustep(int nx, int ny, DECNUM dx, DECNUM dt, DECNUM g, DECNU
 		else
 		{
 			uui[tx][ty] = 0.0f;
-			viscu[i] = 0.0f;
+			//viscu[i] = 0.0f;
 
 		}
 		if (ix > 0)
@@ -1332,7 +1364,7 @@ __global__ void eulervstep(int nx, int ny, DECNUM dx, DECNUM dt, DECNUM g, DECNU
 	__shared__ DECNUM  vmagvi[16][16];
 	__shared__ DECNUM  hvmi[16][16];
 
-	if (ix < nx && iy < ny-1)
+	if (ix < nx && iy < ny-2)
 	{
 		unsigned int xminus = mminus(ix, nx);
 		unsigned int xplus = pplus(ix, nx);
@@ -1364,7 +1396,7 @@ __global__ void eulervstep(int nx, int ny, DECNUM dx, DECNUM dt, DECNUM g, DECNU
 		else
 		{
 			vvi[tx][ty] = 0.0f;
-			viscv[i] = 0.0f;
+			//viscv[i] = 0.0f;
 		}
 		if (ix > 0)// && iy>0 && iy<ny)
 		{
