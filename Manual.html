@@ -351,9 +351,170 @@ n = 9; Was 10 before
                   <td>1.0, 2.0</td>
                   <td>Wet/dry max slope in avalanching model</td>
                 </tr>
+                <tr>
+                  <td>maxslpchg</td>
+                  <td>0.01</td>
+                  <td>max change within a step to avoid avalanching tsunami</td>
+                </tr>
+                <tr>
+                  <td>por</td>
+                  <td>0.4</td>
+                  <td>sand porosity (%)</td>
+                </tr>
+                <tr>
+                  <td>morfac</td>
+                  <td>1.0</td>
+                  <td> morphological factor 0 no changes in morphology 1 normal changes in morpho >1 accelerated morphological changes (beware this doesn't accelerate the bnd you have to do this manually)</td>
+                </tr>
+                <tr>
+                  <td>sus</td>
+                  <td>1.0</td>
+                  <td>calibration coeff for suspended load</td>
+                </tr>
+                <tr>
+                  <td>bed</td>
+                  <td>1.0</td>
+                  <td>calibration coeff for bed load</td>
+                </tr>
+                <tr>
+                  <td>facsk</td>
+                  <td>0.2</td>
+                  <td>calibration factor for wave skewness </td>
+                </tr>
+                <tr>
+                  <td>facas</td>
+                  <td>0.2</td>
+                  <td>calibration factor for wave asymetry</td>
+                </tr>
 
               </tbody>
             </table>
+
+            <h3>Files</h3>
+            <table class="table table-hover">
+              <thead>
+                <tr>
+                  <th>Parameter name</th>
+                  <th>Default Value</th>
+                  <th>Description</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>bathy, depfile</td>
+                  <td>[]</td>
+                  <td> Bathymetry file, positive down [m]. See details below </td>
+                </tr>
+                <tr>
+                  <td>wavebndfile</td>
+                  <td>[]</td>
+                  <td> Filename of the wave boundary file. See below for details </td>
+                </tr>
+                <tr>
+                  <td>SedThkfile</td>
+                  <td>[]</td>
+                  <td> Sediment thickness file. Same format as the bathymetry file but with sediment layer thickness values in m</td>
+                </tr>
+                <tr>
+                  <td>slbndfile</td>
+                  <td>[]</td>
+                  <td> Sea level boundary file (see below for details)</td>
+                </tr>
+                <tr>
+                  <td>windbndfile</td>
+                  <td>[]</td>
+                  <td> Wind boundary file (see below for details)</td>
+                </tr>
+                <tr>
+                  <td>outfile</td>
+                  <td>[]</td>
+                  <td> Netcdf output file name for area serie output</td>
+                </tr>
+                <tr>
+                  <td>TSOfile</td>
+                  <td>[]</td>
+                  <td> Output txt file name for Time serie output of a single location. There can be as many TSOfile as specific location to output. With this option you will output zs and H at every step in the model </td>
+                </tr>
+                <tr>
+                  <td>TSnode</td>
+                  <td>x,y</td>
+                  <td> Location in nodes for extracting a time series. You need as many TSnode=x,y (x and y should be integers smaller than nx and ny respectively) as you have TSOfile=myfile.txt</td>
+                </tr>
+                <tr>
+                  <td>outvars</td>
+                  <td> "zb", "zs", "uu", "vv", "H", "thetamean", "D", "urms", "ueu", "vev", "C", "dzb", "Fx", "Fy", "hh", "Hmean", "uumean", "vvmean", "hhmean", "zsmean", "Cmean" </td>
+                  <td> Name of output variables. See below for the full list. Any number of variable can be selected. You can specify the same varibale twice but you would be a fool. specifying an empty lits will revert back to default. outvars may be specifyed multiple time in the param file to add more variable and keep the file clean</td>
+                </tr>
+              </tbody>
+            </table>
+            <h3>Time Keeping</h3>
+            <table class="table table-hover">
+              <thead>
+                <tr>
+                  <th>Parameter name</th>
+                  <th>Default Value</th>
+                  <th>Description</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>CFL</td>
+                  <td>0.7</td>
+                  <td> CFL value used to calculate the model timestep. If the model becomes unstable use a smaller value. </td>
+                </tr>
+                <tr>
+                  <td>endtime</td>
+                  <td>0.0</td>
+                  <td> Model end timein s (start time is 0.0). Default value will find the shortest time in boundary input. </td>
+                </tr>
+                <tr>
+                  <td>outputtimestep</td>
+                  <td>0.0</td>
+                  <td> Output time step in seconds. If 0.0s then no output is produced. </td>
+                </tr>
+                <tr>
+                  <td>sedstart</td>
+                  <td>3600.0</td>
+                  <td> Delay start for sediment transport (seconds) to allow hydrodynamics warm up. </td>
+                </tr>
+              </tbody>
+            </table>
+
+            <h3>Wave boundary variables</h3>
+            <p>There are 4 different type of wave boundary input. and type 4 (and 5) can be controlled </p>
+            <table class="table table-hover">
+              <thead>
+                <tr>
+                  <th>Parameter name</th>
+                  <th>Default Value</th>
+                  <th>Description</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>CFL</td>
+                  <td>0.7</td>
+                  <td> CFL value used to calculate the model timestep. If the model becomes unstable use a smaller value. </td>
+                </tr>
+                <tr>
+                  <td>endtime</td>
+                  <td>0.0</td>
+                  <td> Model end timein s (start time is 0.0). Default value will find the shortest time in boundary input. </td>
+                </tr>
+                <tr>
+                  <td>outputtimestep</td>
+                  <td>0.0</td>
+                  <td> Output time step in seconds. If 0.0s then no output is produced. </td>
+                </tr>
+                <tr>
+                  <td>sedstart</td>
+                  <td>3600.0</td>
+                  <td> Delay start for sediment transport (seconds) to allow hydrodynamics warm up. </td>
+                </tr>
+              </tbody>
+            </table>
+
+
             <h2>Bathymetry</h2>
             <p>3 types of bathymetry files are recognize by XBGPU. </p>
             <ol>
