@@ -481,7 +481,7 @@ n = 9; Was 10 before
             </table>
 
             <h3>Wave boundary variables</h3>
-            <p>There are 4 different type of wave boundary input. and type 4 (and 5) can be controlled </p>
+            <p>There are 4 different type of wave boundary input. For type 4 (and 5) teh wave groups are internally generated. The wave goup and Low frequency bpound wave generation can be controlled with some of the parameters below. </p>
             <table class="table table-hover">
               <thead>
                 <tr>
@@ -492,24 +492,39 @@ n = 9; Was 10 before
               </thead>
               <tbody>
                 <tr>
-                  <td>CFL</td>
-                  <td>0.7</td>
-                  <td> CFL value used to calculate the model timestep. If the model becomes unstable use a smaller value. </td>
+                  <td>wavebndtype</td>
+                  <td>2</td>
+                  <td> Wave boundary type [1, 2, 3, 4, or 5]. See below for details </td>
                 </tr>
                 <tr>
-                  <td>endtime</td>
-                  <td>0.0</td>
-                  <td> Model end timein s (start time is 0.0). Default value will find the shortest time in boundary input. </td>
+                  <td>dtbc</td>
+                  <td>1.0</td>
+                  <td> time step for wave group forcing (generation  and reading). Only used for wavebndtype 2, 4 and 5. Automatic for wavebndtype=3</td>
                 </tr>
                 <tr>
-                  <td>outputtimestep</td>
-                  <td>0.0</td>
-                  <td> Output time step in seconds. If 0.0s then no output is produced. </td>
+                  <td>sprdthr</td>
+                  <td>0.8</td>
+                  <td> Threshold cut off for spectral sample in boundary generation (in % of peak energy). </td>
                 </tr>
                 <tr>
-                  <td>sedstart</td>
+                  <td>rtlength</td>
                   <td>3600.0</td>
-                  <td> Delay start for sediment transport (seconds) to allow hydrodynamics warm up. </td>
+                  <td> duration of wave group chunks (seconds) . </td>
+                </tr>
+                <tr>
+                  <td>random</td>
+                  <td>0.0</td>
+                  <td> switch for resetting random sampling. ) means the random sample will be the same evry run . 1 mean the sample is different at evry run . </td>
+                </tr>
+                <tr>
+                  <td>nmax</td>
+                  <td>0.8</td>
+                  <td> Factor to reduce long wave variance in shallow water.  </td>
+                </tr>
+                <tr>
+                  <td>fcutoff</td>
+                  <td>0.0</td>
+                  <td>Low-freq cutoff frequency. </td>
                 </tr>
               </tbody>
             </table>
