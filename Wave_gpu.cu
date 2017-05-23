@@ -42,7 +42,7 @@ DECNUM * umeanbnd_g;
 DECNUM * vmeanbnd_g;
 DECNUM * umeanbnd;
 DECNUM * hh_g, *uu_g, *vv_g, *zs_g, *zb_g, *hhold_g;
-DECNUM *uuold_g, *vvold_g, *qx_g, *qy_g;
+DECNUM *uuold_g, *vvold_g, *zsold_g, *qx_g, *qy_g;
 DECNUM * ueu_g, *vev_g;
 DECNUM * vmageu_g, *vmagev_g;
 DECNUM * uu;
@@ -1313,7 +1313,7 @@ void flowstep(XBGPUParam Param)
 	//
 	//v velocities at u pts and u velocities at v pts
 	//
-	calcuvvu << <gridDim, blockDim, 0 >> >(nx, ny, Param.dx, uu_g, vv_g, vu_g, uv_g, ust_g, thetamean_g, ueu_g, vev_g, vmageu_g, vmagev_g,uuold_g,vvold_g, wetu_g, wetv_g);
+	calcuvvu << <gridDim, blockDim, 0 >> >(nx, ny, Param.dx, uu_g, vv_g, vu_g, uv_g, ust_g, thetamean_g, ueu_g, vev_g, vmageu_g, vmagev_g,uuold_g,vvold_g,zs_g,zsold_g wetu_g, wetv_g);
 	//CUT_CHECK_ERROR("calcuvvu execution failed\n");
 	CUDA_CHECK(cudaDeviceSynchronize());
 
@@ -2095,6 +2095,8 @@ int main(int argc, char **argv)
 
 		CUDA_CHECK(cudaMalloc((void **)&uuold_g, nx*ny*sizeof(DECNUM)));
 		CUDA_CHECK(cudaMalloc((void **)&vvold_g, nx*ny*sizeof(DECNUM)));
+		CUDA_CHECK(cudaMalloc((void **)&zsold_g, nx*ny*sizeof(DECNUM)));
+
 		CUDA_CHECK(cudaMalloc((void **)&qx_g, nx*ny*sizeof(DECNUM)));
 		CUDA_CHECK(cudaMalloc((void **)&qy_g, nx*ny*sizeof(DECNUM)));
 
@@ -2327,6 +2329,8 @@ int main(int argc, char **argv)
 
 		CUDA_CHECK(cudaMemcpy(uuold_g, uu, nx*ny*sizeof(DECNUM), cudaMemcpyHostToDevice));
 		CUDA_CHECK(cudaMemcpy(vvold_g, vv, nx*ny*sizeof(DECNUM), cudaMemcpyHostToDevice));
+		CUDA_CHECK(cudaMemcpy(zsold_g, zs, nx*ny*sizeof(DECNUM), cudaMemcpyHostToDevice));
+
 		CUDA_CHECK(cudaMemcpy(qx_g, uu, nx*ny*sizeof(DECNUM), cudaMemcpyHostToDevice));
 		CUDA_CHECK(cudaMemcpy(qy_g, vv, nx*ny*sizeof(DECNUM), cudaMemcpyHostToDevice));
 

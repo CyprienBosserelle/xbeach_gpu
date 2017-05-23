@@ -296,7 +296,7 @@ __global__ void wlevslopes(int nx, int ny, DECNUM dx, DECNUM eps, DECNUM *zs, DE
 
 
 }
-__global__ void calcuvvu(int nx, int ny, DECNUM dx, DECNUM *uu, DECNUM *vv, DECNUM *vu, DECNUM *uv, DECNUM * ust, DECNUM *thetamean, DECNUM *ueu_g, DECNUM *vev_g, DECNUM *vmageu, DECNUM *vmagev, DECNUM * uuold, DECNUM * vvold, int* wetu, int* wetv)
+__global__ void calcuvvu(int nx, int ny, DECNUM dx, DECNUM *uu, DECNUM *vv, DECNUM *vu, DECNUM *uv, DECNUM * ust, DECNUM *thetamean, DECNUM *ueu_g, DECNUM *vev_g, DECNUM *vmageu, DECNUM *vmagev, DECNUM * uuold, DECNUM * vvold, DECNUM * zs, DECNUM *zsold, int* wetu, int* wetv)
 {
 	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
 	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
@@ -338,7 +338,7 @@ __global__ void calcuvvu(int nx, int ny, DECNUM dx, DECNUM *uu, DECNUM *vv, DECN
 		// Uold and Vold used in 2nd order flow correction
 		uuold[i] = uu[i];
 		vvold[i] = vv[i];
-
+		zsold[i] = zs[i];
 		// V-velocities at u-points
 
 		vu[i] = 0.25f*(vv[ix + yminus*nx] + vv[ix + iy*nx] + vv[xplus + yminus*nx] + vv[xplus + iy*nx])*wetui[tx][ty];
@@ -1913,6 +1913,68 @@ __global__ void wrkvv2Ocorr(int nx, int ny, float dx, float dt, DECNUM* vv, DECN
 
 }
 
+__global__ void wrkzs2Ocorr(int nx, int ny, float dx, float dt, DECNUM* zs, DECNUM* zsold,  DECNUM *uu, DECNUM * vv, DECNUM *wrk1, DECNUM*wrk2)
+{
+	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
+	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
+	unsigned int i = ix + iy*nx;
+
+	unsigned int tx = threadIdx.x;
+	unsigned int ty = threadIdx.y;
+
+
+	float delta1, delta2;
+
+	__shared__ DECNUM uui[16][16];
+	__shared__ DECNUM uoi[16][16];
+
+
+
+	if (ix < nx && iy < ny)
+	{
+		unsigned int xminus = mminus(ix, nx);
+		unsigned int xminus2 = mminus2(ix, nx);
+		unsigned int xplus = pplus(ix, nx);
+		unsigned int xplus2 = pplus2(ix, nx);
+		unsigned int yminus = mminus(iy, ny);
+		unsigned int yplus = pplus(iy, ny);
+		unsigned int yminus2 = mminus2(iy, ny);
+		unsigned int yplus2 = pplus2(iy, ny);
+
+		wrk1[i] = 0.0f;
+		wrk2[i] = 0.0f;
+
+		if ((uu[i]) > 0.0f)
+		{
+			delta1 = (zs[xplus+iy*nx] - zsold[i]);
+			delta2 = (zs[i] - zsold[xminus+iy*nx]);
+			wrk1[i] = uu[i]*0.5f*minmod(delta1, delta2);
+		}
+		if ((uu[i]) < 0.0f)
+		{
+			delta1 = (zsold[xplus2+iy*nx] - zs[xplus + iy*nx]);
+			delta2 = (zsold[xplus + iy*nx] - zs[i]);
+			wrk1[i] = -1.0f*uu[i]*0.5f*minmod(delta1, delta2);
+		}
+		if (( vv[i]) > 0.0f)
+		{
+			delta1 = (zs[ix + yplus*nx] - zsold[i]);
+			delta2 = (zs[i] - zsold[ix + yminus*nx]);
+			wrk2[i] = vv[i]*0.5f*minmod(delta1, delta2);
+		}
+		if ((vv[i]) < 0.0f)
+		{
+			delta1 = (zsold[ix + yplus2*nx] - zs[ix+yplus*nx]);
+			delta2 = (zsold[ix + yplus*nx] - zs[i]);
+			wrk2[i] = vv[i]*0.5f*minmod(delta1, delta2);
+		}
+
+
+
+	}
+
+}
+
 __global__ void uu2Ocorr(int nx, int ny, float dx, float dt, DECNUM* uu, DECNUM* uuold, DECNUM* hum, DECNUM *qx, DECNUM * qy, DECNUM *wrk1, DECNUM*wrk2)
 {
 	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
@@ -1987,3 +2049,39 @@ __global__ void vv2Ocorr(int nx, int ny, float dx, float dt, DECNUM* vv, DECNUM*
 	}
 }
 
+__global__ void zs2Ocorr(int nx, int ny, float dx, float dt, DECNUM* zs, DECNUM *qx, DECNUM *qy, DECNUM *wrk1, DECNUM*wrk2)
+{
+	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
+	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
+	unsigned int i = ix + iy*nx;
+
+	unsigned int tx = threadIdx.x;
+	unsigned int ty = threadIdx.y;
+
+
+	float qe, qw, qs, qn;
+
+	__shared__ DECNUM uui[16][16];
+	__shared__ DECNUM uoi[16][16];
+
+
+
+	if (ix < nx && iy < ny)
+	{
+		unsigned int xminus = mminus(ix, nx);
+		unsigned int xminus2 = mminus2(ix, nx);
+		unsigned int xplus = pplus(ix, nx);
+		unsigned int xplus2 = pplus2(ix, nx);
+		unsigned int yminus = mminus(iy, ny);
+		unsigned int yplus = pplus(iy, ny);
+		unsigned int yminus2 = mminus2(iy, ny);
+		unsigned int yplus2 = pplus2(iy, ny);
+		
+
+		zs[i] = zs[i] - dt * ((wrk1[i] - wrk1[xminus+iy*nx]) / dx + (wrk2[i] - wrk2[ix + yminus*nx]) / dx);
+
+		//Update fluxes although Im not sure if there is a point to do it since Qx and Qy are not used elsewhere 
+		qx[i] = qx[i] + wrk1[i];
+		qy[i] = qy[i] + wrk2[i];
+	}
+}
