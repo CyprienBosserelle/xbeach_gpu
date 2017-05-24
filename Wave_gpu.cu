@@ -1261,12 +1261,29 @@ void flowstep(XBGPUParam Param)
 
 
 	
+	//
+	// Calc 2nd order correction for uu
+	//Reuse viscu and viscv for wrk1 and wrk2
+	wrkuu2Ocorr << <gridDim, blockDim, 0 >> >(nx, ny, Param.dx, Param.dt, uu_g, uuold_g, hum_g, qx_g, qy_g, viscu_g, viscv_g);
+	CUDA_CHECK(cudaDeviceSynchronize());
 
+	//
+	// Apply second order correction to uu
+	//
+	uu2Ocorr << <gridDim, blockDim, 0 >> >(nx, ny, Param.dx, Param.dt, uu_g, uuold_g, hum_g, qx_g, qy_g, viscu_g, viscv_g);
+	CUDA_CHECK(cudaDeviceSynchronize());
 
-
-
-
-
+	//
+	// Calc 2nd order correction for vv
+	//Reuse viscu and viscv for wrk1 and wrk2
+	wrkvv2Ocorr << <gridDim, blockDim, 0 >> >(nx, ny, Param.dx, Param.dt, vv_g, vvold_g, hvm_g, qx_g, qy_g, viscu_g, viscv_g);
+	CUDA_CHECK(cudaDeviceSynchronize());
+	
+	//
+	// Apply second order correction to vv
+	//
+	vv2Ocorr << <gridDim, blockDim, 0 >> >(nx, ny, Param.dx, Param.dt, vv_g, vvold_g, hvm_g, qx_g, qy_g, viscu_g, viscv_g);
+	CUDA_CHECK(cudaDeviceSynchronize());
 
 
 
@@ -1289,6 +1306,7 @@ void flowstep(XBGPUParam Param)
 	//
 	CalcQFlow << <gridDim, blockDim, 0 >> >(nx, ny, uu_g, hu_g, vv_g, hv_g, qx_g, qy_g);
 	CUDA_CHECK(cudaDeviceSynchronize());
+	
 
 	//
 	// Update water level using continuity eq.
@@ -1297,6 +1315,17 @@ void flowstep(XBGPUParam Param)
 	//CUT_CHECK_ERROR("continuity execution failed\n");
 	CUDA_CHECK(cudaDeviceSynchronize());
 
+	//
+	// Calc 2nd order correction for zs
+	//Reuse viscu and viscv for wrk1 and wrk2
+	wrkzs2Ocorr << <gridDim, blockDim, 0 >> >(nx, ny, Param.dx, Param.dt, zs_g, zsold_g, uu_g, vv_g, viscu_g, viscv_g);
+	CUDA_CHECK(cudaDeviceSynchronize());
+
+	//
+	// Apply second order correction to zs
+	//
+	zs2Ocorr << <gridDim, blockDim, 0 >> >(nx, ny, Param.dx, Param.dt, zs_g, qx_g, qy_g, viscu_g, viscv_g);
+	CUDA_CHECK(cudaDeviceSynchronize());
 
 	//
 	// Adjust lateral bnds
@@ -1313,7 +1342,8 @@ void flowstep(XBGPUParam Param)
 	//
 	//v velocities at u pts and u velocities at v pts
 	//
-	calcuvvu << <gridDim, blockDim, 0 >> >(nx, ny, Param.dx, uu_g, vv_g, vu_g, uv_g, ust_g, thetamean_g, ueu_g, vev_g, vmageu_g, vmagev_g,uuold_g,vvold_g,zs_g,zsold_g wetu_g, wetv_g);
+	//calcuvvu(int nx, int ny, DECNUM dx, DECNUM *uu, DECNUM *vv, DECNUM *vu, DECNUM *uv, DECNUM * ust, DECNUM *thetamean, DECNUM *ueu_g, DECNUM *vev_g, DECNUM *vmageu, DECNUM *vmagev, DECNUM * uuold, DECNUM * vvold, DECNUM * zs, DECNUM *zsold, int* wetu, int* wetv)
+	calcuvvu << <gridDim, blockDim, 0 >> >(nx, ny, Param.dx, uu_g, vv_g, vu_g, uv_g, ust_g, thetamean_g, ueu_g, vev_g, vmageu_g, vmagev_g, uuold_g, vvold_g, zs_g, zsold_g, wetu_g, wetv_g);
 	//CUT_CHECK_ERROR("calcuvvu execution failed\n");
 	CUDA_CHECK(cudaDeviceSynchronize());
 
