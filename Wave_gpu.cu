@@ -1264,7 +1264,7 @@ void flowstep(XBGPUParam Param)
 	//
 	// Calc 2nd order correction for uu
 	//Reuse viscu and viscv for wrk1 and wrk2
-	wrkuu2Ocorr << <gridDim, blockDim, 0 >> >(nx, ny, Param.dx, Param.dt, uu_g, uuold_g, hum_g, qx_g, qy_g, viscu_g, viscv_g);
+	wrkuu2Ocorr << <gridDim, blockDim, 0 >> >(nx, ny, Param.dx, Param.dt, Param.eps, uu_g, uuold_g, hum_g, zs_g, zb_g, qx_g, qy_g, viscu_g, viscv_g);
 	CUDA_CHECK(cudaDeviceSynchronize());
 
 	//
@@ -1276,7 +1276,7 @@ void flowstep(XBGPUParam Param)
 	//
 	// Calc 2nd order correction for vv
 	//Reuse viscu and viscv for wrk1 and wrk2
-	wrkvv2Ocorr << <gridDim, blockDim, 0 >> >(nx, ny, Param.dx, Param.dt, vv_g, vvold_g, hvm_g, qx_g, qy_g, viscu_g, viscv_g);
+	wrkvv2Ocorr << <gridDim, blockDim, 0 >> >(nx, ny, Param.dx, Param.dt, Param.eps, vv_g, vvold_g, hvm_g, zs_g, zb_g, qx_g, qy_g, viscu_g, viscv_g);
 	CUDA_CHECK(cudaDeviceSynchronize());
 	
 	//
@@ -1318,7 +1318,7 @@ void flowstep(XBGPUParam Param)
 	//
 	// Calc 2nd order correction for zs
 	//Reuse viscu and viscv for wrk1 and wrk2
-	wrkzs2Ocorr << <gridDim, blockDim, 0 >> >(nx, ny, Param.dx, Param.dt, zs_g, zsold_g, uu_g, vv_g, viscu_g, viscv_g);
+	wrkzs2Ocorr << <gridDim, blockDim, 0 >> >(nx, ny, Param.dx, Param.dt, Param.eps, zs_g, zsold_g, uu_g, vv_g,zb_g, viscu_g, viscv_g);
 	CUDA_CHECK(cudaDeviceSynchronize());
 
 	//

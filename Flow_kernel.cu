@@ -1789,7 +1789,7 @@ __global__ void CalcQFlow(int nx, int ny, DECNUM * uu, DECNUM* hu, DECNUM* vv, D
 
 }
 
-__global__ void wrkuu2Ocorr(int nx, int ny, float dx, float dt, DECNUM* uu, DECNUM* uuold, DECNUM* hum, DECNUM *qx, DECNUM * qy,DECNUM *wrk1, DECNUM*wrk2)
+__global__ void wrkuu2Ocorr(int nx, int ny, float dx, float dt,float eps, DECNUM* uu, DECNUM* uuold, DECNUM* hum,DECNUM *zs, DECNUM *zb, DECNUM *qx, DECNUM * qy,DECNUM *wrk1, DECNUM*wrk2)
 {
 	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
 	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
@@ -1800,9 +1800,12 @@ __global__ void wrkuu2Ocorr(int nx, int ny, float dx, float dt, DECNUM* uu, DECN
 
 	
 	float delta1, delta2;
+	float mindepth,minzs,minzb;
 
 	__shared__ DECNUM uui[16][16];
 	__shared__ DECNUM uoi[16][16];
+
+	
 
 	
 
@@ -1820,38 +1823,59 @@ __global__ void wrkuu2Ocorr(int nx, int ny, float dx, float dt, DECNUM* uu, DECN
 		wrk1[i] = 0.0f;
 		wrk2[i] = 0.0f;
 
-		if ((qx[i] + qx[xminus + iy*nx]) > 0.0f)
+		minzs = min(min(min(min(zs[xminus2 + iy*nx], zs[xminus + iy*nx]), zs[i]), zs[xplus + iy*nx]), zs[xplus2 + iy*nx]);
+		minzb = min(min(min(min(zb[xminus2 + iy*nx], zb[xminus + iy*nx]), zb[i]), zb[xplus + iy*nx]), zb[xplus2 + iy*nx]);
+
+		mindepth = minzs + minzb;
+
+		if (mindepth > eps)
 		{
-			delta1 = (uu[i] - uuold[xminus + iy*nx]);
-			delta2 = (uu[xminus + iy*nx] - uuold[xminus2 + iy*nx]);
-			wrk1[i] = 0.5f*minmod(delta1, delta2);
+
+			if ((qx[i] + qx[xminus + iy*nx]) > 0.0f)
+			{
+				delta1 = (uu[i] - uuold[xminus + iy*nx]);
+				delta2 = (uu[xminus + iy*nx] - uuold[xminus2 + iy*nx]);
+				wrk1[i] = 0.5f*minmod(delta1, delta2);
+			}
+			if ((qx[i] + qx[xminus + iy*nx]) < 0.0f)
+			{
+				delta1 = (uuold[i] - uu[xminus + iy*nx]);
+				delta2 = (uuold[xplus + iy*nx] - uu[i]);
+				wrk1[i] = -0.5f*minmod(delta1, delta2);
+			}
 		}
-		if ((qx[i] + qx[xminus + iy*nx]) < 0.0f)
-		{
-			delta1 = (uuold[i] - uu[xminus + iy*nx]);
-			delta2 = (uuold[xplus + iy*nx] - uu[i]);
-			wrk1[i] = -0.5f*minmod(delta1, delta2);
-		}
-		if ((qy[xplus+iy*nx] + qy[i]) > 0.0f)
-		{
-			delta1 = (uu[ix+yplus*nx] - uuold[i]);
-			delta2 = (uu[i] - uuold[ix + yminus*nx]);
-			wrk2[i] = 0.5f*minmod(delta1, delta2);
-		}
-		if ((qy[xplus + iy*nx] + qy[i]) < 0.0f)
-		{
-			delta1 = (uuold[ix+yplus*nx] - uu[i]);
-			delta2 = (uuold[ix+yplus2*nx] - uu[ix+yplus*nx]);
-			wrk2[i] = -0.5f*minmod(delta1, delta2);
-		}
+		minzs = min(min(min(zs[ix + iy*nx], zs[ix + yminus*nx]), zs[ix + yplus*nx]), zs[ix + yplus2*nx]);
+		minzs = min(minzs, min(min(min(zs[xplus + iy*nx], zs[xplus + yminus*nx]), zs[xplus + yplus*nx]), zs[xplus + yplus2*nx]));
+
+		minzb = min(min(min(zb[ix + iy*nx], zb[ix + yminus*nx]), zb[ix + yplus*nx]), zb[ix + yplus2*nx]);
+		minzb = min(minzb, min(min(min(zb[xplus + iy*nx], zb[xplus + yminus*nx]), zb[xplus + yplus*nx]), zb[xplus + yplus2*nx]));
+
+		mindepth = minzs + minzb;
 
 		
+		if (mindepth > eps)
+		{
+
+			if ((qy[xplus + iy*nx] + qy[i]) > 0.0f)
+			{
+				delta1 = (uu[ix + yplus*nx] - uuold[i]);
+				delta2 = (uu[i] - uuold[ix + yminus*nx]);
+				wrk2[i] = 0.5f*minmod(delta1, delta2);
+			}
+			if ((qy[xplus + iy*nx] + qy[i]) < 0.0f)
+			{
+				delta1 = (uuold[ix + yplus*nx] - uu[i]);
+				delta2 = (uuold[ix + yplus2*nx] - uu[ix + yplus*nx]);
+				wrk2[i] = -0.5f*minmod(delta1, delta2);
+			}
+
+		}
 		
 	}
 
 }
 
-__global__ void wrkvv2Ocorr(int nx, int ny, float dx, float dt, DECNUM* vv, DECNUM* vvold, DECNUM* hvm, DECNUM *qx, DECNUM * qy, DECNUM *wrk1, DECNUM*wrk2)
+__global__ void wrkvv2Ocorr(int nx, int ny, float dx, float dt, float eps, DECNUM* vv, DECNUM* vvold, DECNUM* hvm, DECNUM *zs, DECNUM *zb, DECNUM *qx, DECNUM * qy, DECNUM *wrk1, DECNUM*wrk2)
 {
 	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
 	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
@@ -1862,7 +1886,7 @@ __global__ void wrkvv2Ocorr(int nx, int ny, float dx, float dt, DECNUM* vv, DECN
 
 
 	float delta1, delta2;
-
+	float mindepth, minzs, minzb;
 	__shared__ DECNUM uui[16][16];
 	__shared__ DECNUM uoi[16][16];
 
@@ -1882,38 +1906,60 @@ __global__ void wrkvv2Ocorr(int nx, int ny, float dx, float dt, DECNUM* vv, DECN
 		wrk1[i] = 0.0f;
 		wrk2[i] = 0.0f;
 
-		if ((qy[i] + qy[ix + yminus*nx]) > 0.0f)
+		minzs = min(min(min(min(zs[ix + yminus2*nx], zs[ix + yminus*nx]), zs[ix + iy*nx]), zs[ix + yplus*nx]), zs[ix + yplus2*nx]);
+		minzb = min(min(min(min(zb[ix + yminus2*nx], zb[ix + yminus*nx]), zb[ix + iy*nx]), zb[ix + yplus*nx]), zb[ix + yplus2*nx]);
+
+		mindepth = minzs + minzb;
+
+		if (mindepth > eps)
 		{
-			delta1 = (vv[i] - vvold[ix + yminus*nx]);
-			delta2 = (vv[ix + yminus*nx] - vvold[ix + yminus2*nx]);
-			wrk1[i] = 0.5f*minmod(delta1, delta2);
-		}
-		if ((qy[i] + qy[ix + yminus*nx]) < 0.0f)
-		{
-			delta1 = (vvold[i] - vv[ix + yminus*nx]);
-			delta2 = (vvold[ix + yplus*nx] - vv[i]);
-			wrk1[i] = -0.5f*minmod(delta1, delta2);
-		}
-		if ((qx[ix + yplus*nx] + qx[i]) > 0.0f)
-		{
-			delta1 = (vv[xplus + iy*nx] - vvold[i]);
-			delta2 = (vv[i] - vvold[xminus + iy*nx]);
-			wrk2[i] = 0.5f*minmod(delta1, delta2);
-		}
-		if ((qx[ix + yplus*nx] + qx[i]) < 0.0f)
-		{
-			delta1 = (vvold[xplus + iy*nx] - vv[i]);
-			delta2 = (vvold[xplus2 + iy*nx] - vv[xplus + iy*nx]);
-			wrk2[i] = -0.5f*minmod(delta1, delta2);
+
+			if ((qy[i] + qy[ix + yminus*nx]) > 0.0f)
+			{
+				delta1 = (vv[i] - vvold[ix + yminus*nx]);
+				delta2 = (vv[ix + yminus*nx] - vvold[ix + yminus2*nx]);
+				wrk1[i] = 0.5f*minmod(delta1, delta2);
+			}
+			if ((qy[i] + qy[ix + yminus*nx]) < 0.0f)
+			{
+				delta1 = (vvold[i] - vv[ix + yminus*nx]);
+				delta2 = (vvold[ix + yplus*nx] - vv[i]);
+				wrk1[i] = -0.5f*minmod(delta1, delta2);
+			}
+
 		}
 
+		minzs = min(min(min(zs[xminus + iy*nx], zs[ix + iy*nx]), zs[xplus + iy*nx]), zs[xplus2 + iy*nx]);
+		minzs = min(minzs, min(min(min(zs[xminus + yplus*nx], zs[ix + yplus*nx]), zs[xplus + yplus*nx]), zs[xplus2 + yplus*nx]));
 
+		minzb = min(min(min(zb[xminus + iy*nx], zb[ix + iy*nx]), zb[xplus + iy*nx]), zb[xplus2 + iy*nx]);
+		minzb = min(minzb, min(min(min(zb[xminus + yplus*nx], zb[ix + yplus*nx]), zb[xplus + yplus*nx]), zb[xplus2 + yplus*nx]));
+
+		mindepth = minzs + minzb;
+
+		if (mindepth > eps)
+		{
+
+			if ((qx[ix + yplus*nx] + qx[i]) > 0.0f)
+			{
+				delta1 = (vv[xplus + iy*nx] - vvold[i]);
+				delta2 = (vv[i] - vvold[xminus + iy*nx]);
+				wrk2[i] = 0.5f*minmod(delta1, delta2);
+			}
+			if ((qx[ix + yplus*nx] + qx[i]) < 0.0f)
+			{
+				delta1 = (vvold[xplus + iy*nx] - vv[i]);
+				delta2 = (vvold[xplus2 + iy*nx] - vv[xplus + iy*nx]);
+				wrk2[i] = -0.5f*minmod(delta1, delta2);
+			}
+
+		}
 
 	}
 
 }
 
-__global__ void wrkzs2Ocorr(int nx, int ny, float dx, float dt, DECNUM* zs, DECNUM* zsold,  DECNUM *uu, DECNUM * vv, DECNUM *wrk1, DECNUM*wrk2)
+__global__ void wrkzs2Ocorr(int nx, int ny, float dx, float dt,float eps, DECNUM* zs, DECNUM* zsold,  DECNUM *uu, DECNUM * vv, DECNUM *zb, DECNUM *wrk1, DECNUM*wrk2)
 {
 	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
 	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
@@ -1924,7 +1970,7 @@ __global__ void wrkzs2Ocorr(int nx, int ny, float dx, float dt, DECNUM* zs, DECN
 
 
 	float delta1, delta2;
-
+	float mindepth, minzs, minzb;
 	__shared__ DECNUM uui[16][16];
 	__shared__ DECNUM uoi[16][16];
 
@@ -1944,31 +1990,49 @@ __global__ void wrkzs2Ocorr(int nx, int ny, float dx, float dt, DECNUM* zs, DECN
 		wrk1[i] = 0.0f;
 		wrk2[i] = 0.0f;
 
-		if ((uu[i]) > 0.0f)
+		minzs = min(min(min( zs[xminus + iy*nx], zs[i]), zs[xplus + iy*nx]), zs[xplus2 + iy*nx]);
+		minzb = min(min(min( zb[xminus + iy*nx], zb[i]), zb[xplus + iy*nx]), zb[xplus2 + iy*nx]);
+
+		mindepth = minzs + minzb;
+
+		
+		if (mindepth > eps)
 		{
-			delta1 = (zs[xplus+iy*nx] - zsold[i]);
-			delta2 = (zs[i] - zsold[xminus+iy*nx]);
-			wrk1[i] = uu[i]*0.5f*minmod(delta1, delta2);
-		}
-		if ((uu[i]) < 0.0f)
-		{
-			delta1 = (zsold[xplus2+iy*nx] - zs[xplus + iy*nx]);
-			delta2 = (zsold[xplus + iy*nx] - zs[i]);
-			wrk1[i] = -1.0f*uu[i]*0.5f*minmod(delta1, delta2);
-		}
-		if (( vv[i]) > 0.0f)
-		{
-			delta1 = (zs[ix + yplus*nx] - zsold[i]);
-			delta2 = (zs[i] - zsold[ix + yminus*nx]);
-			wrk2[i] = vv[i]*0.5f*minmod(delta1, delta2);
-		}
-		if ((vv[i]) < 0.0f)
-		{
-			delta1 = (zsold[ix + yplus2*nx] - zs[ix+yplus*nx]);
-			delta2 = (zsold[ix + yplus*nx] - zs[i]);
-			wrk2[i] = vv[i]*0.5f*minmod(delta1, delta2);
+			if ((uu[i]) > 0.0f)
+			{
+				delta1 = (zs[xplus + iy*nx] - zsold[i]);
+				delta2 = (zs[i] - zsold[xminus + iy*nx]);
+				wrk1[i] = uu[i] * 0.5f*minmod(delta1, delta2);
+			}
+			if ((uu[i]) < 0.0f)
+			{
+				delta1 = (zsold[xplus2 + iy*nx] - zs[xplus + iy*nx]);
+				delta2 = (zsold[xplus + iy*nx] - zs[i]);
+				wrk1[i] = -1.0f*uu[i] * 0.5f*minmod(delta1, delta2);
+			}
 		}
 
+		minzs = min(min(min(zs[ix + yminus*nx], zs[i]), zs[ix + yplus*nx]), zs[ix + yplus2*nx]);
+		minzb = min(min(min(zb[ix + yminus*nx], zb[i]), zb[ix + yplus*nx]), zb[ix + yplus2*nx]);
+
+		mindepth = minzs + minzb;
+
+
+		if (mindepth > eps)
+		{
+			if ((vv[i]) > 0.0f)
+			{
+				delta1 = (zs[ix + yplus*nx] - zsold[i]);
+				delta2 = (zs[i] - zsold[ix + yminus*nx]);
+				wrk2[i] = vv[i] * 0.5f*minmod(delta1, delta2);
+			}
+			if ((vv[i]) < 0.0f)
+			{
+				delta1 = (zsold[ix + yplus2*nx] - zs[ix + yplus*nx]);
+				delta2 = (zsold[ix + yplus*nx] - zs[i]);
+				wrk2[i] = vv[i] * 0.5f*minmod(delta1, delta2);
+			}
+		}
 
 
 	}
