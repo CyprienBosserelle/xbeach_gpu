@@ -1828,7 +1828,7 @@ __global__ void wrkuu2Ocorr(int nx, int ny, float dx, float dt,float eps, DECNUM
 
 		mindepth = minzs + minzb;
 
-		if (mindepth > eps)
+		if (mindepth > eps*2.0f)
 		{
 
 			if ((qx[i] + qx[xminus + iy*nx]) > 0.0f)
@@ -1853,7 +1853,7 @@ __global__ void wrkuu2Ocorr(int nx, int ny, float dx, float dt,float eps, DECNUM
 		mindepth = minzs + minzb;
 
 		
-		if (mindepth > eps)
+		if (mindepth > eps*2.0f)
 		{
 
 			if ((qy[xplus + iy*nx] + qy[i]) > 0.0f)
@@ -1911,7 +1911,7 @@ __global__ void wrkvv2Ocorr(int nx, int ny, float dx, float dt, float eps, DECNU
 
 		mindepth = minzs + minzb;
 
-		if (mindepth > eps)
+		if (mindepth > eps*2.0f)
 		{
 
 			if ((qy[i] + qy[ix + yminus*nx]) > 0.0f)
@@ -1937,7 +1937,7 @@ __global__ void wrkvv2Ocorr(int nx, int ny, float dx, float dt, float eps, DECNU
 
 		mindepth = minzs + minzb;
 
-		if (mindepth > eps)
+		if (mindepth > eps*2.0f)
 		{
 
 			if ((qx[ix + yplus*nx] + qx[i]) > 0.0f)
@@ -1996,7 +1996,7 @@ __global__ void wrkzs2Ocorr(int nx, int ny, float dx, float dt,float eps, DECNUM
 		mindepth = minzs + minzb;
 
 		
-		if (mindepth > eps)
+		if (mindepth > eps*2.0f)
 		{
 			if ((uu[i]) > 0.0f)
 			{
@@ -2018,7 +2018,7 @@ __global__ void wrkzs2Ocorr(int nx, int ny, float dx, float dt,float eps, DECNUM
 		mindepth = minzs + minzb;
 
 
-		if (mindepth > eps)
+		if (mindepth > eps*2.0f)
 		{
 			if ((vv[i]) > 0.0f)
 			{
