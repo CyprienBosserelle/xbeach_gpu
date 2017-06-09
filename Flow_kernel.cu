@@ -1911,7 +1911,7 @@ __global__ void wrkvv2Ocorr(int nx, int ny, float dx, float dt, float eps, DECNU
 
 		mindepth = minzs + minzb;
 
-		if (ix>0 && iy>0 && mindepth > eps*2.0f)
+		if (ix>0 && iy>0 && iy <ny-2 && mindepth > eps*2.0f)
 		{
 
 			if ((qy[i] + qy[ix + yminus*nx]) > 0.0f)
@@ -1937,7 +1937,7 @@ __global__ void wrkvv2Ocorr(int nx, int ny, float dx, float dt, float eps, DECNU
 
 		mindepth = minzs + minzb;
 
-		if (ix>0 && iy>0 && mindepth > eps*2.0f)
+		if (ix>0 && iy>0 && iy <ny - 2 && mindepth > eps*2.0f)
 		{
 
 			if ((qx[ix + yplus*nx] + qx[i]) > 0.0f)
