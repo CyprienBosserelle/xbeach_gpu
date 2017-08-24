@@ -1317,6 +1317,12 @@ void flowstep(XBGPUParam Param)
 	
 
 	//
+	// Add discharge from rivers
+	// WARNING THIS IS JUST A TEST
+	//discharge_bnd_h << <gridDim, blockDim, 0 >> > (nx, ny, Param.dx, Param.eps, 500.0, 241, 64, 241, 66, hu_g, hv_g, qx_g, qy_g, uu_g, vv_g);
+	//CUDA_CHECK(cudaDeviceSynchronize());
+
+	//
 	// Update water level using continuity eq.
 	//
 	continuity << <gridDim, blockDim, 0 >> >(nx, ny, Param.dx, Param.dt, Param.eps, qx_g, qy_g, zs_g, hh_g, zb_g, dzsdt_g);

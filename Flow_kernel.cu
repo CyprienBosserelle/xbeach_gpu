@@ -241,6 +241,59 @@ __global__ void ubnd1D(int nx, int ny, DECNUM dx, DECNUM dt, DECNUM g, DECNUM rh
 }
 
 
+// I doubt this should be on the GPU but although it is slow it may be ok for now
+
+__global__ void discharge_bnd_h(int nx, int ny, DECNUM dx, DECNUM eps,DECNUM qnow, int istart, int jstart, int iend,int jend, DECNUM *hu, DECNUM *hv, DECNUM *qx, DECNUM *qy, DECNUM * uu, DECNUM *vv)
+{
+	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
+	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
+	unsigned int i = ix + iy*nx;
+
+	if (ix >= istart && ix <= iend &&iy >= jstart && iy <= jend)
+	{
+		//discharge should run along the x or y axis
+		//TODO modify the algorithm to alow diagonal discharges
+		if (istart == iend)//discharge on uu along a vertical line
+		{
+			float A = 0.0;
+
+			for (int k = jstart; k <= jend; k++)
+			{
+				A = A+(cbrtf(hu[ix + k*ny])*dx);
+			}
+
+			float cst = qnow / max(A, eps);
+			uu[i] = cst*sqrt(hu[i]);
+			qx[i] = cst*cbrtf(hu[i]);
+		}
+
+		if (jstart == jend)//discharge on uu along a vertical line
+		{
+			float A = 0.0;
+
+			for (int k = istart; k <= iend; k++)
+			{
+				A = A + (cbrtf(hv[k + iy*ny])*dx);
+			}
+
+			float cst = qnow / max(A, eps);
+			vv[i] = cst*sqrt(hv[i]);
+			qy[i] = cst*cbrtf(hv[i]);
+		}
+
+
+
+
+	}
+
+
+
+}
+
+
+
+
+
 __global__ void ubnd1Dnowaves(int nx, int ny, DECNUM dx, DECNUM dt, DECNUM g, DECNUM rho, DECNUM totaltime, DECNUM time, DECNUM timenext, DECNUM zsbnd,  DECNUM *zs, DECNUM * uu, DECNUM * vv, DECNUM *vu, DECNUM * umean, DECNUM * vmean, DECNUM * zb, DECNUM * hum, DECNUM * zo,  DECNUM *hh)
 {
 	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
