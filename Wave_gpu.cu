@@ -352,11 +352,11 @@ void mainloopGPU(XBGPUParam Param, std::vector<SLBnd> slbnd, std::vector<WindBnd
 
 	OutputVarMapCPU["ee"] = ee;
 	OutputVarMapGPU["ee"] = ee_g;
-	OutputVarMaplen["ee"] = nx*ny*ntheta;
+	OutputVarMaplen["ee"] = nx*ny*Param.ntheta;
 
 	OutputVarMapCPU["rr"] = rr;
 	OutputVarMapGPU["rr"] = rr_g;
-	OutputVarMaplen["rr"] = nx*ny*ntheta;
+	OutputVarMaplen["rr"] = nx*ny*Param.ntheta;
 
 
 	OutputVarMapCPU["cfm"] = cfm;
@@ -381,23 +381,23 @@ void mainloopGPU(XBGPUParam Param, std::vector<SLBnd> slbnd, std::vector<WindBnd
 
 	OutputVarMapCPU["cgx"] = cgx;
 	OutputVarMapGPU["cgx"] = cgx_g;
-	OutputVarMaplen["cgx"] = nx*ny*ntheta;
+	OutputVarMaplen["cgx"] = nx*ny*Param.ntheta;
 
 	OutputVarMapCPU["cgy"] = cgy;
 	OutputVarMapGPU["cgy"] = cgy_g;
-	OutputVarMaplen["cgy"] = nx*ny*ntheta;
+	OutputVarMaplen["cgy"] = nx*ny*Param.ntheta;
 
 	OutputVarMapCPU["cx"] = cx;
 	OutputVarMapGPU["cx"] = cx_g;
-	OutputVarMaplen["cx"] = nx*ny*ntheta;
+	OutputVarMaplen["cx"] = nx*ny*Param.ntheta;
 
 	OutputVarMapCPU["cy"] = cy;
 	OutputVarMapGPU["cy"] = cy_g;
-	OutputVarMaplen["cy"] = nx*ny*ntheta;
+	OutputVarMaplen["cy"] = nx*ny*Param.ntheta;
 
 	OutputVarMapCPU["ctheta"] = ctheta;
 	OutputVarMapGPU["ctheta"] = ctheta_g;
-	OutputVarMaplen["ctheta"] = nx*ny*ntheta;
+	OutputVarMaplen["ctheta"] = nx*ny*Param.ntheta;
 
 
 	OutputVarMapCPU["D"] = D;
@@ -652,7 +652,7 @@ void mainloopGPU(XBGPUParam Param, std::vector<SLBnd> slbnd, std::vector<WindBnd
 		{
 			double dtwave;
 			// Make sure the CFL condition for flow do not violate CFL condition for Waves
-			WAVEDT << <gridDim, blockDim, 0 >> >(nx, ny, ntheta, Param.CFL, dtheta, dtflow_g, ctheta_g);
+			WAVEDT << <gridDim, blockDim, 0 >> >(nx, ny, Param.ntheta, Param.CFL, Param.dtheta, dtflow_g, ctheta_g);
 			CUDA_CHECK(cudaDeviceSynchronize());
 
 
@@ -857,7 +857,7 @@ void mainloopGPU(XBGPUParam Param, std::vector<SLBnd> slbnd, std::vector<WindBnd
 			//CUDA_CHECK( cudaMemcpy(C, ceqsg_g, nx*ny*sizeof(DECNUM ), cudaMemcpyDeviceToHost) );
 			//CUDA_CHECK(cudaMemcpy(C, hum_g, nx*ny*sizeof(DECNUM), cudaMemcpyDeviceToHost));
 			//CUDA_CHECK( cudaMemcpy(C,k_g, nx*ny*sizeof(DECNUM ), cudaMemcpyDeviceToHost) );
-			//CUDA_CHECK( cudaMemcpy(ctheta,ee_g, nx*ny*ntheta*sizeof(DECNUM ), cudaMemcpyDeviceToHost) );
+			//CUDA_CHECK( cudaMemcpy(ctheta,ee_g, nx*ny*Param.ntheta*sizeof(DECNUM ), cudaMemcpyDeviceToHost) );
 			//CUDA_CHECK(cudaMemcpy(hh, hh_g, nx*ny*sizeof(DECNUM), cudaMemcpyDeviceToHost));
 			//if (Param.morphology == 1 )// If moprhology is on
 			//{
@@ -892,7 +892,7 @@ void mainloopGPU(XBGPUParam Param, std::vector<SLBnd> slbnd, std::vector<WindBnd
 			
 			
 			
-			//write3dvarnc(nx,ny,ntheta,totaltime,ctheta);
+			//write3dvarnc(nx,ny,Param.ntheta,totaltime,ctheta);
 			//outfile[],nx,ny,npart,totaltime,xxp,yyp,zs,uu, vv, H,Tp,Dp,      D,Urms,ueu,vev)
 			//fprintf(Tsout,"%f\t%f\t%f\t%f\t%f\t%f\n",totaltime,hh[iout+jout*nx],zs[iout+jout*nx],uu[iout+jout*nx],vv[iout+jout*nx],H[iout+jout*nx]);
 
@@ -1059,12 +1059,20 @@ void flowbnd(XBGPUParam Param, std::vector<SLBnd> slbnd, std::vector<WindBnd> wn
 	{
 			dim3 blockDim(16, 16, 1);
 			dim3 gridDim(ceil((nx*1.0f) / blockDim.x), ceil((ny*1.0f) / blockDim.y), 1);
-			// FLow abs_2d should be here not at the flow step		
-			// Set weakly reflective offshore boundary
-			ubnd1D << <gridDim, blockDim, 0 >> >(nx, ny, Param.dx, Param.dt, Param.g, Param.rho, (float)totaltime, timesincelast, timenext, zsbndi, Trep, qbndold_g, qbndnew_g, zs_g, uu_g, vv_g, vu_g, umeanbnd_g, vmeanbnd_g, zb_g, cg_g, hum_g, cfm_g, Fx_g, hh_g);
-			//CUT_CHECK_ERROR("ubnd execution failed\n");
-			CUDA_CHECK(cudaDeviceSynchronize());
 
+			if (Param.swave == 1)
+			{
+				// FLow abs_2d should be here not at the flow step		
+				// Set weakly reflective offshore boundary
+				ubnd1D << <gridDim, blockDim, 0 >> > (nx, ny, Param.dx, Param.dt, Param.g, Param.rho, (float)totaltime, timesincelast, timenext, zsbndi, Trep, qbndold_g, qbndnew_g, zs_g, uu_g, vv_g, vu_g, umeanbnd_g, vmeanbnd_g, zb_g, cg_g, hum_g, cfm_g, Fx_g, hh_g);
+				//CUT_CHECK_ERROR("ubnd execution failed\n");
+				CUDA_CHECK(cudaDeviceSynchronize());
+			}
+			else
+			{
+				ubnd1Dnowaves << <gridDim, blockDim, 0 >> > (nx, ny, Param.dx, Param.dt, Param.g, Param.rho, (float)totaltime, timesincelast, timenext, zsbndi, zs_g, uu_g, vv_g, vu_g, umeanbnd_g, vmeanbnd_g, zb_g, hum_g, cfm_g, hh_g);
+				CUDA_CHECK(cudaDeviceSynchronize());
+			}
 			//uuvvzslatbnd << <gridDim, blockDim, 0 >> >(nx, ny, uu_g, vv_g, zs_g);
 			//CUT_CHECK_ERROR("uu vv zs lateral bnd execution failed\n");
 			//CUDA_CHECK(cudaDeviceSynchronize());
@@ -2103,6 +2111,8 @@ int main(int argc, char **argv)
 
 		CUDA_CHECK(cudaSetDevice(XParam.GPUDEVICE));
 
+		//ntheta = XParam.ntheta;
+		//dtheta = XParam.dtheta;
 
 		if (XParam.swave == 1)
 		{
@@ -2165,9 +2175,9 @@ int main(int argc, char **argv)
 		CUDA_CHECK(cudaMalloc((void **)&k_g, nx*ny*sizeof(DECNUM)));
 
 
-		CUDA_CHECK(cudaMalloc((void **)&ee_g, nx*ny*ntheta*sizeof(DECNUM)));
-		CUDA_CHECK(cudaMalloc((void **)&rr_g, nx*ny*ntheta*sizeof(DECNUM)));
-		CUDA_CHECK(cudaMalloc((void **)&St_g, ny*ntheta*sizeof(DECNUM)));
+		CUDA_CHECK(cudaMalloc((void **)&ee_g, nx*ny*XParam.ntheta*sizeof(DECNUM)));
+		CUDA_CHECK(cudaMalloc((void **)&rr_g, nx*ny*XParam.ntheta*sizeof(DECNUM)));
+		CUDA_CHECK(cudaMalloc((void **)&St_g, ny*XParam.ntheta*sizeof(DECNUM)));
 		CUDA_CHECK(cudaMalloc((void **)&sigm_g, nx*ny*sizeof(DECNUM)));
 		CUDA_CHECK(cudaMalloc((void **)&DR_g, nx*ny*sizeof(DECNUM)));
 		CUDA_CHECK(cudaMalloc((void **)&R_g, nx*ny*sizeof(DECNUM)));
@@ -2176,17 +2186,17 @@ int main(int argc, char **argv)
 		CUDA_CHECK(cudaMalloc((void **)&qbndnew_g, 4 * ny*sizeof(DECNUM)));
 		CUDA_CHECK(cudaMalloc((void **)&umeanbnd_g, ny*sizeof(DECNUM)));
 		CUDA_CHECK(cudaMalloc((void **)&vmeanbnd_g, ny*sizeof(DECNUM)));
-		//CUDA_CHECK( cudaMalloc((void **)&sigt_g, nx*ny*ntheta*sizeof(DECNUM )) );
+		//CUDA_CHECK( cudaMalloc((void **)&sigt_g, nx*ny*XParam.ntheta*sizeof(DECNUM )) );
 		CUDA_CHECK(cudaMalloc((void **)&c_g, nx*ny*sizeof(DECNUM)));
 		CUDA_CHECK(cudaMalloc((void **)&cg_g, nx*ny*sizeof(DECNUM)));
-		CUDA_CHECK(cudaMalloc((void **)&theta_g, ntheta*sizeof(DECNUM)));
-		CUDA_CHECK(cudaMalloc((void **)&cxsth_g, ntheta*sizeof(DECNUM)));
-		CUDA_CHECK(cudaMalloc((void **)&sxnth_g, ntheta*sizeof(DECNUM)));
+		CUDA_CHECK(cudaMalloc((void **)&theta_g, XParam.ntheta*sizeof(DECNUM)));
+		CUDA_CHECK(cudaMalloc((void **)&cxsth_g, XParam.ntheta*sizeof(DECNUM)));
+		CUDA_CHECK(cudaMalloc((void **)&sxnth_g, XParam.ntheta*sizeof(DECNUM)));
 		CUDA_CHECK(cudaMalloc((void **)&thetamean_g, nx*ny*sizeof(DECNUM)));
 		//CUDA_CHECK( cudaMalloc((void **)&Sxx_g, nx*ny*sizeof(DECNUM )) );
 		//CUDA_CHECK( cudaMalloc((void **)&Syy_g, nx*ny*sizeof(DECNUM )) );
 		//CUDA_CHECK( cudaMalloc((void **)&Sxy_g, nx*ny*sizeof(DECNUM )) );
-		CUDA_CHECK(cudaMalloc((void **)&ctheta_g, nx*ny*ntheta*sizeof(DECNUM)));
+		CUDA_CHECK(cudaMalloc((void **)&ctheta_g, nx*ny*XParam.ntheta*sizeof(DECNUM)));
 
 
 
@@ -2273,9 +2283,9 @@ int main(int argc, char **argv)
 		k_g = (DECNUM *)malloc(nx*ny*sizeof(DECNUM));
 
 
-		ee_g = (DECNUM *)malloc(nx*ny*ntheta*sizeof(DECNUM));
-		rr_g = (DECNUM *)malloc(nx*ny*ntheta*sizeof(DECNUM));
-		St_g = (DECNUM *)malloc(ny*ntheta*sizeof(DECNUM));
+		ee_g = (DECNUM *)malloc(nx*ny*XParam.ntheta*sizeof(DECNUM));
+		rr_g = (DECNUM *)malloc(nx*ny*XParam.ntheta*sizeof(DECNUM));
+		St_g = (DECNUM *)malloc(ny*XParam.ntheta*sizeof(DECNUM));
 		sigm_g = (DECNUM *)malloc(nx*ny*sizeof(DECNUM));
 		DR_g = (DECNUM *)malloc(nx*ny*sizeof(DECNUM));
 		R_g = (DECNUM *)malloc(nx*ny*sizeof(DECNUM));
@@ -2284,17 +2294,17 @@ int main(int argc, char **argv)
 		qbndnew_g = (DECNUM *)malloc(4 * ny*sizeof(DECNUM));
 		umeanbnd_g = (DECNUM *)malloc(ny*sizeof(DECNUM));
 		vmeanbnd_g = (DECNUM *)malloc(ny*sizeof(DECNUM));
-		//CUDA_CHECK( cudaMalloc((void **)&sigt_g, nx*ny*ntheta*sizeof(DECNUM )) );
+		//CUDA_CHECK( cudaMalloc((void **)&sigt_g, nx*ny*XParam.ntheta*sizeof(DECNUM )) );
 		c_g = (DECNUM *)malloc(nx*ny*sizeof(DECNUM));
 		cg_g = (DECNUM *)malloc(nx*ny*sizeof(DECNUM));
-		theta_g = (DECNUM *)malloc(ntheta*sizeof(DECNUM));
-		cxsth_g = (DECNUM *)malloc(ntheta*sizeof(DECNUM));
-		sxnth_g = (DECNUM *)malloc(ntheta*sizeof(DECNUM));
+		theta_g = (DECNUM *)malloc(XParam.ntheta*sizeof(DECNUM));
+		cxsth_g = (DECNUM *)malloc(XParam.ntheta*sizeof(DECNUM));
+		sxnth_g = (DECNUM *)malloc(XParam.ntheta*sizeof(DECNUM));
 		thetamean_g = (DECNUM *)malloc(nx*ny*sizeof(DECNUM));
 		//CUDA_CHECK( cudaMalloc((void **)&Sxx_g, nx*ny*sizeof(DECNUM )) );
 		//CUDA_CHECK( cudaMalloc((void **)&Syy_g, nx*ny*sizeof(DECNUM )) );
 		//CUDA_CHECK( cudaMalloc((void **)&Sxy_g, nx*ny*sizeof(DECNUM )) );
-		ctheta_g = (DECNUM *)malloc(nx*ny*ntheta*sizeof(DECNUM));
+		ctheta_g = (DECNUM *)malloc(nx*ny*XParam.ntheta*sizeof(DECNUM));
 
 
 
@@ -2325,9 +2335,9 @@ int main(int argc, char **argv)
 		dudy_g = (DECNUM *)malloc(nx*ny*sizeof(DECNUM));
 		dvdx_g = (DECNUM *)malloc(nx*ny*sizeof(DECNUM));
 		dvdy_g = (DECNUM *)malloc(nx*ny*sizeof(DECNUM));
-		xadvec_g = (DECNUM *)malloc(nx*ny*ntheta*sizeof(DECNUM));
-		yadvec_g = (DECNUM *)malloc(nx*ny*ntheta*sizeof(DECNUM));
-		thetaadvec_g = (DECNUM *)malloc(nx*ny*ntheta*sizeof(DECNUM));
+		xadvec_g = (DECNUM *)malloc(nx*ny*XParam.ntheta*sizeof(DECNUM));
+		yadvec_g = (DECNUM *)malloc(nx*ny*XParam.ntheta*sizeof(DECNUM));
+		thetaadvec_g = (DECNUM *)malloc(nx*ny*XParam.ntheta*sizeof(DECNUM));
 		E_g = (DECNUM *)malloc(nx*ny*sizeof(DECNUM));
 		Sxx_g = (DECNUM *)malloc(nx*ny*sizeof(DECNUM));
 		Sxy_g = (DECNUM *)malloc(nx*ny*sizeof(DECNUM));
@@ -2385,12 +2395,21 @@ int main(int argc, char **argv)
 		CUDA_CHECK(cudaMemcpy(D_g, uu, nx*ny*sizeof(DECNUM), cudaMemcpyHostToDevice));
 
 
+		// Below.. ee and rr may have not been allocated yet is swave==1
+		// Memset may be better anyway
+		//
 
-		CUDA_CHECK(cudaMemcpy(ee_g, ee, nx*ny*ntheta*sizeof(DECNUM), cudaMemcpyHostToDevice));
-		CUDA_CHECK(cudaMemcpy(rr_g, rr, nx*ny*ntheta*sizeof(DECNUM), cudaMemcpyHostToDevice));
-		CUDA_CHECK(cudaMemcpy(cxsth_g, cxsth, ntheta*sizeof(DECNUM), cudaMemcpyHostToDevice));
-		CUDA_CHECK(cudaMemcpy(sxnth_g, sxnth, ntheta*sizeof(DECNUM), cudaMemcpyHostToDevice));
-		CUDA_CHECK(cudaMemcpy(theta_g, theta, ntheta*sizeof(DECNUM), cudaMemcpyHostToDevice));
+
+		CUDA_CHECK(cudaMemset(ee_g, 0.0f, nx*ny*XParam.ntheta * sizeof(DECNUM)));
+		CUDA_CHECK(cudaMemset(rr_g, 0.0f, nx*ny*XParam.ntheta * sizeof(DECNUM)));
+		CUDA_CHECK(cudaMemset(cxsth_g, 0.0f,XParam.ntheta * sizeof(DECNUM)));
+		CUDA_CHECK(cudaMemset(sxnth_g, 0.0f, XParam.ntheta * sizeof(DECNUM)));
+		CUDA_CHECK(cudaMemset(theta_g, 0.0f, XParam.ntheta * sizeof(DECNUM)));
+		//CUDA_CHECK(cudaMemcpy(ee_g, ee, nx*ny*XParam.ntheta*sizeof(DECNUM), cudaMemcpyHostToDevice));
+		//CUDA_CHECK(cudaMemcpy(rr_g, rr, nx*ny*XParam.ntheta*sizeof(DECNUM), cudaMemcpyHostToDevice));
+		//CUDA_CHECK(cudaMemcpy(cxsth_g, cxsth, XParam.ntheta*sizeof(DECNUM), cudaMemcpyHostToDevice));
+		//CUDA_CHECK(cudaMemcpy(sxnth_g, sxnth, XParam.ntheta*sizeof(DECNUM), cudaMemcpyHostToDevice));
+		//CUDA_CHECK(cudaMemcpy(theta_g, theta, XParam.ntheta*sizeof(DECNUM), cudaMemcpyHostToDevice));
 		CUDA_CHECK(cudaMemcpy(thetamean_g, uu, nx*ny*sizeof(DECNUM), cudaMemcpyHostToDevice));
 		CUDA_CHECK(cudaMemcpy(R_g, uu, nx*ny*sizeof(DECNUM), cudaMemcpyHostToDevice));
 		CUDA_CHECK(cudaMemcpy(DR_g, uu, nx*ny*sizeof(DECNUM), cudaMemcpyHostToDevice));
@@ -2463,7 +2482,7 @@ int main(int argc, char **argv)
 				D_g[ii + jj*nx] = uu[ii + jj*nx];
 
 
-				for (int nt = 0; nt < ntheta; nt++)
+				for (int nt = 0; nt < XParam.ntheta; nt++)
 				{
 					ee_g[ii + jj*nx + nt*nx*ny] = ee[ii + jj*nx + nt*nx*ny];
 					rr_g[ii + jj*nx + nt*nx*ny] = rr[ii + jj*nx + nt*nx*ny];
@@ -2596,7 +2615,7 @@ int main(int argc, char **argv)
 		
 		if (XParam.swave == 1)
 		{
-			set_bnd << <gridDim, blockDim, 0 >> >(nx, ny, Trep, ntheta, theta_g, sigm_g);
+			set_bnd << <gridDim, blockDim, 0 >> >(nx, ny, Trep, XParam.ntheta, theta_g, sigm_g);
 
 			//CUT_CHECK_ERROR("set_bnd() execution failed\n");
 			CUDA_CHECK(cudaDeviceSynchronize());
@@ -2619,7 +2638,7 @@ int main(int argc, char **argv)
 
 		if (XParam.swave == 1 )
 		{
-			set_bndCPU(nx, ny, Trep, ntheta, theta_g, sigm_g);
+			set_bndCPU(nx, ny, Trep, XParam.ntheta, theta_g, sigm_g);
 
 
 
@@ -2859,7 +2878,7 @@ int main(int argc, char **argv)
 	if (!XParam.outvars.empty())
 	{
 		//create nc file with no variables
-		creatncfileUD(XParam, 0.0, ntheta, dtheta, thetamin, thetamax);
+		creatncfileUD(XParam, 0.0, XParam.ntheta, XParam.dtheta, thetamin, thetamax);
 		for (int ivar = 0; ivar < XParam.outvars.size(); ivar++)
 		{
 			//Create definition for each variable and store it

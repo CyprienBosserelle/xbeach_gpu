@@ -1242,7 +1242,7 @@ XBGPUParam checkparamsanity(XBGPUParam XParam, std::vector<SLBnd> slbnd, std::ve
 	if (abs(XParam.endtime - DefaultParams.endtime) <= tiny)
 	{
 		//No; i.e. endtimne =0.0
-		XParam.endtime = 1 / tiny; //==huge
+		XParam.endtime = 1.0 / tiny; //==huge
 	//	if (slbnd.back().time>0.0 && wndbnd.back().time > 0.0)
 	//	{
 	//		XParam.endtime = min(slbnd.back().time, wndbnd.back().time);
@@ -1266,11 +1266,20 @@ XBGPUParam checkparamsanity(XBGPUParam XParam, std::vector<SLBnd> slbnd, std::ve
 
 	// Check that a wave bnd file was specified otherwise kill the app
 	// This is temporary until the wave boundary scheme is improved
-	if (XParam.wavebndfile.empty())
+	if (XParam.wavebndfile.empty() && XParam.swave==1)
 	{
-		std::cerr << "Fatal error: No wave boundary file specified. Please specify using 'wavebndfile = wave_boundary.bnd;'" << std::endl;
+		std::cerr << "WARNING:  No wave boundary file specified. Please specify using 'wavebndfile = wave_boundary.bnd;' Skipping wave computation (swave = 0; )" << std::endl;
 		write_text_to_log_file("ERROR: No wave boundary file specified. Please specify using 'wavebndfile = wave_boundary.bnd;");
-		exit(1);
+		
+		//exit(1);
+	}
+
+
+	if (XParam.swave == 0)
+	{
+		XParam.ntheta = 1;
+		XParam.dtheta = (XParam.thetamax - XParam.thetamin);// deg or rad?? don't care I guess
+
 	}
 
 	// Check that outputtimestep is not zero, so at least the first and final time step are saved

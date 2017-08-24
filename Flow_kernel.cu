@@ -159,7 +159,7 @@ __global__ void ubnd(int nx, int ny, DECNUM dx, DECNUM dt, DECNUM g, DECNUM rho,
 
 
 
-		__syncthreads;
+		//__syncthreads;
 	}
 
 
@@ -239,6 +239,85 @@ __global__ void ubnd1D(int nx, int ny, DECNUM dx, DECNUM dt, DECNUM g, DECNUM rh
 
 
 }
+
+
+__global__ void ubnd1Dnowaves(int nx, int ny, DECNUM dx, DECNUM dt, DECNUM g, DECNUM rho, DECNUM totaltime, DECNUM time, DECNUM timenext, DECNUM zsbnd,  DECNUM *zs, DECNUM * uu, DECNUM * vv, DECNUM *vu, DECNUM * umean, DECNUM * vmean, DECNUM * zb, DECNUM * hum, DECNUM * zo,  DECNUM *hh)
+{
+	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
+	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
+	unsigned int i = ix + iy*nx;
+
+	if (ix == 0)
+	{
+		unsigned int xminus = mminus(ix, nx);
+		unsigned int xplus = pplus(ix, nx);
+		unsigned int xplus2 = pplus2(ix, nx);
+		unsigned int yminus = mminus(iy, ny);
+		unsigned int yplus = pplus(iy, ny);
+
+		DECNUM ui, vi, thetai, vert;
+
+		DECNUM ht, htr;
+		DECNUM epsi = 0.005; //Not used!
+		DECNUM ur, uumean, vvmean, urr, alphanew;
+
+		DECNUM qx, qy;
+
+		DECNUM cats = 4.0f; // number of wave period to average the current from
+		DECNUM factime = 1.0f;// 1.0f / cats / Trep*dt;
+		DECNUM taper = min(totaltime / 100.0f, 1.0f);
+		DECNUM zsplus = zs[xplus + iy*nx];
+
+		//prev + (time) / (timenext)*(next - prev);
+		qx = 0.0f;
+		qy = 0.0f;
+
+		//zsbnd = zsbndold + (totaltime - rtsl)*(zsbndnew - zsbndold) / (slbndtime - rtsl);
+
+		ht = zsbnd + zb[i];
+		htr = zsbnd + zb[xplus + iy*nx];
+		ui = qx / ht;
+		vi = qy / ht;
+		ur = -1.0f*sqrtf(g / hh[i])*(zsplus - zsbnd);
+
+		float uuavg = 0.0f;
+		for (int n = 0; n < ny; n++)
+		{
+			uuavg = uuavg + uu[ix + n*nx];
+		}
+		uuavg = uuavg / ny;
+
+
+		//Tidetype=velocity
+		uumean = factime*uuavg + umean[iy] * (1 - factime);
+		//vvmean = factime*vvmm + vmean[iy] * (1 - factime);
+		umean[iy] = uumean;
+		//vmean[iy] = vvmean;
+
+
+
+		// Freewave==1
+		uu[i] =  ur + uumean;//2.0f*ui-(sqrtf(g/(zs[i]+zb[i]))*(zs[i]-zsbnd));;//
+										//zs[i] = 1.5f*((bnp1 - uu[i])*(bnp1 - uu[i]) / (4.0f*g) - 0.5f*(zb[i] + zb[xplus + iy*nx])) - 0.5f*((betar - uu[xplus + iy*nx])*(betar - uu[xplus + iy*nx]) / (4.0f*g) - 0.5f*(zb[xplus + iy*nx] + zb[xplus2 + iy*nx]));
+										////
+										//zsbnd+qx/(dx*dx)*dt;//
+		zs[i] = zsplus;
+		//hh[i] = zsplus + zb[i];
+
+		vv[i] = vv[xplus + iy*nx];
+
+
+
+
+
+
+
+	}
+
+
+}
+
+
 __global__ void wlevslopes(int nx, int ny, DECNUM dx, DECNUM eps, DECNUM *zs, DECNUM * dzsdx, DECNUM *dzsdy, DECNUM*hh)
 {
 	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
