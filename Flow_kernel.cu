@@ -290,7 +290,23 @@ __global__ void discharge_bnd_h(int nx, int ny, DECNUM dx, DECNUM eps,DECNUM qno
 
 }
 
+__global__ void discharge_bnd_v(int nx, int ny, DECNUM dx, DECNUM eps, DECNUM dt, DECNUM qnow, int istart, int jstart, int iend, int jend, DECNUM * zs, DECNUM *hh)
+{
+	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
+	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
+	unsigned int i = ix + iy*nx;
 
+	if (ix >= istart && ix <= iend &&iy >= jstart && iy <= jend)
+	{
+		float A = (iend - istart + 1)*dx*(jend - jstart + 1)*dx;
+
+		float dzsdt = qnow*dt / A;
+		zs[i] = zs[i] + dzsdt;
+		// Do hh[i] too although Im not sure it is worth it
+		hh[i] = hh[i] + dzsdt;
+
+	}
+}
 
 
 

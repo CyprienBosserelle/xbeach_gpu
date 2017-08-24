@@ -1317,10 +1317,18 @@ void flowstep(XBGPUParam Param)
 	
 
 	//
-	// Add discharge from rivers
+	// Add discharge from boundaries ??
 	// WARNING THIS IS JUST A TEST
-	//discharge_bnd_h << <gridDim, blockDim, 0 >> > (nx, ny, Param.dx, Param.eps, 500.0, 241, 64, 241, 66, hu_g, hv_g, qx_g, qy_g, uu_g, vv_g);
+	//discharge_bnd_h << <gridDim, blockDim, 0 >> > (nx, ny, Param.dx, Param.eps, -500.0, 241, 64, 241, 66, hu_g, hv_g, qx_g, qy_g, uu_g, vv_g);
 	//CUDA_CHECK(cudaDeviceSynchronize());
+
+	//
+	// Add "Point" discharge within the grid
+	//
+	discharge_bnd_v << <gridDim, blockDim, 0 >> > (nx, ny, Param.dx, Param.eps, Param.dt, 500, 241, 64, 241, 66, zs_g, hh_g);
+	CUDA_CHECK(cudaDeviceSynchronize());
+
+
 
 	//
 	// Update water level using continuity eq.
