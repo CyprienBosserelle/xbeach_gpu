@@ -308,7 +308,24 @@ __global__ void discharge_bnd_v(int nx, int ny, DECNUM dx, DECNUM eps, DECNUM dt
 	}
 }
 
+__global__ void ubndsimple(int nx, int ny, DECNUM g, DECNUM zsbnd, DECNUM *zb, DECNUM *zs, DECNUM *hh, DECNUM * uu, DECNUM * vv)
+{
+	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
+	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
+	unsigned int i = ix + iy*nx;
 
+	if (ix == 0)
+	{
+		//if ((hh[i]) >= 0.0f) // should be eps not 0.0
+		{
+			//u.n[left]=-2.0*(sqrt (G*max(h[],0.)) - sqrt(G*max(bndWL - zb[], 0.)))+u.x[];
+			//uu[i]= -2.0f*(sqrt(g*max(hh[i], 0.0f)) - sqrtf(g*max(zsbnd - (zb[i]*-1.0f), 0.0f))) + uu[i];
+			zs[i] = zsbnd;
+			hh[i] = zsbnd + zb[i]; //eps?
+			//vv[i] = vv[ix+1 + iy*nx];
+		}
+	}
+}
 
 __global__ void ubnd1Dnowaves(int nx, int ny, DECNUM dx, DECNUM dt, DECNUM g, DECNUM rho, DECNUM totaltime, DECNUM time, DECNUM timenext, DECNUM zsbnd,  DECNUM *zs, DECNUM * uu, DECNUM * vv, DECNUM *vu, DECNUM * umean, DECNUM * vmean, DECNUM * zb, DECNUM * hum, DECNUM * zo,  DECNUM *hh)
 {
@@ -333,7 +350,7 @@ __global__ void ubnd1Dnowaves(int nx, int ny, DECNUM dx, DECNUM dt, DECNUM g, DE
 		DECNUM qx, qy;
 
 		DECNUM cats = 4.0f; // number of wave period to average the current from
-		DECNUM factime = 1.0f;// 1.0f / cats / Trep*dt;
+		DECNUM factime = 1.0f/60.0f*dt;// 1.0f / cats / Trep*dt;
 		DECNUM taper = min(totaltime / 100.0f, 1.0f);
 		DECNUM zsplus = zs[xplus + iy*nx];
 
@@ -345,8 +362,8 @@ __global__ void ubnd1Dnowaves(int nx, int ny, DECNUM dx, DECNUM dt, DECNUM g, DE
 
 		ht = zsbnd + zb[i];
 		htr = zsbnd + zb[xplus + iy*nx];
-		ui = qx / ht;
-		vi = qy / ht;
+		ui = 0.0f;
+		vi = 0.0f;
 		ur = -1.0f*sqrtf(g / hh[i])*(zsplus - zsbnd);
 
 		float uuavg = 0.0f;
@@ -366,7 +383,7 @@ __global__ void ubnd1Dnowaves(int nx, int ny, DECNUM dx, DECNUM dt, DECNUM g, DE
 
 
 		// Freewave==1
-		uu[i] =  ur + uumean;//2.0f*ui-(sqrtf(g/(zs[i]+zb[i]))*(zs[i]-zsbnd));;//
+		uu[i] = (2.0f)*ui + ur + uumean;
 										//zs[i] = 1.5f*((bnp1 - uu[i])*(bnp1 - uu[i]) / (4.0f*g) - 0.5f*(zb[i] + zb[xplus + iy*nx])) - 0.5f*((betar - uu[xplus + iy*nx])*(betar - uu[xplus + iy*nx]) / (4.0f*g) - 0.5f*(zb[xplus + iy*nx] + zb[xplus2 + iy*nx]));
 										////
 										//zsbnd+qx/(dx*dx)*dt;//

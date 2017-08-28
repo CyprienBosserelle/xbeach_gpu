@@ -1070,6 +1070,8 @@ void flowbnd(XBGPUParam Param, std::vector<SLBnd> slbnd, std::vector<WindBnd> wn
 			}
 			else
 			{
+				//ubndsimple << <gridDim, blockDim, 0 >> >(nx, ny, Param.g, zsbndi, zb_g, zs_g, hh_g, uu_g, vv_g);
+
 				ubnd1Dnowaves << <gridDim, blockDim, 0 >> > (nx, ny, Param.dx, Param.dt, Param.g, Param.rho, (float)totaltime, timesincelast, timenext, zsbndi, zs_g, uu_g, vv_g, vu_g, umeanbnd_g, vmeanbnd_g, zb_g, hum_g, cfm_g, hh_g);
 				CUDA_CHECK(cudaDeviceSynchronize());
 			}
@@ -1325,7 +1327,16 @@ void flowstep(XBGPUParam Param)
 	//
 	// Add "Point" discharge within the grid
 	//
-	discharge_bnd_v << <gridDim, blockDim, 0 >> > (nx, ny, Param.dx, Param.eps, Param.dt, 500, 241, 64, 241, 66, zs_g, hh_g);
+	//Nadi test Malakua river
+	discharge_bnd_v << <gridDim, blockDim, 0 >> > (nx, ny, Param.dx, Param.eps, Param.dt, 50, 570, 283, 575, 286, zs_g, hh_g);
+	CUDA_CHECK(cudaDeviceSynchronize());
+
+	//Nadi test Masi river
+	discharge_bnd_v << <gridDim, blockDim, 0 >> > (nx, ny, Param.dx, Param.eps, Param.dt, 10, 765, 297, 780, 302, zs_g, hh_g);
+	CUDA_CHECK(cudaDeviceSynchronize());
+
+	//Nadi test Nawaka river
+	discharge_bnd_v << <gridDim, blockDim, 0 >> > (nx, ny, Param.dx, Param.eps, Param.dt, 10, 936, 313, 945, 319, zs_g, hh_g);
 	CUDA_CHECK(cudaDeviceSynchronize());
 
 
