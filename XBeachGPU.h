@@ -124,6 +124,10 @@ public:
 	//Output variables
 	std::vector<std::string> outvars; //list of names of teh variables to output
 
+	//River discharge
+	std::vector<std::string> Riverfile;
+	
+
 	//Wave bnd parameters
 	double dtbc=1.0; //time step for wave group forcing (generation  and reading)
 	double rtlength = 3600; // duration of wave group chunks
@@ -135,6 +139,16 @@ public:
 	int nspr = 0;
 };
 
+class RiverLoc{
+public:
+	int istart, iend;
+	int jstart, jend;
+};
+
+class RiverFlow{
+public:
+	double time, flow;
+};
 
 class SLBnd {
 public:

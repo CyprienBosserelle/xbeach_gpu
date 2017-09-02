@@ -1037,6 +1037,19 @@ XBGPUParam readparamstr(std::string line, XBGPUParam param)
 		//std::cerr << "Bathymetry file found!" << std::endl;
 	}
 
+	/*parameterstr = "river";
+	parametervalue = findparameter(parameterstr, line);
+	if (!parametervalue.empty())
+	{
+		std::vector<std::string> nodes = split(parametervalue, ',');
+		TSnode node;
+		node.i = std::stoi(nodes[0]);
+		node.j = std::stoi(nodes[1]);
+		param.TSnodesout.push_back(node);
+
+		//std::cerr << "Bathymetry file found!" << std::endl;
+	}
+	*/
 	//outvars
 	parameterstr = "outvars";
 	parametervalue = findparameter(parameterstr, line);
