@@ -125,7 +125,7 @@ public:
 	std::vector<std::string> outvars; //list of names of teh variables to output
 
 	//River discharge
-	std::vector<std::string> Riverfile;
+	std::vector<River> rivers;
 	
 
 	//Wave bnd parameters
@@ -139,16 +139,25 @@ public:
 	int nspr = 0;
 };
 
-class RiverLoc{
-public:
-	int istart, iend;
-	int jstart, jend;
-};
 
 class RiverFlow{
 public:
 	double time, flow;
 };
+
+
+class River{
+public:
+	std::string Riverfile;
+	int istart = -1;
+	int iend=-1;
+	int jstart = -1;
+	int jend = -1;
+	std::vector<RiverFlow> Flow;
+
+};
+
+
 
 class SLBnd {
 public:
