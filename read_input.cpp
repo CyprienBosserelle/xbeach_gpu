@@ -1041,14 +1041,14 @@ XBGPUParam readparamstr(std::string line, XBGPUParam param)
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
-		std::vector<std::string> nodes = split(parametervalue, ',');
+		/*std::vector<std::string> nodes = split(parametervalue, ',');
 		River thisriver;
 		thisriver.istart = std::stoi(nodes[0]);
 		thisriver.iend = std::stoi(nodes[1]);
 		thisriver.jstart = std::stoi(nodes[2]);
 		thisriver.jend = std::stoi(nodes[3]);
 		param.rivers.push_back(thisriver);
-		
+		*/
 		//std::cerr << "Bathymetry file found!" << std::endl;
 	}
 	

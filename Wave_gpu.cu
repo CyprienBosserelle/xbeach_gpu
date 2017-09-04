@@ -1129,6 +1129,9 @@ void flowstep(XBGPUParam Param)
 	//CUT_CHECK_ERROR("ubnd execution failed\n");
 	//CUDA_CHECK( cudaDeviceSynchronize() );
 
+	
+
+
 
 	//
 	// Water level slopes
@@ -1323,7 +1326,8 @@ void flowstep(XBGPUParam Param)
 	// WARNING THIS IS JUST A TEST
 	//discharge_bnd_h << <gridDim, blockDim, 0 >> > (nx, ny, Param.dx, Param.eps, -500.0, 241, 64, 241, 66, hu_g, hv_g, qx_g, qy_g, uu_g, vv_g);
 	//CUDA_CHECK(cudaDeviceSynchronize());
-
+	discharge_bnd_h << <gridDim, blockDim, 0 >> > (nx, ny, Param.dx, Param.eps, -500.0, 1023, 865, 1023, 890, hu_g, hv_g, qx_g, qy_g, uu_g, vv_g);
+	CUDA_CHECK(cudaDeviceSynchronize());
 	//
 	// Add "Point" discharge within the grid
 	//
@@ -2133,7 +2137,26 @@ int main(int argc, char **argv)
 	if (XParam.GPUDEVICE >= 0)
 	{
 		// Init GPU
+		// This should be in the sanity check
+		int nDevices;
+		cudaGetDeviceCount(&nDevices);
+		cudaDeviceProp prop;
 
+		if (XParam.GPUDEVICE > (nDevices - 1))
+		{
+			// 
+			XParam.GPUDEVICE = 0;
+		}
+
+		cudaGetDeviceProperties(&prop, XParam.GPUDEVICE);
+		printf("There are %d GPU devices on this machine\n", nDevices);
+		printf("Using Device : %s\n", prop.name);
+
+		
+		write_text_to_log_file("There are " + std::to_string(nDevices) + "GPU devices on this machine");
+		write_text_to_log_file("There are " + std::string(prop.name) +"GPU devices on this machine");
+		
+		
 		CUDA_CHECK(cudaSetDevice(XParam.GPUDEVICE));
 
 		//ntheta = XParam.ntheta;
