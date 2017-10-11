@@ -29,7 +29,7 @@
 
 #include <complex>
 #include <valarray>
-#include <fftw3.h>
+#include "fftw3.h"
 //using namespace std;
 
 
@@ -48,6 +48,16 @@ public:
 	int i, j;
 };
 
+
+class Rivernodes {
+public:
+	int istart = -1;
+	int iend = -1;
+	int jstart = -1;
+	int jend = -1;
+	
+
+};
 
 class XBGPUParam{
 public:
@@ -124,6 +134,11 @@ public:
 	//Output variables
 	std::vector<std::string> outvars; //list of names of teh variables to output
 
+	//River discharge
+	//std::vector<River> rivers;
+	//std::vector<std::string> Riverfiles;
+	//std::vector<Rivernodes> Riverlocs;
+
 	//Wave bnd parameters
 	double dtbc=1.0; //time step for wave group forcing (generation  and reading)
 	double rtlength = 3600; // duration of wave group chunks
@@ -134,6 +149,25 @@ public:
 	double fcutoff = 0.0; // max 40.0;
 	int nspr = 0;
 };
+
+
+class RiverFlow{
+public:
+	double time, flow;
+};
+
+/*
+class River{
+public:
+	std::string Riverfile;
+	int istart = -1;
+	int iend=-1;
+	int jstart = -1;
+	int jend = -1;
+	std::vector<RiverFlow> Flow;
+
+};
+*/
 
 
 class SLBnd {

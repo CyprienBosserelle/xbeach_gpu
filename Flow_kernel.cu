@@ -20,7 +20,27 @@
 
 #define pi 3.14159265
 
+__device__ float minmod(float delta1, float delta2)
+{
+	float minmod = 0.0f;
 
+	if (delta1*delta2 > 0.0f)
+	{
+
+
+		if (delta1 > 0.0f)
+		{
+			minmod = min(delta1, delta2);
+
+		}
+		if (delta1 < 0.0f)
+		{
+			minmod = max(delta1, delta2);
+		}
+	}
+
+	return(minmod);
+}
 
 __global__ void ubnd(int nx, int ny, DECNUM dx, DECNUM dt, DECNUM g, DECNUM rho, DECNUM totaltime, DECNUM wavbndtime, DECNUM rt, DECNUM slbndtime, DECNUM rtsl, DECNUM zsbndold, DECNUM zsbndnew, DECNUM Trep, DECNUM * qbndold, DECNUM * qbndnew, DECNUM *zs, DECNUM * uu, DECNUM * vv, DECNUM *vu, DECNUM * umean, DECNUM * vmean, DECNUM * zb, DECNUM * cg, DECNUM * hum, DECNUM * zo, DECNUM *Fx, DECNUM *hh)
 {
@@ -139,7 +159,7 @@ __global__ void ubnd(int nx, int ny, DECNUM dx, DECNUM dt, DECNUM g, DECNUM rho,
 
 
 
-		__syncthreads;
+		//__syncthreads;
 	}
 
 
@@ -183,13 +203,16 @@ __global__ void ubnd1D(int nx, int ny, DECNUM dx, DECNUM dt, DECNUM g, DECNUM rh
 			vi = qy / ht;
 			ur = -1.0f*sqrtf(g/hh[i])*(zsplus - zsbnd);
 			
-
-			
-
+			float uuavg = 0.0f;
+			for (int n = 0; n < ny; n++)
+			{
+				uuavg = uuavg + uu[ix + n*nx];
+			}
+			uuavg = uuavg / ny;
 			
 
 			//Tidetype=velocity
-			uumean = factime*uu[i] + umean[iy] * (1 - factime);
+			uumean = factime*uuavg + umean[iy] * (1 - factime);
 			//vvmean = factime*vvmm + vmean[iy] * (1 - factime);
 			umean[iy] = uumean;
 			//vmean[iy] = vvmean;
@@ -216,6 +239,171 @@ __global__ void ubnd1D(int nx, int ny, DECNUM dx, DECNUM dt, DECNUM g, DECNUM rh
 
 
 }
+
+
+// I doubt this should be on the GPU but although it is slow it may be ok for now
+
+__global__ void discharge_bnd_h(int nx, int ny, DECNUM dx, DECNUM eps,DECNUM qnow, int istart, int jstart, int iend,int jend, DECNUM *hu, DECNUM *hv, DECNUM *qx, DECNUM *qy, DECNUM * uu, DECNUM *vv)
+{
+	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
+	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
+	unsigned int i = ix + iy*nx;
+
+	if (ix >= istart && ix <= iend &&iy >= jstart && iy <= jend)
+	{
+		//discharge should run along the x or y axis
+		//TODO modify the algorithm to alow diagonal discharges
+		if (istart == iend)//discharge on uu along a vertical line
+		{
+			float A = 0.0;
+
+			for (int k = jstart; k <= jend; k++)
+			{
+				A = A+(cbrtf(hu[ix + k*ny])*dx);
+			}
+
+			float cst = qnow / max(A, eps);
+			uu[i] = cst*sqrt(hu[i]);
+			qx[i] = cst*cbrtf(hu[i]);
+		}
+
+		if (jstart == jend)//discharge on uu along a vertical line
+		{
+			float A = 0.0;
+
+			for (int k = istart; k <= iend; k++)
+			{
+				A = A + (cbrtf(hv[k + iy*ny])*dx);
+			}
+
+			float cst = qnow / max(A, eps);
+			vv[i] = cst*sqrt(hv[i]);
+			qy[i] = cst*cbrtf(hv[i]);
+		}
+
+
+
+
+	}
+
+
+
+}
+
+__global__ void discharge_bnd_v(int nx, int ny, DECNUM dx, DECNUM eps, DECNUM dt, DECNUM qnow, int istart, int jstart, int iend, int jend, DECNUM * zs, DECNUM *hh)
+{
+	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
+	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
+	unsigned int i = ix + iy*nx;
+
+	if (ix >= istart && ix <= iend &&iy >= jstart && iy <= jend)
+	{
+		float A = (iend - istart + 1)*dx*(jend - jstart + 1)*dx;
+
+		float dzsdt = qnow*dt / A;
+		zs[i] = zs[i] + dzsdt;
+		// Do hh[i] too although Im not sure it is worth it
+		hh[i] = hh[i] + dzsdt;
+
+	}
+}
+
+__global__ void ubndsimple(int nx, int ny, DECNUM g, DECNUM zsbnd, DECNUM *zb, DECNUM *zs, DECNUM *hh, DECNUM * uu, DECNUM * vv)
+{
+	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
+	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
+	unsigned int i = ix + iy*nx;
+
+	if (ix == 0)
+	{
+		//if ((hh[i]) >= 0.0f) // should be eps not 0.0
+		{
+			//u.n[left]=-2.0*(sqrt (G*max(h[],0.)) - sqrt(G*max(bndWL - zb[], 0.)))+u.x[];
+			//uu[i]= -2.0f*(sqrt(g*max(hh[i], 0.0f)) - sqrtf(g*max(zsbnd - (zb[i]*-1.0f), 0.0f))) + uu[i];
+			zs[i] = zsbnd;
+			hh[i] = zsbnd + zb[i]; //eps?
+			//vv[i] = vv[ix+1 + iy*nx];
+		}
+	}
+}
+
+__global__ void ubnd1Dnowaves(int nx, int ny, DECNUM dx, DECNUM dt, DECNUM g, DECNUM rho, DECNUM totaltime, DECNUM time, DECNUM timenext, DECNUM zsbnd,  DECNUM *zs, DECNUM * uu, DECNUM * vv, DECNUM *vu, DECNUM * umean, DECNUM * vmean, DECNUM * zb, DECNUM * hum, DECNUM * zo,  DECNUM *hh)
+{
+	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
+	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
+	unsigned int i = ix + iy*nx;
+
+	if (ix == 0)
+	{
+		unsigned int xminus = mminus(ix, nx);
+		unsigned int xplus = pplus(ix, nx);
+		unsigned int xplus2 = pplus2(ix, nx);
+		unsigned int yminus = mminus(iy, ny);
+		unsigned int yplus = pplus(iy, ny);
+
+		DECNUM ui, vi, thetai, vert;
+
+		DECNUM ht, htr;
+		DECNUM epsi = 0.005; //Not used!
+		DECNUM ur, uumean, vvmean, urr, alphanew;
+
+		DECNUM qx, qy;
+
+		DECNUM cats = 4.0f; // number of wave period to average the current from
+		DECNUM factime = 1.0f/60.0f*dt;// 1.0f / cats / Trep*dt;
+		DECNUM taper = min(totaltime / 100.0f, 1.0f);
+		DECNUM zsplus = zs[xplus + iy*nx];
+
+		//prev + (time) / (timenext)*(next - prev);
+		qx = 0.0f;
+		qy = 0.0f;
+
+		//zsbnd = zsbndold + (totaltime - rtsl)*(zsbndnew - zsbndold) / (slbndtime - rtsl);
+
+		ht = zsbnd + zb[i];
+		htr = zsbnd + zb[xplus + iy*nx];
+		ui = 0.0f;
+		vi = 0.0f;
+		ur = -1.0f*sqrtf(g / hh[i])*(zsplus - zsbnd);
+
+		float uuavg = 0.0f;
+		for (int n = 0; n < ny; n++)
+		{
+			uuavg = uuavg + uu[ix + n*nx];
+		}
+		uuavg = uuavg / ny;
+
+
+		//Tidetype=velocity
+		uumean = factime*uuavg + umean[iy] * (1 - factime);
+		//vvmean = factime*vvmm + vmean[iy] * (1 - factime);
+		umean[iy] = uumean;
+		//vmean[iy] = vvmean;
+
+
+
+		// Freewave==1
+		uu[i] = (2.0f)*ui + ur + uumean;
+										//zs[i] = 1.5f*((bnp1 - uu[i])*(bnp1 - uu[i]) / (4.0f*g) - 0.5f*(zb[i] + zb[xplus + iy*nx])) - 0.5f*((betar - uu[xplus + iy*nx])*(betar - uu[xplus + iy*nx]) / (4.0f*g) - 0.5f*(zb[xplus + iy*nx] + zb[xplus2 + iy*nx]));
+										////
+										//zsbnd+qx/(dx*dx)*dt;//
+		zs[i] = zsplus;
+		//hh[i] = zsplus + zb[i];
+
+		vv[i] = vv[xplus + iy*nx];
+
+
+
+
+
+
+
+	}
+
+
+}
+
+
 __global__ void wlevslopes(int nx, int ny, DECNUM dx, DECNUM eps, DECNUM *zs, DECNUM * dzsdx, DECNUM *dzsdy, DECNUM*hh)
 {
 	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
@@ -273,7 +461,7 @@ __global__ void wlevslopes(int nx, int ny, DECNUM dx, DECNUM eps, DECNUM *zs, DE
 
 
 }
-__global__ void calcuvvu(int nx, int ny, DECNUM dx, DECNUM *uu, DECNUM *vv, DECNUM *vu, DECNUM *uv, DECNUM * ust, DECNUM *thetamean, DECNUM *ueu_g, DECNUM *vev_g, DECNUM *vmageu, DECNUM *vmagev, int* wetu, int* wetv)
+__global__ void calcuvvu(int nx, int ny, DECNUM dx, DECNUM *uu, DECNUM *vv, DECNUM *vu, DECNUM *uv, DECNUM * ust, DECNUM *thetamean, DECNUM *ueu_g, DECNUM *vev_g, DECNUM *vmageu, DECNUM *vmagev, DECNUM * uuold, DECNUM * vvold, DECNUM * zs, DECNUM *zsold, int* wetu, int* wetv)
 {
 	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
 	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
@@ -312,6 +500,10 @@ __global__ void calcuvvu(int nx, int ny, DECNUM dx, DECNUM *uu, DECNUM *vv, DECN
 		wetvi[tx][ty] = wetv[i];
 
 
+		// Uold and Vold used in 2nd order flow correction
+		uuold[i] = uu[i];
+		vvold[i] = vv[i];
+		zsold[i] = zs[i];
 		// V-velocities at u-points
 
 		vu[i] = 0.25f*(vv[ix + yminus*nx] + vv[ix + iy*nx] + vv[xplus + yminus*nx] + vv[xplus + iy*nx])*wetui[tx][ty];
@@ -561,7 +753,7 @@ __global__ void ududx_adv(int nx, int ny, DECNUM dx, DECNUM * hu, DECNUM * hum, 
 	unsigned int i = ix + iy*nx;
 	unsigned int tx = threadIdx.x;
 	unsigned int ty = threadIdx.y;
-	DECNUM qin, uududx;
+	DECNUM qin, uududx, du;
 
 	__shared__ DECNUM uui[16][16];
 	__shared__ DECNUM uur[16][16];
@@ -595,15 +787,33 @@ __global__ void ududx_adv(int nx, int ny, DECNUM dx, DECNUM * hu, DECNUM * hum, 
 
 		uududx = 0.0f;
 		qin = 0.5f*(hui[tx][ty] * uui[tx][ty] + hu[xminus + iy*nx] * uul[tx][ty]);
+		du = uui[tx][ty] - uul[tx][ty];
 		//ududx
 		if (qin > 0.0f)
 		{
-			uududx = uududx + qin / humi[tx][ty] * (uui[tx][ty] - uul[tx][ty]) / dx;
+			if (du > 0.5f)
+			{
+				uududx = uududx + 0.5f*(uul[tx][ty] + uui[tx][ty])* (uui[tx][ty] - uul[tx][ty]) / dx;
+			}
+			else
+			{
+				uududx = uududx + qin / humi[tx][ty] * (uui[tx][ty] - uul[tx][ty]) / dx;
+			}
+			
 		}
 		qin = -0.5f*(hui[tx][ty] * uui[tx][ty] + hu[xplus + iy*nx] * uur[tx][ty]);
+		du = uur[tx][ty] - uui[tx][ty];
 		if (qin > 0.0f)
 		{
-			uududx = uududx + qin / humi[tx][ty] * (uui[tx][ty] - uur[tx][ty]) / dx;
+			if (du > 0.5f)
+			{
+				uududx = uududx - 0.5f*(uur[tx][ty] + uui[tx][ty])* (uui[tx][ty] - uur[tx][ty]) / dx;
+			}
+			else
+			{
+				uududx = uududx + qin / humi[tx][ty] * (uui[tx][ty] - uur[tx][ty]) / dx;
+			}
+			
 		}
 		ududx[i] = uududx;
 	}
@@ -680,7 +890,7 @@ __global__ void vdudy_adv(int nx, int ny, DECNUM dx, DECNUM * hv, DECNUM * hum, 
 	unsigned int ty = threadIdx.y;
 
 
-	DECNUM qin, vvdudy;
+	DECNUM qin, dv, vvdudy;
 
 	__shared__ DECNUM uui[16][16];
 	__shared__ DECNUM uut[16][16];
@@ -700,14 +910,35 @@ __global__ void vdudy_adv(int nx, int ny, DECNUM dx, DECNUM * hv, DECNUM * hum, 
 		vvdudy = 0.0f;
 
 		qin = 0.5f*(vv[ix + yminus*nx] * hv[ix + yminus*nx] + vv[xplus + yminus*nx] * hv[xplus + yminus*nx]);
+		dv = vv[i] - vv[ix + yminus*nx];
 		if (qin > 0.0f)
 		{
-			vvdudy = vvdudy + qin / hum[i] * (uui[tx][ty] - uub[tx][ty]) / dx;
+			if (dv > 0.5f)
+			{
+				// Conservation of energy head
+				vvdudy = vvdudy + 0.5f*(vv[ix + yminus*nx] + vv[xplus + yminus*nx])*(uui[tx][ty]-uub[tx][ty])/dx;//
+			}
+			else
+			{
+				// Conservation of momentum
+				vvdudy = vvdudy + qin / hum[i] * (uui[tx][ty] - uub[tx][ty]) / dx;
+			}
 		}
 		qin = -0.5f*(vv[i] * hv[i] + vv[xplus + iy*nx] * hv[xplus + iy*nx]);
+		dv = vv[ix+yplus*nx] - vv[i];
 		if (qin > 0.0f)
 		{
-			vvdudy = vvdudy + qin / hum[i] * (uui[tx][ty] - uut[tx][ty]) / dx;
+			if (dv > 0.5f)
+			{
+				// Conservation of energy head
+				vvdudy = vvdudy - 0.5f*(vv[i] + vv[xplus + iy*nx])*(uui[tx][ty] - uut[tx][ty]) / dx;;
+			}
+			else
+			{
+				//Conservation of momentum
+				vvdudy = vvdudy + qin / hum[i] * (uui[tx][ty] - uut[tx][ty]) / dx;
+
+			}
 		}
 		vdudy[i] = vvdudy;
 	}
@@ -793,8 +1024,9 @@ __global__ void vdvdy_adv(int nx, int ny, DECNUM dx, DECNUM * hv, DECNUM * hvm, 
 	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
 	unsigned int i = ix + iy*nx;
 
-	DECNUM qin, vvdvdy;
-	if (ix < nx && iy < ny)
+	DECNUM qin,dv, vvdvdy;
+	vvdvdy = 0.0f;
+	if (ix < nx && ix>0 && iy>0 && iy < (ny-2) )
 	{
 		unsigned int xminus = mminus(ix, nx);
 		unsigned int xplus = pplus(ix, nx);
@@ -803,21 +1035,67 @@ __global__ void vdvdy_adv(int nx, int ny, DECNUM dx, DECNUM * hv, DECNUM * hvm, 
 
 
 
-		vvdvdy = 0.0f;
+		
+
+		qin = 0.5f*(vv[i] * hv[i] + vv[ix + yminus*nx] * hv[ix + yminus*nx]);
+		dv = vv[i] - vv[ix + yminus*nx];
+		if (qin > 0.0f)
+		{
+			if (dv > 0.5f)
+			{
+				vvdvdy = vvdvdy + 0.5f*(vv[ix + (yminus)*nx] - vv[i]) * (vv[i] - vv[ix + (yminus)*nx]) / (dx);
+			}
+			else
+			{
+				vvdvdy = vvdvdy + qin / hvm[i] * (vv[i] - vv[ix + (yminus)*nx]) / (dx);
+			}
+			
+		}
+		qin = -0.5f*(hv[i] * vv[i] + hv[ix + (yplus)*nx] * vv[ix + (yplus)*nx]);
+		dv = vv[ix + (yplus)*nx] - vv[i];
+		if (qin > 0.0f)
+		{
+			if (dv > 0.5f)
+			{
+				vvdvdy = vvdvdy - 0.5f*(vv[ix + (yplus)*nx] + vv[i]) * (vv[i] - vv[ix + (yplus)*nx]) / (dx);
+			}
+			else
+			{
+				vvdvdy = vvdvdy + qin / hvm[i] * (vv[i] - vv[ix + (yplus)*nx]) / (dx);
+			}
+			
+		}
+		
+	}
+	vdvdy[i] = vvdvdy;
+}
+
+__global__ void vdvdy_fixbnd(int nx, int ny, DECNUM dx, DECNUM * hv, DECNUM * hvm, DECNUM * vv, DECNUM * vdvdy)
+{
+	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
+	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
+	unsigned int i = ix + iy*nx;
+
+	DECNUM qin, dv, vvdvdy;
+	
+	if (ix < nx && ix>0 && iy > 0 && iy == (ny - 1))
+	{
+		unsigned int xminus = mminus(ix, nx);
+		unsigned int xplus = pplus(ix, nx);
+		unsigned int yminus = mminus(iy, ny);
+		unsigned int yplus = pplus(iy, ny);
+
 
 		qin = 0.5f*(vv[i] * hv[i] + vv[ix + yminus*nx] * hv[ix + yminus*nx]);
 		if (qin > 0.0f)
 		{
-			vvdvdy = vvdvdy + qin / hvm[i] * (vv[i] - vv[ix + (yminus)*nx]) / (dx);
+			vvdvdy = vdvdy[i] + qin / hvm[i] * (vv[i] - vv[ix + (yminus)*nx]) / (dx);
 		}
-		qin = -0.5f*(hv[i] * vv[i] + hv[ix + (yplus)*nx] * vv[ix + (yplus)*nx]);
-		if (qin > 0.0f)
-		{
-			vvdvdy = vvdvdy + qin / hvm[i] * (vv[i] - vv[ix + (yplus)*nx]) / (dx);
-		}
-		vdvdy[i] = vvdvdy;
+
 	}
+	vdvdy[i] = vvdvdy;
 }
+
 
 __global__ void vdvdy_adv2(int nx, int ny, DECNUM dx, DECNUM * hv, DECNUM * hvm, DECNUM * vv, DECNUM * vdvdy)
 {
@@ -881,7 +1159,7 @@ __global__ void udvdx_adv(int nx, int ny, DECNUM dx, DECNUM * hu, DECNUM * hvm, 
 	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
 	unsigned int i = ix + iy*nx;
 
-	DECNUM qin, uudvdx;
+	DECNUM qin,du, uudvdx;
 
 	if (ix < nx && iy < ny)
 	{
@@ -894,14 +1172,32 @@ __global__ void udvdx_adv(int nx, int ny, DECNUM dx, DECNUM * hu, DECNUM * hvm, 
 
 		uudvdx = 0.0f;
 		qin = 0.5*(uu[xminus + iy*nx] * hu[xminus + iy*nx] + uu[xminus + yplus*nx] * hu[xminus + yplus*nx]);
+		du = uu[i] - uu[xminus + iy*nx];
 		if (qin > 0.0f)
 		{
-			uudvdx = uudvdx + qin / hvm[i] * (vv[i] - vv[xminus + iy*nx]) / (dx);
+			if (du > 0.5f)
+			{
+				uudvdx = uudvdx + 0.5f* (uu[xminus+iy*nx]+uu[xminus+yplus*nx]) * (vv[i] - vv[xminus + iy*nx]) / (dx);
+			}
+			else
+			{
+				uudvdx = uudvdx + qin / hvm[i] * (vv[i] - vv[xminus + iy*nx]) / (dx);
+			}
+			
 		}
 		qin = -0.5*(uu[i] * hu[i] + uu[ix + yplus*nx] * hu[ix + yplus*nx]);
+		du = uu[xplus + iy*nx]-uu[i];
 		if (qin > 0.0f)
 		{
-			uudvdx = uudvdx + qin / hvm[i] * (vv[i] - vv[xplus + iy*nx]) / (dx);
+			if (du > 0.5f)
+			{
+				uudvdx = uudvdx -0.5f*(uu[i]+uu[xplus+iy*nx]) * (vv[i] - vv[xplus + iy*nx]) / (dx);
+			}
+			else
+			{
+				uudvdx = uudvdx + qin / hvm[i] * (vv[i] - vv[xplus + iy*nx]) / (dx);
+			}
+			
 		}
 
 		udvdx[i] = uudvdx;
@@ -980,7 +1276,7 @@ __global__ void udvdx_adv2(int nx, int ny, DECNUM dx, DECNUM * hu, DECNUM * hvm,
 }
 
 
-__global__ void smago(int nx, int ny, DECNUM dx, DECNUM * uu, DECNUM * vv, DECNUM nuh, DECNUM * nuhgrid, int usesmago)
+__global__ void smago(int nx, int ny, DECNUM dx, DECNUM rho, DECNUM nuhfac, DECNUM *hh, DECNUM * uu, DECNUM * vv, DECNUM nuh, DECNUM * nuhgrid, DECNUM * DR, int usesmago)
 {
 	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
 	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
@@ -1004,11 +1300,12 @@ __global__ void smago(int nx, int ny, DECNUM dx, DECNUM * uu, DECNUM * vv, DECNU
 			dvdy = (vv[i] - vv[ix + yminus*nx]) / dx;
 			dvdx = 0.50f*(vv[xplus + iy*nx] - vv[xminus + iy*nx] + vv[xplus + yminus*nx] - vv[xminus + yminus*nx]) / dx;
 			tau = sqrt(2.0f*dudx*dudx + 2.0f*dvdy*dvdy + powf(dudy + dvdx, 2.0f));
-			nuhgrid[i] = nuh*nuh*dx*dx*tau;
+			nuhgrid[i] = max(nuh*nuh*dx*dx*tau, nuhfac*hh[i] * powf(DR[i] / rho, 1.0f / 3.0f));
 		}
 		else
 		{
-			nuhgrid[i] = nuh;
+			//nuhgrid[i] = nuh;
+			nuhgrid[i] = max(nuh, nuhfac*hh[i] * powf(DR[i] / rho, 1.0f / 3.0f));
 		}
 
 	}
@@ -1016,7 +1313,7 @@ __global__ void smago(int nx, int ny, DECNUM dx, DECNUM * uu, DECNUM * vv, DECNU
 
 }
 
-__global__ void viscou(int nx, int ny, DECNUM dx, DECNUM rho, DECNUM eps, DECNUM nuhfac, DECNUM * nuhgrid, DECNUM *hh, DECNUM *hum, DECNUM *hvm, DECNUM * DR, DECNUM *uu, int * wetu, DECNUM * viscu)
+__global__ void viscou1(int nx, int ny, DECNUM dx, DECNUM rho, DECNUM eps, DECNUM nuhfac, DECNUM * nuhgrid, DECNUM *hh, DECNUM *hum, DECNUM *hvm, DECNUM * DR, DECNUM *uu, int * wetu, DECNUM * viscu)
 {
 	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
 	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
@@ -1032,29 +1329,71 @@ __global__ void viscou(int nx, int ny, DECNUM dx, DECNUM rho, DECNUM eps, DECNUM
 		unsigned int yplus = pplus(iy, ny);
 
 
-		DECNUM nuh = nuhgrid[i];
-
-		DECNUM nnuh, dudx1, dudx2, dudy1, dudy2;
+		DECNUM nuh1, nuh2;
+		nuh1= nuhgrid[xplus+iy*nx];
+		nuh2 = nuhgrid[i];
+		DECNUM dudx1, dudx2, dudy1, dudy2;
 
 		//if(ix>3)
 		//{
-		nnuh = max(nuh, nuhfac*hh[i] * powf(DR[i] / rho, 1.0f / 3.0f));
+		//nnuh = max(nuh, nuhfac*hh[i] * powf(DR[i] / rho, 1.0f / 3.0f));
 		//}
 		//else
 		//{
 		//	nnuh=nuh*10;
 		//}
-		dudx1 = hh[xplus + iy*nx] * (uu[xplus + iy*nx] - uu[i]) / dx;
-		dudx2 = hh[i] * (uu[i] - uu[xminus + iy*nx]) / dx;
-		dudy1 = 0.5f*(hvm[i] + hvm[xplus + iy*nx])*(uu[ix + yplus*nx] - uu[i]) / dx;
-		dudy2 = 0.5f*(hvm[ix + yminus*nx] + hvm[xplus + yminus*nx])*(uu[i] - uu[ix + yminus*nx]) / dx;
-		viscu[i] = nnuh / hum[i] * ((dudx1 - dudx2) / (dx)*wetu[xplus + iy*nx] * wetu[xminus + iy*nx] + (dudy1 - dudy2) / dx*wetu[ix + yplus*nx] * wetu[ix + yminus*nx]);
+		dudx1 = nuh1 * hh[xplus + iy*nx] * (uu[xplus + iy*nx] - uu[i]) / dx;
+		dudx2 = nuh2 * hh[i] * (uu[i] - uu[xminus + iy*nx]) / dx;
+		//dudy1 = 0.5f*(hvm[i] + hvm[xplus + iy*nx])*(uu[ix + yplus*nx] - uu[i]) / dx;
+		//dudy2 = 0.5f*(hvm[ix + yminus*nx] + hvm[xplus + yminus*nx])*(uu[i] - uu[ix + yminus*nx]) / dx;
+		//viscu[i] = (1.0f / hum[i]) * (2.0f*(dudx1 - dudx2) / (2.0f*dx));
+		viscu[i] = (1.0f / hum[i]) * ((dudx1 - dudx2) / (dx));
+		//*wetu[xplus+iy*nx]*wetu[xplus+iy*nx]
+	}
+}
+
+__global__ void viscou2(int nx, int ny, DECNUM dx, DECNUM rho, DECNUM eps, DECNUM nuhfac, DECNUM * nuhgrid, DECNUM *hh, DECNUM *hum, DECNUM *hvm, DECNUM * DR, DECNUM *uu, int * wetu, DECNUM * viscu)
+{
+	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
+	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
+	unsigned int i = ix + iy*nx;
+
+
+
+	if (ix < nx && iy < ny)
+	{
+		unsigned int xminus = mminus(ix, nx);
+		unsigned int xplus = pplus(ix, nx);
+		unsigned int yminus = mminus(iy, ny);
+		unsigned int yplus = pplus(iy, ny);
+
+
+		DECNUM nnuh = nuhgrid[i];
+
+		DECNUM nuh1, nuh2, dudx1, dudx2, dudy1, dudy2;
+
+		nuh1 = 0.25f*(nuhgrid[i] + nuhgrid[xplus + iy*nx] + nuhgrid[xplus + yplus*nx] + nuhgrid[ix + yplus*nx]);
+		nuh2 = 0.25f*(nuhgrid[i] + nuhgrid[xplus + iy*nx] + nuhgrid[xplus + yminus*nx] + nuhgrid[ix + yminus*nx]);
+
+		//if(ix>3)
+		//{
+		//nnuh = max(nuh, nuhfac*hh[i] * powf(DR[i] / rho, 1.0f / 3.0f));
+		//}
+		//else
+		//{
+		//	nnuh=nuh*10;
+		//}
+		//dudx1 = hh[xplus + iy*nx] * (uu[xplus + iy*nx] - uu[i]) / dx;
+		//dudx2 = hh[i] * (uu[i] - uu[xminus + iy*nx]) / dx;
+		dudy1 = nuh1*0.5f*(hvm[i] + hvm[xplus + iy*nx])*(uu[ix + yplus*nx] - uu[i]) / dx;
+		dudy2 = nuh2*0.5f*(hvm[ix + yminus*nx] + hvm[xplus + yminus*nx])*(uu[i] - uu[ix + yminus*nx]) / dx;
+		viscu[i] = viscu[i] +(1.0f/ hum[i]) * ((dudy1 - dudy2) / dx*wetu[ix + yplus*nx] * wetu[ix + yminus*nx]);
 
 		//*wetu[xplus+iy*nx]*wetu[xplus+iy*nx]
 	}
 }
 
-__global__ void viscov(int nx, int ny, DECNUM dx, DECNUM rho, DECNUM eps, DECNUM nuhfac, DECNUM * nuhgrid, DECNUM *hh, DECNUM *hum, DECNUM *hvm, DECNUM * DR, DECNUM *vv, int * wetv, DECNUM * viscv)
+__global__ void viscov1(int nx, int ny, DECNUM dx, DECNUM rho, DECNUM eps, DECNUM nuhfac, DECNUM * nuhgrid, DECNUM *hh, DECNUM *hum, DECNUM *hvm, DECNUM * DR, DECNUM *vv, int * wetv, DECNUM * viscv)
 {
 	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
 	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
@@ -1069,17 +1408,50 @@ __global__ void viscov(int nx, int ny, DECNUM dx, DECNUM rho, DECNUM eps, DECNUM
 		unsigned int yplus = pplus(iy, ny);
 
 
-		DECNUM nuh = nuhgrid[i];
+		DECNUM nuh1, nuh2;
+		nuh1 = nuhgrid[ix+yplus*nx];
+		nuh2 = nuhgrid[i];
 
 		DECNUM nnuh, dvdx1, dvdx2, dvdy1, dvdy2;
 
-		nnuh = max(nuh, nuhfac*hh[i] * powf(DR[i] / rho, 1.0f / 3.0f));
+		//nnuh = max(nuh, nuhfac*hh[i] * powf(DR[i] / rho, 1.0f / 3.0f));
 
-		dvdx1 = 0.5f*(hum[i] + hum[ix + yplus*nx])*(vv[xplus + iy*nx] - vv[i]) / dx;
-		dvdx2 = 0.5f*(hum[xminus + iy*nx] + hum[xminus + yplus*nx])*(vv[i] - vv[xminus + iy*nx]) / dx;
-		dvdy1 = hh[ix + yplus*nx] * (vv[ix + yplus*nx] - vv[i]) / dx;
-		dvdy2 = hh[i] * (vv[i] - vv[ix + yminus*nx]) / dx;
-		viscv[i] = nnuh / hvm[i] * ((dvdx1 - dvdx2) / (dx)*wetv[xplus + iy*nx] * wetv[xminus + iy*nx] + (dvdy1 - dvdy2) / dx*wetv[ix + yplus*nx] * wetv[ix + yminus*nx]);
+		//dvdx1 = 0.5f*(hum[i] + hum[ix + yplus*nx])*(vv[xplus + iy*nx] - vv[i]) / dx;
+		//dvdx2 = 0.5f*(hum[xminus + iy*nx] + hum[xminus + yplus*nx])*(vv[i] - vv[xminus + iy*nx]) / dx;
+		dvdy1 = nuh1*hh[ix + yplus*nx] * (vv[ix + yplus*nx] - vv[i]) / dx;
+		dvdy2 = nuh2*hh[i] * (vv[i] - vv[ix + yminus*nx]) / dx;
+		//viscv[i] = nnuh / hvm[i] * ((dvdx1 - dvdx2) / (dx)*wetv[xplus + iy*nx] * wetv[xminus + iy*nx] + (dvdy1 - dvdy2) / dx*wetv[ix + yplus*nx] * wetv[ix + yminus*nx]);
+		viscv[i] = (1.0f / hvm[i]) * (dvdy1 - dvdy2) / dx*wetv[ix + yplus*nx] * wetv[ix + yminus*nx];
+	}
+}
+__global__ void viscov2(int nx, int ny, DECNUM dx, DECNUM rho, DECNUM eps, DECNUM nuhfac, DECNUM * nuhgrid, DECNUM *hh, DECNUM *hum, DECNUM *hvm, DECNUM * DR, DECNUM *vv, int * wetv, DECNUM * viscv)
+{
+	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
+	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
+	unsigned int i = ix + iy*nx;
+
+
+	if (ix < nx && iy < ny)
+	{
+		unsigned int xminus = mminus(ix, nx);
+		unsigned int xplus = pplus(ix, nx);
+		unsigned int yminus = mminus(iy, ny);
+		unsigned int yplus = pplus(iy, ny);
+
+
+		DECNUM nuh1, nuh2;
+		nuh1 = 0.25f*(nuhgrid[i] + nuhgrid[xplus + iy*nx] + nuhgrid[xplus + yplus*nx] + nuhgrid[ix + yplus*nx]);
+		nuh2 = 0.25f*(nuhgrid[i] + nuhgrid[xminus + iy*nx] + nuhgrid[xminus + yplus*nx] + nuhgrid[ix + yplus*nx]);
+
+		DECNUM nnuh, dvdx1, dvdx2, dvdy1, dvdy2;
+
+		//nnuh = max(nuh, nuhfac*hh[i] * powf(DR[i] / rho, 1.0f / 3.0f));
+
+		dvdx1 = nuh1*0.5f*(hum[i] + hum[ix + yplus*nx])*(vv[xplus + iy*nx] - vv[i]) / dx;
+		dvdx2 = nuh2*0.5f*(hum[xminus + iy*nx] + hum[xminus + yplus*nx])*(vv[i] - vv[xminus + iy*nx]) / dx;
+		//dvdy1 = hh[ix + yplus*nx] * (vv[ix + yplus*nx] - vv[i]) / dx;
+		//dvdy2 = hh[i] * (vv[i] - vv[ix + yminus*nx]) / dx;
+		viscv[i] = viscv[i] + (1.0f / hvm[i]) * ((dvdx1 - dvdx2) / (dx)*wetv[xplus + iy*nx] * wetv[xminus + iy*nx] );
 	}
 }
 
@@ -1096,7 +1468,7 @@ __global__ void viscovbnd(int nx, int ny, DECNUM * viscv)
 		unsigned int yminus = mminus(iy, ny);
 		unsigned int yplus = pplus(iy, ny);
 
-		if (iy == ny - 1)
+		if (iy == ny - 2)
 		{
 			viscv[i] = viscv[ix + yminus*nx];
 		}
@@ -1156,7 +1528,7 @@ __global__ void eulerustep(int nx, int ny, DECNUM dx, DECNUM dt, DECNUM g, DECNU
 		else
 		{
 			uui[tx][ty] = 0.0f;
-			viscu[i] = 0.0f;
+			//viscu[i] = 0.0f;
 
 		}
 		if (ix > 0)
@@ -1181,7 +1553,7 @@ __global__ void eulervstep(int nx, int ny, DECNUM dx, DECNUM dt, DECNUM g, DECNU
 	__shared__ DECNUM  vmagvi[16][16];
 	__shared__ DECNUM  hvmi[16][16];
 
-	if (ix < nx && iy < ny)
+	if (ix < nx && iy < ny-2)
 	{
 		unsigned int xminus = mminus(ix, nx);
 		unsigned int xplus = pplus(ix, nx);
@@ -1213,7 +1585,7 @@ __global__ void eulervstep(int nx, int ny, DECNUM dx, DECNUM dt, DECNUM g, DECNU
 		else
 		{
 			vvi[tx][ty] = 0.0f;
-			viscv[i] = 0.0f;
+			//viscv[i] = 0.0f;
 		}
 		if (ix > 0)// && iy>0 && iy<ny)
 		{
@@ -1248,7 +1620,7 @@ __global__ void flowsecO_advUV(int nx, int ny, DECNUM *uuold, DECNUM *vvold, DEC
 }
 
 
-__global__ void continuity(int nx, int ny, DECNUM dx, DECNUM dt, DECNUM eps, DECNUM * uu, DECNUM* hu, DECNUM* vv, DECNUM* hv, DECNUM* zs, DECNUM *hh, DECNUM *zb, DECNUM * dzsdt)
+__global__ void continuity(int nx, int ny, DECNUM dx, DECNUM dt, DECNUM eps, DECNUM* qx,  DECNUM* qy, DECNUM* zs, DECNUM *hh, DECNUM *zb, DECNUM * dzsdt)
 {
 	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
 	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
@@ -1259,17 +1631,14 @@ __global__ void continuity(int nx, int ny, DECNUM dx, DECNUM dt, DECNUM eps, DEC
 
 
 
-	DECNUM qx, qy, qxm, qym, dzdt;
-	DECNUM zz;
+	//DECNUM qxi, qyi, qxm, qym, dzdt;
+	DECNUM zz,dzdt;
 
-	__shared__ DECNUM uui[16][16];
-	__shared__ DECNUM uul[16][16];
-	__shared__ DECNUM vvi[16][16];
-	__shared__ DECNUM vvb[16][16];
-	__shared__ DECNUM hui[16][16];
-	__shared__ DECNUM hul[16][16];
-	__shared__ DECNUM hvi[16][16];
-	__shared__ DECNUM hvb[16][16];
+	__shared__ DECNUM qxi[16][16];
+	__shared__ DECNUM qxl[16][16];
+	__shared__ DECNUM qyi[16][16];
+	__shared__ DECNUM qyb[16][16];
+	
 
 	if (ix < nx && iy < ny)
 	{
@@ -1278,30 +1647,22 @@ __global__ void continuity(int nx, int ny, DECNUM dx, DECNUM dt, DECNUM eps, DEC
 		unsigned int yminus = mminus(iy, ny);
 		unsigned int yplus = pplus(iy, ny);
 
-		uui[tx][ty] = uu[i];
-		vvi[tx][ty] = vv[i];
-		uul[tx][ty] = uu[xminus + iy*nx];
-		vvb[tx][ty] = vv[ix + yminus*nx];
-		hui[tx][ty] = hu[i];
-		hul[tx][ty] = hu[xminus + iy*nx];
-		hvi[tx][ty] = hv[i];
-		hvb[tx][ty] = hv[ix + yminus*nx];
+		qxi[tx][ty] = qx[i];
+		qyi[tx][ty] = qy[i];
+		qxl[tx][ty] = qx[xminus + iy*nx];
+		qyb[tx][ty] = qy[ix + yminus*nx];
+		
 
 
 
 
 		zz = zs[i];
 
-		qx = uui[tx][ty] * hui[tx][ty];
-		qy = vvi[tx][ty] * hvi[tx][ty];
-
-		qxm = uul[tx][ty] * hul[tx][ty];
-
-		qym = vvb[tx][ty] * hvb[tx][ty];
-		dzdt = (qxm - qx + qym - qy) / dx;
+		
+		dzdt = (qxl[tx][ty] - qxi[tx][ty] + qyb[tx][ty] - qyi[tx][ty]) / dx;
 
 
-		__syncthreads;
+		
 
 		if (ix > 0)
 		{
@@ -1334,16 +1695,7 @@ __global__ void hsbnd(int nx, int ny, DECNUM eps, DECNUM * hh, DECNUM *zb, DECNU
 
 	if (ix < nx && iy < ny)
 	{
-		unsigned int xminus = mminus(ix, nx);
-		unsigned int xplus = pplus(ix, nx);
-		unsigned int yminus = mminus(iy, ny);
-		unsigned int yplus = pplus(iy, ny);
-
-		Fi[tx][ty] = max(hh[i], eps);
-		Ft[tx][ty] = max(hh[ix + yplus*nx], eps);
-		Fb[tx][ty] = max(hh[ix + yminus*nx], eps);
-		Fr[tx][ty] = max(hh[xplus + iy*nx], eps);
-
+		
 		//hh[i]=Fi[tx][ty];
 
 
@@ -1420,6 +1772,76 @@ __global__ void uvlatbnd(int nx, int ny, DECNUM * vu, DECNUM * uv, DECNUM * ueu,
 }
 
 
+__global__ void latbnd(int nx, int ny, DECNUM * uu)
+{
+	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
+	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
+	unsigned int i = ix + iy*nx;
+	int tx = threadIdx.x;
+	int ty = threadIdx.y;
+	
+	__shared__ DECNUM uut[16][16];
+	__shared__ DECNUM uub[16][16];
+
+	if (ix < nx && iy < ny)
+	{
+		unsigned int yminus = mminus(iy, ny);
+		unsigned int yminus2 = mminus2(iy, ny);
+		unsigned int yplus = pplus(iy, ny);
+
+
+		uut[tx][ty] = uu[ix + yplus*nx];
+		uub[tx][ty] = uu[ix + yminus*nx];
+
+		if (iy == 0)
+		{
+			uu[i] = uut[tx][ty];
+		}
+		if (iy == ny - 1)
+		{
+			uu[i] = uub[tx][ty];
+		}
+	}
+	//
+}
+
+
+__global__ void vvlatbnd(int nx, int ny, DECNUM * uu)
+{
+	// Neumann_v boundary
+	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
+	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
+	unsigned int i = ix + iy*nx;
+	int tx = threadIdx.x;
+	int ty = threadIdx.y;
+
+	__shared__ DECNUM uut[16][16];
+	__shared__ DECNUM uub[16][16];
+
+	if (ix < nx && iy < ny)
+	{
+		unsigned int yminus = mminus(iy, ny);
+		unsigned int yminus2 = mminus2(iy, ny);
+		unsigned int yplus = pplus(iy, ny);
+
+
+		uut[tx][ty] = uu[ix + yplus*nx];
+		uub[tx][ty] = uu[ix + yminus*nx];
+
+		if (iy == 0)
+		{
+			uu[i] = uut[tx][ty];
+		}
+		if (iy == ny - 2)
+		{
+			uu[i] = uub[tx][ty];
+		}
+	}
+	//
+}
+
+
+
 __global__ void uuvvzslatbnd(int nx, int ny, DECNUM * uu, DECNUM * vv, DECNUM *zs)
 {
 	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
@@ -1488,4 +1910,407 @@ __global__ void uuvvzslatbnd(int nx, int ny, DECNUM * uu, DECNUM * vv, DECNUM *z
 		}
 	}
 
+}
+__global__ void CalcQFlow(int nx, int ny, DECNUM * uu, DECNUM* hu, DECNUM* vv, DECNUM* hv, DECNUM *qx, DECNUM * qy)
+
+{
+	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
+	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
+	unsigned int i = ix + iy*nx;
+
+	unsigned int tx = threadIdx.x;
+	unsigned int ty = threadIdx.y;
+
+
+
+	__shared__ DECNUM uui[16][16];
+	
+	__shared__ DECNUM vvi[16][16];
+	
+	__shared__ DECNUM hui[16][16];
+	
+	__shared__ DECNUM hvi[16][16];
+	
+
+	if (ix < nx && iy < ny)
+	{
+		unsigned int xminus = mminus(ix, nx);
+		unsigned int xplus = pplus(ix, nx);
+		unsigned int yminus = mminus(iy, ny);
+		unsigned int yplus = pplus(iy, ny);
+
+		uui[tx][ty] = uu[i];
+		vvi[tx][ty] = vv[i];
+		
+		hui[tx][ty] = hu[i];
+		
+		hvi[tx][ty] = hv[i];
+		
+
+		qx[i] = uui[tx][ty] * hui[tx][ty];
+		qy[i] = vvi[tx][ty] * hvi[tx][ty];
+
+	}
+
+}
+
+__global__ void wrkuu2Ocorr(int nx, int ny, float dx, float dt,float eps, DECNUM* uu, DECNUM* uuold, DECNUM* hum,DECNUM *zs, DECNUM *zb, DECNUM *qx, DECNUM * qy,DECNUM *wrk1, DECNUM*wrk2)
+{
+	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
+	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
+	unsigned int i = ix + iy*nx;
+
+	unsigned int tx = threadIdx.x;
+	unsigned int ty = threadIdx.y;
+
+	
+	float delta1, delta2;
+	float mindepth,minzs,minzb;
+
+	__shared__ DECNUM uui[16][16];
+	__shared__ DECNUM uoi[16][16];
+
+	
+
+	
+
+	if ( ix < nx && iy < ny)
+	{
+		unsigned int xminus = mminus(ix, nx);
+		unsigned int xminus2 = mminus2(ix, nx);
+		unsigned int xplus = pplus(ix, nx);
+		unsigned int xplus2 = pplus2(ix, nx);
+		unsigned int yminus = mminus(iy, ny);
+		unsigned int yplus = pplus(iy, ny);
+		unsigned int yminus2 = mminus2(iy, ny);
+		unsigned int yplus2 = pplus2(iy, ny);
+
+		wrk1[i] = 0.0f;
+		wrk2[i] = 0.0f;
+
+		minzs = min(min(min(min(zs[xminus2 + iy*nx], zs[xminus + iy*nx]), zs[i]), zs[xplus + iy*nx]), zs[xplus2 + iy*nx]);
+		minzb = min(min(min(min(zb[xminus2 + iy*nx], zb[xminus + iy*nx]), zb[i]), zb[xplus + iy*nx]), zb[xplus2 + iy*nx]);
+
+		mindepth = minzs + minzb;
+
+		if (ix>0 && mindepth > eps*2.0f)
+		{
+
+			if ((qx[i] + qx[xminus + iy*nx]) > 0.0f)
+			{
+				delta1 = (uu[i] - uuold[xminus + iy*nx]);
+				delta2 = (uu[xminus + iy*nx] - uuold[xminus2 + iy*nx]);
+				wrk1[i] = 0.5f*minmod(delta1, delta2);
+			}
+			if ((qx[i] + qx[xminus + iy*nx]) < 0.0f)
+			{
+				delta1 = (uuold[i] - uu[xminus + iy*nx]);
+				delta2 = (uuold[xplus + iy*nx] - uu[i]);
+				wrk1[i] = -0.5f*minmod(delta1, delta2);
+			}
+		}
+		minzs = min(min(min(zs[ix + iy*nx], zs[ix + yminus*nx]), zs[ix + yplus*nx]), zs[ix + yplus2*nx]);
+		minzs = min(minzs, min(min(min(zs[xplus + iy*nx], zs[xplus + yminus*nx]), zs[xplus + yplus*nx]), zs[xplus + yplus2*nx]));
+
+		minzb = min(min(min(zb[ix + iy*nx], zb[ix + yminus*nx]), zb[ix + yplus*nx]), zb[ix + yplus2*nx]);
+		minzb = min(minzb, min(min(min(zb[xplus + iy*nx], zb[xplus + yminus*nx]), zb[xplus + yplus*nx]), zb[xplus + yplus2*nx]));
+
+		mindepth = minzs + minzb;
+
+		
+		if (ix>0 && iy>0 && mindepth > eps*2.0f)
+		{
+
+			if ((qy[xplus + iy*nx] + qy[i]) > 0.0f)
+			{
+				delta1 = (uu[ix + yplus*nx] - uuold[i]);
+				delta2 = (uu[i] - uuold[ix + yminus*nx]);
+				wrk2[i] = 0.5f*minmod(delta1, delta2);
+			}
+			if ((qy[xplus + iy*nx] + qy[i]) < 0.0f)
+			{
+				delta1 = (uuold[ix + yplus*nx] - uu[i]);
+				delta2 = (uuold[ix + yplus2*nx] - uu[ix + yplus*nx]);
+				wrk2[i] = -0.5f*minmod(delta1, delta2);
+			}
+
+		}
+		
+	}
+
+}
+
+__global__ void wrkvv2Ocorr(int nx, int ny, float dx, float dt, float eps, DECNUM* vv, DECNUM* vvold, DECNUM* hvm, DECNUM *zs, DECNUM *zb, DECNUM *qx, DECNUM * qy, DECNUM *wrk1, DECNUM*wrk2)
+{
+	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
+	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
+	unsigned int i = ix + iy*nx;
+
+	unsigned int tx = threadIdx.x;
+	unsigned int ty = threadIdx.y;
+
+
+	float delta1, delta2;
+	float mindepth, minzs, minzb;
+	__shared__ DECNUM uui[16][16];
+	__shared__ DECNUM uoi[16][16];
+
+
+
+	if (ix < nx && iy < ny)
+	{
+		unsigned int xminus = mminus(ix, nx);
+		unsigned int xminus2 = mminus2(ix, nx);
+		unsigned int xplus = pplus(ix, nx);
+		unsigned int xplus2 = pplus2(ix, nx);
+		unsigned int yminus = mminus(iy, ny);
+		unsigned int yplus = pplus(iy, ny);
+		unsigned int yminus2 = mminus2(iy, ny);
+		unsigned int yplus2 = pplus2(iy, ny);
+
+		wrk1[i] = 0.0f;
+		wrk2[i] = 0.0f;
+
+		minzs = min(min(min(min(zs[ix + yminus2*nx], zs[ix + yminus*nx]), zs[ix + iy*nx]), zs[ix + yplus*nx]), zs[ix + yplus2*nx]);
+		minzb = min(min(min(min(zb[ix + yminus2*nx], zb[ix + yminus*nx]), zb[ix + iy*nx]), zb[ix + yplus*nx]), zb[ix + yplus2*nx]);
+
+		mindepth = minzs + minzb;
+
+		if (ix>0 && iy>0 && iy <ny-2 && mindepth > eps*2.0f)
+		{
+
+			if ((qy[i] + qy[ix + yminus*nx]) > 0.0f)
+			{
+				delta1 = (vv[i] - vvold[ix + yminus*nx]);
+				delta2 = (vv[ix + yminus*nx] - vvold[ix + yminus2*nx]);
+				wrk1[i] = 0.5f*minmod(delta1, delta2);
+			}
+			if ((qy[i] + qy[ix + yminus*nx]) < 0.0f)
+			{
+				delta1 = (vvold[i] - vv[ix + yminus*nx]);
+				delta2 = (vvold[ix + yplus*nx] - vv[i]);
+				wrk1[i] = -0.5f*minmod(delta1, delta2);
+			}
+
+		}
+
+		minzs = min(min(min(zs[xminus + iy*nx], zs[ix + iy*nx]), zs[xplus + iy*nx]), zs[xplus2 + iy*nx]);
+		minzs = min(minzs, min(min(min(zs[xminus + yplus*nx], zs[ix + yplus*nx]), zs[xplus + yplus*nx]), zs[xplus2 + yplus*nx]));
+
+		minzb = min(min(min(zb[xminus + iy*nx], zb[ix + iy*nx]), zb[xplus + iy*nx]), zb[xplus2 + iy*nx]);
+		minzb = min(minzb, min(min(min(zb[xminus + yplus*nx], zb[ix + yplus*nx]), zb[xplus + yplus*nx]), zb[xplus2 + yplus*nx]));
+
+		mindepth = minzs + minzb;
+
+		if (ix>0 && iy>0 && iy <ny - 2 && mindepth > eps*2.0f)
+		{
+
+			if ((qx[ix + yplus*nx] + qx[i]) > 0.0f)
+			{
+				delta1 = (vv[xplus + iy*nx] - vvold[i]);
+				delta2 = (vv[i] - vvold[xminus + iy*nx]);
+				wrk2[i] = 0.5f*minmod(delta1, delta2);
+			}
+			if ((qx[ix + yplus*nx] + qx[i]) < 0.0f)
+			{
+				delta1 = (vvold[xplus + iy*nx] - vv[i]);
+				delta2 = (vvold[xplus2 + iy*nx] - vv[xplus + iy*nx]);
+				wrk2[i] = -0.5f*minmod(delta1, delta2);
+			}
+
+		}
+
+	}
+
+}
+
+__global__ void wrkzs2Ocorr(int nx, int ny, float dx, float dt,float eps, DECNUM* zs, DECNUM* zsold,  DECNUM *uu, DECNUM * vv, DECNUM *zb, DECNUM *wrk1, DECNUM*wrk2)
+{
+	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
+	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
+	unsigned int i = ix + iy*nx;
+
+	unsigned int tx = threadIdx.x;
+	unsigned int ty = threadIdx.y;
+
+
+	float delta1, delta2;
+	float mindepth, minzs, minzb;
+	__shared__ DECNUM uui[16][16];
+	__shared__ DECNUM uoi[16][16];
+
+
+
+	if (ix < nx && iy < ny)
+	{
+		unsigned int xminus = mminus(ix, nx);
+		unsigned int xminus2 = mminus2(ix, nx);
+		unsigned int xplus = pplus(ix, nx);
+		unsigned int xplus2 = pplus2(ix, nx);
+		unsigned int yminus = mminus(iy, ny);
+		unsigned int yplus = pplus(iy, ny);
+		unsigned int yminus2 = mminus2(iy, ny);
+		unsigned int yplus2 = pplus2(iy, ny);
+
+		wrk1[i] = 0.0f;
+		wrk2[i] = 0.0f;
+
+		minzs = min(min(min( zs[xminus + iy*nx], zs[i]), zs[xplus + iy*nx]), zs[xplus2 + iy*nx]);
+		minzb = min(min(min( zb[xminus + iy*nx], zb[i]), zb[xplus + iy*nx]), zb[xplus2 + iy*nx]);
+
+		mindepth = minzs + minzb;
+
+		
+		if (ix>0 && mindepth > eps*2.0f)
+		{
+			if ((uu[i]) > 0.0f)
+			{
+				delta1 = (zs[xplus + iy*nx] - zsold[i]);
+				delta2 = (zs[i] - zsold[xminus + iy*nx]);
+				wrk1[i] = uu[i] * 0.5f*minmod(delta1, delta2);
+			}
+			if ((uu[i]) < 0.0f)
+			{
+				delta1 = (zsold[xplus2 + iy*nx] - zs[xplus + iy*nx]);
+				delta2 = (zsold[xplus + iy*nx] - zs[i]);
+				wrk1[i] = -1.0f*uu[i] * 0.5f*minmod(delta1, delta2);
+			}
+		}
+
+		minzs = min(min(min(zs[ix + yminus*nx], zs[i]), zs[ix + yplus*nx]), zs[ix + yplus2*nx]);
+		minzb = min(min(min(zb[ix + yminus*nx], zb[i]), zb[ix + yplus*nx]), zb[ix + yplus2*nx]);
+
+		mindepth = minzs + minzb;
+
+
+		if (ix>0 && iy>0 && mindepth > eps*2.0f)
+		{
+			if ((vv[i]) > 0.0f)
+			{
+				delta1 = (zs[ix + yplus*nx] - zsold[i]);
+				delta2 = (zs[i] - zsold[ix + yminus*nx]);
+				wrk2[i] = vv[i] * 0.5f*minmod(delta1, delta2);
+			}
+			if ((vv[i]) < 0.0f)
+			{
+				delta1 = (zsold[ix + yplus2*nx] - zs[ix + yplus*nx]);
+				delta2 = (zsold[ix + yplus*nx] - zs[i]);
+				wrk2[i] = vv[i] * 0.5f*minmod(delta1, delta2);
+			}
+		}
+
+
+	}
+
+}
+
+__global__ void uu2Ocorr(int nx, int ny, float dx, float dt, DECNUM* uu, DECNUM* uuold, DECNUM* hum, DECNUM *qx, DECNUM * qy, DECNUM *wrk1, DECNUM*wrk2)
+{
+	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
+	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
+	unsigned int i = ix + iy*nx;
+
+	unsigned int tx = threadIdx.x;
+	unsigned int ty = threadIdx.y;
+
+
+	float qe, qw, qs, qn;
+
+	__shared__ DECNUM uui[16][16];
+	__shared__ DECNUM uoi[16][16];
+
+
+
+	if (ix>0 && iy>0 && ix < nx && iy < ny)
+	{
+		unsigned int xminus = mminus(ix, nx);
+		unsigned int xminus2 = mminus2(ix, nx);
+		unsigned int xplus = pplus(ix, nx);
+		unsigned int xplus2 = pplus2(ix, nx);
+		unsigned int yminus = mminus(iy, ny);
+		unsigned int yplus = pplus(iy, ny);
+		unsigned int yminus2 = mminus2(iy, ny);
+		unsigned int yplus2 = pplus2(iy, ny);
+		qe = 0.5f*(qx[xplus + iy*nx] + qx[i]);
+		qw = 0.5f*(qx[i] + qx[xminus + iy*nx]);
+		qn = 0.5f*(qy[ix + yminus*nx] + qy[xplus + yminus*nx]);
+		qs = 0.5f*(qy[i]+qy[xminus+iy*nx]);
+
+		uu[i] = uu[i] - dt / hum[i] * ((qe*wrk1[xplus + iy*nx] - qw*wrk1[i]) / dx + (qs*wrk2[i] - qn*wrk2[ix + yminus*nx]) / dx);
+
+	}
+}
+
+__global__ void vv2Ocorr(int nx, int ny, float dx, float dt, DECNUM* vv, DECNUM* vvold, DECNUM* hvm, DECNUM *qx, DECNUM * qy, DECNUM *wrk1, DECNUM*wrk2)
+{
+	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
+	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
+	unsigned int i = ix + iy*nx;
+
+	unsigned int tx = threadIdx.x;
+	unsigned int ty = threadIdx.y;
+
+
+	float qe, qw, qs, qn;
+
+	__shared__ DECNUM uui[16][16];
+	__shared__ DECNUM uoi[16][16];
+
+
+
+	if (ix>0 && iy>0 && ix < nx && iy < ny)
+	{
+		unsigned int xminus = mminus(ix, nx);
+		unsigned int xminus2 = mminus2(ix, nx);
+		unsigned int xplus = pplus(ix, nx);
+		unsigned int xplus2 = pplus2(ix, nx);
+		unsigned int yminus = mminus(iy, ny);
+		unsigned int yplus = pplus(iy, ny);
+		unsigned int yminus2 = mminus2(iy, ny);
+		unsigned int yplus2 = pplus2(iy, ny);
+		qe = 0.5f*(qx[ix + yplus*nx] + qx[i]);
+		qw = 0.5f*(qx[xminus+iy*nx] + qx[xminus + yplus*nx]);
+		qn = 0.5f*(qy[i] + qy[ix + yminus*nx]);
+		qs = 0.5f*(qy[ix+yplus*nx] + qy[i]);
+
+		vv[i] = vv[i] - dt / hvm[i] * ((qe*wrk2[i] - qw*wrk2[xminus+iy*nx]) / dx + (qs*wrk1[ix+yplus*nx] - qn*wrk1[i]) / dx);
+
+	}
+}
+
+__global__ void zs2Ocorr(int nx, int ny, float dx, float dt, DECNUM* zs, DECNUM *qx, DECNUM *qy, DECNUM *wrk1, DECNUM*wrk2)
+{
+	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
+	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
+	unsigned int i = ix + iy*nx;
+
+	unsigned int tx = threadIdx.x;
+	unsigned int ty = threadIdx.y;
+
+
+	float qe, qw, qs, qn;
+
+	__shared__ DECNUM uui[16][16];
+	__shared__ DECNUM uoi[16][16];
+
+
+
+	if (ix>0 && iy>0 && ix < nx && iy < ny)
+	{
+		unsigned int xminus = mminus(ix, nx);
+		unsigned int xminus2 = mminus2(ix, nx);
+		unsigned int xplus = pplus(ix, nx);
+		unsigned int xplus2 = pplus2(ix, nx);
+		unsigned int yminus = mminus(iy, ny);
+		unsigned int yplus = pplus(iy, ny);
+		unsigned int yminus2 = mminus2(iy, ny);
+		unsigned int yplus2 = pplus2(iy, ny);
+		
+
+		zs[i] = zs[i] - dt * ((wrk1[i] - wrk1[xminus+iy*nx]) / dx + (wrk2[i] - wrk2[ix + yminus*nx]) / dx);
+
+		//Update fluxes although Im not sure if there is a point to do it since Qx and Qy are not used elsewhere 
+		qx[i] = qx[i] + wrk1[i];
+		qy[i] = qy[i] + wrk2[i];
+	}
 }

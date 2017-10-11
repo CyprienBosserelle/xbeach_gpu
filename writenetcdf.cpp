@@ -1416,14 +1416,14 @@ void readSWANSPEC(XBGPUParam Param, std::vector<Wavebndparam> wavebnd, int step,
 		freq = (double *)malloc(ny*sizeof(double));
 		for (int i = 0; i < nx; i++)
 		{
-			dir[i] = (1.5*pi - Param.grdalpha) - xcoord[i] * pi / 180;
+			dir[i] = (1.5*pi - Param.grdalpha) - xcoord[i] * pi / 180.0;
 			for (int j = 0; j < ny; j++)
 			{
 				if (i == 0)
 				{
 					freq[j] = ycoord[j];
 				}
-				Spec[i + j*nx] = zz[j + i*ny]*180/pi; // convert to m2/Hz/rad
+				Spec[i + j*nx] = zz[j + i*ny]*180.0/pi; // convert to m2/Hz/rad
 
 				//
 			}
@@ -1446,10 +1446,10 @@ void readSWANSPEC(XBGPUParam Param, std::vector<Wavebndparam> wavebnd, int step,
 			{
 				if (i == 0)
 				{
-					dir[j] = (1.5*pi - Param.grdalpha) - ycoord[j] * pi / 180;
+					dir[j] = (1.5*pi - Param.grdalpha) - ycoord[j] * pi / 180.0;
 					//(1.5*pi - XParam.grdalpha) - std::stod(lineelements[3])*pi / 180;
 				}
-				Spec[i + j*nx] = zz[i + j*nx] * 180 / pi;
+				Spec[i + j*nx] = zz[i + j*nx] * 180.0 / pi;
 
 				//
 			}

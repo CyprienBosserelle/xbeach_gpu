@@ -1848,13 +1848,13 @@ __global__ void radstress(int nx, int ny, int ntheta, DECNUM dx, DECNUM dtheta, 
 
 
 
-	__shared__ DECNUM n[16][16];
+	//__shared__ DECNUM n[16][16];
 
 	if (ix < nx && iy < ny)
 	{
 
-		n[tx][ty] = cg[i] / c[i];
-		__syncthreads;
+		DECNUM n = cg[i] / c[i];
+		
 		DECNUM sume = 0.0f;
 		DECNUM tmpxx = 0.0f;
 		DECNUM tmpxy = 0.0f;
@@ -1876,9 +1876,9 @@ __global__ void radstress(int nx, int ny, int ntheta, DECNUM dx, DECNUM dtheta, 
 		}
 
 
-		Sxx[i] = (n[tx][ty] * tmpxx - 0.5f*sume)*dtheta + rolxx*dtheta;
-		Syy[i] = (n[tx][ty] * tmpyy - 0.5f*sume)*dtheta + rolyy*dtheta;
-		Sxy[i] = n[tx][ty] * tmpxy*dtheta + rolxy*dtheta;
+		Sxx[i] = (n * tmpxx - 0.5f*sume)*dtheta + rolxx*dtheta;
+		Syy[i] = (n * tmpyy - 0.5f*sume)*dtheta + rolyy*dtheta;
+		Sxy[i] = n * tmpxy*dtheta + rolxy*dtheta;
 	}
 }
 
@@ -1943,9 +1943,9 @@ __global__ void wavforce(int nx, int ny, int ntheta, DECNUM dx, DECNUM dtheta, D
 
 		//if(hh[i]>hmin)
 		//{
-		FFx[tx][ty] = -1 * (Sxxr[tx][ty] - Sxxi[tx][ty]) / dx - 0.5f*(Sxyt[tx][ty] + Sxytr[tx][ty] - Sxyb[tx][ty] - Sxybr[tx][ty]) / (2.0f*dx);
+		FFx[tx][ty] = -1.0f * (Sxxr[tx][ty] - Sxxi[tx][ty]) / dx - (Sxyt[tx][ty] + Sxytr[tx][ty] - Sxyb[tx][ty] - Sxybr[tx][ty]) / (4.0f*dx);
 
-		FFy[tx][ty] = -1 * (Syyt[tx][ty] - Syyi[tx][ty]) / dx - 0.5f*(Sxyr[tx][ty] + Sxytr[tx][ty] - Sxyl[tx][ty] - Sxytl[tx][ty]) / (2.0f*dx);
+		FFy[tx][ty] = -1.0f * (Syyt[tx][ty] - Syyi[tx][ty]) / dx - (Sxyr[tx][ty] + Sxytr[tx][ty] - Sxyl[tx][ty] - Sxytl[tx][ty]) / (4.0f*dx);
 		//}
 
 
@@ -1969,7 +1969,7 @@ __global__ void breakerdelay(int nx, int ny, int ntheta, DECNUM dtheta, DECNUM g
 		DECNUM delta = 0.0f;
 		DECNUM Hi = H[i];
 		DECNUM ki = k[i];
-		DECNUM hhi = max(hh[i], hmin);
+		DECNUM hhi = max(hh[i], Hi*delta);
 		DECNUM ci = max(c[i], sqrt(hmin*g));
 		DECNUM R;
 		DECNUM ustw, uwf, vwf, ustr, usd, uorb;
