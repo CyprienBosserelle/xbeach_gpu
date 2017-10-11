@@ -1324,24 +1324,24 @@ void flowstep(XBGPUParam Param)
 	//
 	// Add discharge from boundaries ??
 	// WARNING THIS IS JUST A TEST
-	//discharge_bnd_h << <gridDim, blockDim, 0 >> > (nx, ny, Param.dx, Param.eps, -500.0, 241, 64, 241, 66, hu_g, hv_g, qx_g, qy_g, uu_g, vv_g);
+	
+	//discharge_bnd_h << <gridDim, blockDim, 0 >> > (nx, ny, Param.dx, Param.eps, -500.0, 1023, 865, 1023, 890, hu_g, hv_g, qx_g, qy_g, uu_g, vv_g);
 	//CUDA_CHECK(cudaDeviceSynchronize());
-	discharge_bnd_h << <gridDim, blockDim, 0 >> > (nx, ny, Param.dx, Param.eps, -500.0, 1023, 865, 1023, 890, hu_g, hv_g, qx_g, qy_g, uu_g, vv_g);
-	CUDA_CHECK(cudaDeviceSynchronize());
+
 	//
 	// Add "Point" discharge within the grid
 	//
 	//Nadi test Malakua river
-	discharge_bnd_v << <gridDim, blockDim, 0 >> > (nx, ny, Param.dx, Param.eps, Param.dt, 50, 570, 283, 575, 286, zs_g, hh_g);
-	CUDA_CHECK(cudaDeviceSynchronize());
+	//discharge_bnd_v << <gridDim, blockDim, 0 >> > (nx, ny, Param.dx, Param.eps, Param.dt, 50, 570, 283, 575, 286, zs_g, hh_g);
+	//CUDA_CHECK(cudaDeviceSynchronize());
 
 	//Nadi test Masi river
-	discharge_bnd_v << <gridDim, blockDim, 0 >> > (nx, ny, Param.dx, Param.eps, Param.dt, 10, 765, 297, 780, 302, zs_g, hh_g);
-	CUDA_CHECK(cudaDeviceSynchronize());
+	//discharge_bnd_v << <gridDim, blockDim, 0 >> > (nx, ny, Param.dx, Param.eps, Param.dt, 10, 765, 297, 780, 302, zs_g, hh_g);
+	//CUDA_CHECK(cudaDeviceSynchronize());
 
 	//Nadi test Nawaka river
-	discharge_bnd_v << <gridDim, blockDim, 0 >> > (nx, ny, Param.dx, Param.eps, Param.dt, 10, 936, 313, 945, 319, zs_g, hh_g);
-	CUDA_CHECK(cudaDeviceSynchronize());
+	//discharge_bnd_v << <gridDim, blockDim, 0 >> > (nx, ny, Param.dx, Param.eps, Param.dt, 10, 936, 313, 945, 319, zs_g, hh_g);
+	//CUDA_CHECK(cudaDeviceSynchronize());
 
 
 
