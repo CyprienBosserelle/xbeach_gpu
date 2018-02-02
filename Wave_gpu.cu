@@ -646,7 +646,7 @@ void mainloopGPU(XBGPUParam Param, std::vector<SLBnd> slbnd, std::vector<WindBnd
 			exit(1);
 		}
 
-		
+		//printf("swave=%d\n", Param.swave);
 		
 		if ((Param.swave == 1 ) && totaltime>0.0)
 		{
@@ -711,7 +711,7 @@ void mainloopGPU(XBGPUParam Param, std::vector<SLBnd> slbnd, std::vector<WindBnd
 
 		if (Param.swave == 1 )
 		{
-
+			//printf("Here?");
 			wavestep(Param); // Calculate the wave action balance for this step
 		}
 
@@ -2443,21 +2443,30 @@ int main(int argc, char **argv)
 		CUDA_CHECK(cudaMemcpy(D_g, uu, nx*ny*sizeof(DECNUM), cudaMemcpyHostToDevice));
 
 
-		// Below.. ee and rr may have not been allocated yet is swave==1
-		// Memset may be better anyway
+		// Below.. ee and rr may have not been allocated yet is swave==0
+		// Memset may be better anyway Needs an if statement here to avoid conflic between when swave is set and not set 
 		//
 
+		if (XParam.swave == 1)
+		{
+			CUDA_CHECK(cudaMemcpy(ee_g, ee, nx*ny*XParam.ntheta * sizeof(DECNUM), cudaMemcpyHostToDevice));
+			CUDA_CHECK(cudaMemcpy(rr_g, rr, nx*ny*XParam.ntheta * sizeof(DECNUM), cudaMemcpyHostToDevice));
+			CUDA_CHECK(cudaMemcpy(cxsth_g, cxsth, XParam.ntheta * sizeof(DECNUM), cudaMemcpyHostToDevice));
+			CUDA_CHECK(cudaMemcpy(sxnth_g, sxnth, XParam.ntheta * sizeof(DECNUM), cudaMemcpyHostToDevice));
+			CUDA_CHECK(cudaMemcpy(theta_g, theta, XParam.ntheta * sizeof(DECNUM), cudaMemcpyHostToDevice));
 
-		CUDA_CHECK(cudaMemset(ee_g, 0.0f, nx*ny*XParam.ntheta * sizeof(DECNUM)));
-		CUDA_CHECK(cudaMemset(rr_g, 0.0f, nx*ny*XParam.ntheta * sizeof(DECNUM)));
-		CUDA_CHECK(cudaMemset(cxsth_g, 0.0f,XParam.ntheta * sizeof(DECNUM)));
-		CUDA_CHECK(cudaMemset(sxnth_g, 0.0f, XParam.ntheta * sizeof(DECNUM)));
-		CUDA_CHECK(cudaMemset(theta_g, 0.0f, XParam.ntheta * sizeof(DECNUM)));
-		//CUDA_CHECK(cudaMemcpy(ee_g, ee, nx*ny*XParam.ntheta*sizeof(DECNUM), cudaMemcpyHostToDevice));
-		//CUDA_CHECK(cudaMemcpy(rr_g, rr, nx*ny*XParam.ntheta*sizeof(DECNUM), cudaMemcpyHostToDevice));
-		//CUDA_CHECK(cudaMemcpy(cxsth_g, cxsth, XParam.ntheta*sizeof(DECNUM), cudaMemcpyHostToDevice));
-		//CUDA_CHECK(cudaMemcpy(sxnth_g, sxnth, XParam.ntheta*sizeof(DECNUM), cudaMemcpyHostToDevice));
-		//CUDA_CHECK(cudaMemcpy(theta_g, theta, XParam.ntheta*sizeof(DECNUM), cudaMemcpyHostToDevice));
+		}
+		else
+		{
+			CUDA_CHECK(cudaMemset(ee_g, 0.0f, nx*ny*XParam.ntheta * sizeof(DECNUM)));
+			CUDA_CHECK(cudaMemset(rr_g, 0.0f, nx*ny*XParam.ntheta * sizeof(DECNUM)));
+			CUDA_CHECK(cudaMemset(cxsth_g, 0.0f,XParam.ntheta * sizeof(DECNUM)));
+			CUDA_CHECK(cudaMemset(sxnth_g, 0.0f, XParam.ntheta * sizeof(DECNUM)));
+			CUDA_CHECK(cudaMemset(theta_g, 0.0f, XParam.ntheta * sizeof(DECNUM)));
+		
+		}
+		
+		
 		CUDA_CHECK(cudaMemcpy(thetamean_g, uu, nx*ny*sizeof(DECNUM), cudaMemcpyHostToDevice));
 		CUDA_CHECK(cudaMemcpy(R_g, uu, nx*ny*sizeof(DECNUM), cudaMemcpyHostToDevice));
 		CUDA_CHECK(cudaMemcpy(DR_g, uu, nx*ny*sizeof(DECNUM), cudaMemcpyHostToDevice));
