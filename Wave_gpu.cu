@@ -721,7 +721,7 @@ void mainloopGPU(XBGPUParam Param, std::vector<SLBnd> slbnd, std::vector<WindBnd
 		{
 			flowstep(Param);// solve the shallow water and continuity for this step
 		}
-		if (Param.morphology == 1 && totaltime >= Param.sedstart)
+		if (Param.sedtrans == 1 && totaltime >= Param.sedstart)
 		{
 			//Sediment step
 			sedimentstep(Param);//solve the sediment dispersion, and morphology
