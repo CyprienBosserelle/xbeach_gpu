@@ -1020,7 +1020,7 @@ void mainloopCPU(XBGPUParam Param, std::vector<SLBnd> slbnd, std::vector<WindBnd
 void flowbnd(XBGPUParam Param, std::vector<SLBnd> slbnd, std::vector<WindBnd> wndbnd, std::vector<Wavebndparam> wavebndvec)
 {
 	
-	double zsbndi;
+	double zsbndi, zsbndn;
 	int stepinbnd;
 	int nx, ny;
 	
@@ -1039,8 +1039,8 @@ void flowbnd(XBGPUParam Param, std::vector<SLBnd> slbnd, std::vector<WindBnd> wn
 		SLstepinbnd++;
 	}
 
-	zsbndi = interptime(slbnd[SLstepinbnd].wlev, slbnd[SLstepinbnd - 1].wlev, slbnd[SLstepinbnd].time - slbnd[SLstepinbnd - 1].time, totaltime - slbnd[SLstepinbnd - 1].time);
-
+	zsbndi = interptime(slbnd[SLstepinbnd].wlev0, slbnd[SLstepinbnd - 1].wlev0, slbnd[SLstepinbnd].time - slbnd[SLstepinbnd - 1].time, totaltime - slbnd[SLstepinbnd - 1].time);
+	zsbndn = interptime(slbnd[SLstepinbnd].wlev1, slbnd[SLstepinbnd - 1].wlev1, slbnd[SLstepinbnd].time - slbnd[SLstepinbnd - 1].time, totaltime - slbnd[SLstepinbnd - 1].time);
 
 	if (Param.wavebndtype == 1)
 	{
@@ -1064,7 +1064,7 @@ void flowbnd(XBGPUParam Param, std::vector<SLBnd> slbnd, std::vector<WindBnd> wn
 			{
 				// FLow abs_2d should be here not at the flow step		
 				// Set weakly reflective offshore boundary
-				ubnd1D << <gridDim, blockDim, 0 >> > (nx, ny, Param.dx, Param.dt, Param.g, Param.rho, (float)totaltime, timesincelast, timenext, zsbndi, Trep, qbndold_g, qbndnew_g, zs_g, uu_g, vv_g, vu_g, umeanbnd_g, vmeanbnd_g, zb_g, cg_g, hum_g, cfm_g, Fx_g, hh_g);
+				ubnd1D << <gridDim, blockDim, 0 >> > (nx, ny, Param.dx, Param.dt, Param.g, Param.rho, (float)totaltime, timesincelast, timenext, zsbndi,zsbndn, Trep, qbndold_g, qbndnew_g, zs_g, uu_g, vv_g, vu_g, umeanbnd_g, vmeanbnd_g, zb_g, cg_g, hum_g, cfm_g, Fx_g, hh_g);
 				//CUT_CHECK_ERROR("ubnd execution failed\n");
 				CUDA_CHECK(cudaDeviceSynchronize());
 			}
@@ -1072,7 +1072,7 @@ void flowbnd(XBGPUParam Param, std::vector<SLBnd> slbnd, std::vector<WindBnd> wn
 			{
 				//ubndsimple << <gridDim, blockDim, 0 >> >(nx, ny, Param.g, zsbndi, zb_g, zs_g, hh_g, uu_g, vv_g);
 
-				ubnd1Dnowaves << <gridDim, blockDim, 0 >> > (nx, ny, Param.dx, Param.dt, Param.g, Param.rho, (float)totaltime, timesincelast, timenext, zsbndi, zs_g, uu_g, vv_g, vu_g, umeanbnd_g, vmeanbnd_g, zb_g, hum_g, cfm_g, hh_g);
+				ubnd1Dnowaves << <gridDim, blockDim, 0 >> > (nx, ny, Param.dx, Param.dt, Param.g, Param.rho, (float)totaltime, timesincelast, timenext, zsbndi, zsbndn, zs_g, uu_g, vv_g, vu_g, umeanbnd_g, vmeanbnd_g, zb_g, hum_g, cfm_g, hh_g);
 				CUDA_CHECK(cudaDeviceSynchronize());
 			}
 			//uuvvzslatbnd << <gridDim, blockDim, 0 >> >(nx, ny, uu_g, vv_g, zs_g);
@@ -1806,11 +1806,13 @@ int main(int argc, char **argv)
 		SLBnd slbndline;
 
 		slbndline.time = 0.0;
-		slbndline.wlev = 0.0;
+		slbndline.wlev0 = 0.0;
+		slbndline.wlev1 = 0.0;
 		slbnd.push_back(slbndline);
 
 		slbndline.time = XParam.endtime;
-		slbndline.wlev = 0.0;
+		slbndline.wlev0 = 0.0;
+		slbndline.wlev1 = 0.0;
 		slbnd.push_back(slbndline);
 	}
 	
@@ -1997,9 +1999,10 @@ int main(int argc, char **argv)
 
 			//hh[inod+(jread-1)*nx]=max(zb[inod+(jread-1)*nx]+zs[inod+(jreadzs-1)*nx],eps);
 			//zs[inod+(jread-1)*nx]=max(zs[inod+(jreadzs-1)*nx],-1*zb[inod+(jread-1)*nx]);
-
-			zs[inod + (fnod - 1)*nx] = max((float)slbnd[0].wlev, -1 * zb[inod + (fnod - 1)*nx]);
-			hh[inod + (fnod - 1)*nx] = max(zb[inod + (fnod - 1)*nx] + slbnd[0].wlev, XParam.eps);
+			//clean this shit up ...!!!
+			double zsbnd = slbnd[0].wlev0 + (slbnd[0].wlev1 - slbnd[0].wlev0)*(fnod - 1) / ny;
+			zs[inod + (fnod - 1)*nx] = max((float)zsbnd, -1 * zb[inod + (fnod - 1)*nx]);
+			hh[inod + (fnod - 1)*nx] = max(zb[inod + (fnod - 1)*nx] + zsbnd, XParam.eps);
 
 
 

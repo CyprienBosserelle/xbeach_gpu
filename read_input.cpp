@@ -279,8 +279,7 @@ std::vector<SLBnd> readWLfile(std::string WLfilename)
 		if (!line.empty())
 		{
 			//Data should be in teh format :
-			//BASIN,CY,YYYYMMDDHH,TECHNUM/MIN,TECH,TAU,LatN/S,LonE/W,VMAX,MSLP,TY,RAD,WINDCODE,RAD1,RAD2,RAD3,RAD4,RADP,RRP,MRD,GUSTS,EYE,SUBREGION,MAXSEAS,INITIALS,DIR,SPEED,STORMNAME,DEPTH,SEAS,SEASCODE,SEAS1,SEAS2,SEAS3,SEAS4,USERDEFINED,userdata
-
+			
 			//by default we expect tab delimitation
 			lineelements = split(line, '\t');
 			if (lineelements.size() < 2)
@@ -308,7 +307,12 @@ std::vector<SLBnd> readWLfile(std::string WLfilename)
 
 			
 			slbndline.time = std::stod(lineelements[0]);
-			slbndline.wlev = std::stod(lineelements[1]);
+			slbndline.wlev0 = std::stod(lineelements[1]);
+			slbndline.wlev1 = std::stod(lineelements[1]);
+			if (lineelements.size() > 2)
+			{
+				slbndline.wlev1 = std::stod(lineelements[2]);
+			}
 			
 			//slbndline = readBSHline(line);
 			slbnd.push_back(slbndline);
@@ -1041,6 +1045,15 @@ XBGPUParam readparamstr(std::string line, XBGPUParam param)
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
+		Rivernodes thisriver;
+		std::vector<std::string> nodes = split(parametervalue, ',');
+		thisriver.istart = std::stoi(nodes[0]);
+		thisriver.iend = std::stoi(nodes[1]);
+		thisriver.jstart = std::stoi(nodes[2]);
+		thisriver.jend = std::stoi(nodes[3]);
+
+		param.riversloc.push_back(thisriver);
+
 		/*std::vector<std::string> nodes = split(parametervalue, ',');
 		River thisriver;
 		thisriver.istart = std::stoi(nodes[0]);

@@ -135,8 +135,8 @@ public:
 	std::vector<std::string> outvars; //list of names of teh variables to output
 
 	//River discharge
-	//std::vector<River> rivers;
-	//std::vector<std::string> Riverfiles;
+	std::vector<Rivernodes> riversloc;
+	std::vector<std::string> Riverfiles;
 	//std::vector<Rivernodes> Riverlocs;
 
 	//Wave bnd parameters
@@ -172,7 +172,7 @@ public:
 
 class SLBnd {
 public:
-	double time, wlev;
+	double time, wlev0, wlev1;
 };
 
 
