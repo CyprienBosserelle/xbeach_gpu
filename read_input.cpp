@@ -312,6 +312,7 @@ std::vector<SLBnd> readWLfile(std::string WLfilename)
 			if (lineelements.size() > 2)
 			{
 				slbndline.wlev1 = std::stod(lineelements[2]);
+				//printf("Wlev1=%f\n ", slbndline.wlev1);
 			}
 			
 			//slbndline = readBSHline(line);

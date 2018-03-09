@@ -1042,6 +1042,9 @@ void flowbnd(XBGPUParam Param, std::vector<SLBnd> slbnd, std::vector<WindBnd> wn
 	zsbndi = interptime(slbnd[SLstepinbnd].wlev0, slbnd[SLstepinbnd - 1].wlev0, slbnd[SLstepinbnd].time - slbnd[SLstepinbnd - 1].time, totaltime - slbnd[SLstepinbnd - 1].time);
 	zsbndn = interptime(slbnd[SLstepinbnd].wlev1, slbnd[SLstepinbnd - 1].wlev1, slbnd[SLstepinbnd].time - slbnd[SLstepinbnd - 1].time, totaltime - slbnd[SLstepinbnd - 1].time);
 
+	//printf("Wlev1=%f\n ", zsbndn);
+
+
 	if (Param.wavebndtype == 1)
 	{
 		timenext = wavebndvec[WAVstepinbnd].time - wavebndvec[WAVstepinbnd - 1].time;

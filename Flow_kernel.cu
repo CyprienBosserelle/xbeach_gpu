@@ -178,7 +178,7 @@ __global__ void ubnd1D(int nx, int ny, DECNUM dx, DECNUM dt, DECNUM g, DECNUM rh
 		unsigned int yminus = mminus(iy, ny);
 		unsigned int yplus = pplus(iy, ny);
 
-		DECNUM zsbnd = zsbndi + (zsbndn - zsbndi)*(iy / ny);
+		DECNUM zsbnd = zsbndi + (zsbndn - zsbndi)*(((float)iy) / ((float)ny));
 		DECNUM ui, vi, thetai, vert;
 		
 		DECNUM ht, htr;
@@ -343,7 +343,7 @@ __global__ void ubnd1Dnowaves(int nx, int ny, DECNUM dx, DECNUM dt, DECNUM g, DE
 		unsigned int yminus = mminus(iy, ny);
 		unsigned int yplus = pplus(iy, ny);
 
-		DECNUM zsbnd = zsbndi + (zsbndn - zsbndi)*(iy / ny);
+		DECNUM zsbnd = zsbndi + (zsbndn - zsbndi)*(((float)iy) / ((float)ny));;
 		DECNUM ui, vi, thetai, vert;
 
 		DECNUM ht, htr;
