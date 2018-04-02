@@ -55,7 +55,7 @@ public:
 	int iend = -1;
 	int jstart = -1;
 	int jend = -1;
-	
+	std::string Riverfile;
 
 };
 
@@ -148,6 +148,9 @@ public:
 	double nmax = 0.8;
 	double fcutoff = 0.0; // max 40.0;
 	int nspr = 0;
+
+	//Rivers
+	int nriver = 0;  // Number of river input (source point or at the bnd)
 };
 
 
