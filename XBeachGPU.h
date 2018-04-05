@@ -104,7 +104,7 @@ public:
 	double D50=0.00038, D90=0.00053; // sand grain size in m
 	double rhosed = 2650.0; // sand density in kg/m3
 	double wws=0.0509; //// sand fall velocity (should be calculated) m/s
-	double drydzmax=1.0, wetdzmax=2.0; // max slope in avalannching model
+	double drydzmax=1.0, wetdzmax=0.3; // max slope in avalannching model
 	double maxslpchg=0.01; // max change within a step to avoid avalanching tsunami
 	double por=0.4; // sand porosity (should not be constant)
 	double morfac=1.0; // morphological factor 0 no changes in morphology 1 normal changes in morpho >1 accelerated morphological changes (beware this doesn't accelerate the bnd you have to do this manually)
