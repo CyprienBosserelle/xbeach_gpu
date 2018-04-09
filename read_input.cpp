@@ -351,9 +351,7 @@ std::vector<WindBnd> readWNDfile(std::string WNDfilename, double grdalpha)
 		// skip empty lines
 		if (!line.empty())
 		{
-			//Data should be in teh format :
-			//BASIN,CY,YYYYMMDDHH,TECHNUM/MIN,TECH,TAU,LatN/S,LonE/W,VMAX,MSLP,TY,RAD,WINDCODE,RAD1,RAD2,RAD3,RAD4,RADP,RRP,MRD,GUSTS,EYE,SUBREGION,MAXSEAS,INITIALS,DIR,SPEED,STORMNAME,DEPTH,SEAS,SEASCODE,SEAS1,SEAS2,SEAS3,SEAS4,USERDEFINED,userdata
-
+			
 			//by default we expect tab delimitation
 			lineelements = split(line, '\t');
 			if (lineelements.size() < 3)
@@ -1507,10 +1505,61 @@ std::string trim(const std::string& str, const std::string& whitespace)
 	return str.substr(strBegin, strRange);
 }
 
+void readbathyHead(std::string filename, int &nx, int &ny, double &dx, double &grdalpha)
+{
+	
 
+	std::ifstream fs(filename);
 
+	if (fs.fail()) {
+		std::cerr << filename << " bathy file (md file) could not be opened" << std::endl;
+		write_text_to_log_file("ERROR: bathy file could not be opened ");
+		exit(1);
+	}
 
-extern "C" void readbathyHead(std::string filename, int &nx, int &ny, double &dx, double &grdalpha )
+	std::string line;
+	std::vector<std::string> lineelements;
+
+	std::getline(fs, line);
+	// skip empty lines
+	if (!line.empty())
+	{
+
+		//by default we expect tab delimitation
+		lineelements = split(line, '\t');
+		if (lineelements.size() < 5)
+		{
+			// Is it space delimited?
+			lineelements.clear();
+			lineelements = split(line, ' ');
+		}
+
+		if (lineelements.size() < 5)
+		{
+			//Well it has to be comma delimited then
+			lineelements.clear();
+			lineelements = split(line, ',');
+		}
+		if (lineelements.size() < 5)
+		{
+			// Giving up now! Could not read the files
+			//issue a warning and exit
+			std::cerr << filename << "ERROR Wind bnd file format error. only " << lineelements.size() << " where 5 were expected. Exiting." << std::endl;
+			write_text_to_log_file("ERROR:  Wind bnd file (" + filename + ") format error. only " + std::to_string(lineelements.size()) + " where 3 were expected. Exiting.");
+			write_text_to_log_file(line);
+			exit(1);
+		}
+
+		nx = std::stoi(lineelements[0]);
+		ny = std::stoi(lineelements[1]);
+		dx = std::stod(lineelements[2]);
+		grdalpha = std::stod(lineelements[4]);
+	}
+
+	fs.close();
+}
+
+extern "C" void readbathyHeadOld(std::string filename, int &nx, int &ny, double &dx, double &grdalpha )
 {
 	//read input data:
 	//printf("bathy: %s\n", filename);
