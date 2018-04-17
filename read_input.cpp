@@ -275,8 +275,8 @@ std::vector<SLBnd> readWLfile(std::string WLfilename)
 	{
 		//std::cout << line << std::endl;
 
-		// skip empty lines
-		if (!line.empty())
+		// skip empty lines and lines starting with #
+		if (!line.empty() && line.substr(0, 1).compare("#") != 0)
 		{
 			//Data should be in teh format :
 			
@@ -349,7 +349,7 @@ std::vector<WindBnd> readWNDfile(std::string WNDfilename, double grdalpha)
 		//std::cout << line << std::endl;
 
 		// skip empty lines
-		if (!line.empty())
+		if (!!line.empty() && line.substr(0, 1).compare("#") != 0)
 		{
 			
 			//by default we expect tab delimitation
