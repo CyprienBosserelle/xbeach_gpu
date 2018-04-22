@@ -1329,6 +1329,8 @@ void flowstep(XBGPUParam Param)
 	// WARNING THIS IS JUST A TEST
 	//discharge_bnd_h << <gridDim, blockDim, 0 >> > (nx, ny, Param.dx, Param.eps, -500.0, 241, 64, 241, 66, hu_g, hv_g, qx_g, qy_g, uu_g, vv_g);
 	//CUDA_CHECK(cudaDeviceSynchronize());
+
+	/*
 	discharge_bnd_h << <gridDim, blockDim, 0 >> > (nx, ny, Param.dx, Param.eps, -500.0, 1023, 865, 1023, 890, hu_g, hv_g, qx_g, qy_g, uu_g, vv_g);
 	CUDA_CHECK(cudaDeviceSynchronize());
 	//
@@ -1346,7 +1348,7 @@ void flowstep(XBGPUParam Param)
 	discharge_bnd_v << <gridDim, blockDim, 0 >> > (nx, ny, Param.dx, Param.eps, Param.dt, 10, 936, 313, 945, 319, zs_g, hh_g);
 	CUDA_CHECK(cudaDeviceSynchronize());
 
-
+	*/
 
 	//
 	// Update water level using continuity eq.
