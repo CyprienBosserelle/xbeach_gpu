@@ -198,7 +198,7 @@ ALL_CCFLAGS += $(addprefix -Xcompiler ,$(EXTRA_CCFLAGS))
 
 SAMPLE_ENABLED := 1
 
-ALL_LDFLAGS := -lnetcdf
+ALL_LDFLAGS := -lnetcdf -lfftw3 -I./
 ALL_LDFLAGS += $(ALL_CCFLAGS)
 ALL_LDFLAGS += $(addprefix -Xlinker ,$(LDFLAGS))
 ALL_LDFLAGS += $(addprefix -Xlinker ,$(EXTRA_LDFLAGS))
@@ -210,8 +210,8 @@ LIBRARIES :=
 ################################################################################
 
 # Gencode arguments
-SMS ?= 20 30 35 37 50 52 60
-#SMS ?= 20 30 35
+#SMS ?= 20 30 35 37 50 52 60
+SMS ?= 20 30 35
 ifeq ($(SMS),)
 $(info >>> WARNING - no SM architectures have been specified - waiving sample <<<)
 SAMPLE_ENABLED := 0
@@ -269,8 +269,11 @@ Wave_CPU.o:wave_CPU.cpp
 	
 writenetcdf.o:writenetcdf.cpp
 	$(EXEC) $(NVCC) $(INCLUDES) $(ALL_CCFLAGS) $(GENCODE_FLAGS) -o $@ -c $<
+	
+makjonswap.o:makjonswap.cpp
+	$(EXEC) $(NVCC) $(INCLUDES) $(ALL_CCFLAGS) $(GENCODE_FLAGS) -o $@ -c $<
 
-XBGPU: Wave_gpu.o Flow_CPU.o read_input.o Sediment_CPU.o tools.o Wave_CPU.o writenetcdf.o
+XBGPU: Wave_gpu.o Flow_CPU.o read_input.o Sediment_CPU.o tools.o Wave_CPU.o writenetcdf.o makjonswap.o
 	$(EXEC) $(NVCC) $(ALL_LDFLAGS) $(GENCODE_FLAGS) -o $@ $+ $(LIBRARIES)
 	$(EXEC) mkdir -p ../../bin/$(TARGET_ARCH)/$(TARGET_OS)/$(BUILD_TYPE)
 	$(EXEC) cp $@ ../../bin/$(TARGET_ARCH)/$(TARGET_OS)/$(BUILD_TYPE)
@@ -279,7 +282,7 @@ run: build
 	$(EXEC) ./XBGPU
 
 clean:
-	rm -f XBGPU Wave_gpu.o Wave_kernel.o Wavestep.o Flow_kernel.o Sediment_kernel.o Flow_CPU.o read_input.o Sediment_CPU.o tools.o Wave_CPU.o writenetcdf.o
+	rm -f XBGPU Wave_gpu.o Wave_kernel.o Wavestep.o Flow_kernel.o Sediment_kernel.o Flow_CPU.o read_input.o Sediment_CPU.o tools.o Wave_CPU.o writenetcdf.o makjonswap.o
 	rm -rf ../../bin/$(TARGET_ARCH)/$(TARGET_OS)/$(BUILD_TYPE)/template
 
 clobber: clean
