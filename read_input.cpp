@@ -349,7 +349,7 @@ std::vector<WindBnd> readWNDfile(std::string WNDfilename, double grdalpha)
 		//std::cout << line << std::endl;
 
 		// skip empty lines
-		if (!!line.empty() && line.substr(0, 1).compare("#") != 0)
+		if (!line.empty() && line.substr(0, 1).compare("#") != 0)
 		{
 			
 			//by default we expect tab delimitation
