@@ -1545,7 +1545,7 @@ void readbathyHead(std::string filename, int &nx, int &ny, double &dx, double &g
 			// Giving up now! Could not read the files
 			//issue a warning and exit
 			std::cerr << filename << "ERROR Wind bnd file format error. only " << lineelements.size() << " where 5 were expected. Exiting." << std::endl;
-			write_text_to_log_file("ERROR:  Wind bnd file (" + filename + ") format error. only " + std::to_string(lineelements.size()) + " where 3 were expected. Exiting.");
+			write_text_to_log_file("ERROR:  Wind bnd file (" + filename + ") format error. only " + std::to_string(lineelements.size()) + " where 5 were expected. Exiting.");
 			write_text_to_log_file(line);
 			exit(1);
 		}
