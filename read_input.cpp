@@ -1398,7 +1398,7 @@ XBGPUParam checkparamsanity(XBGPUParam XParam, std::vector<SLBnd> slbnd, std::ve
 		XParam.TSnodesout.resize(minsize);
 	}
 
-	//Chaeck that if timeseries output nodes are specified that they are within nx and ny
+	//Check that if timeseries output nodes are specified that they are within nx and ny
 	if (XParam.TSnodesout.size() > 0)
 	{
 		for (int o = 0; o < XParam.TSnodesout.size(); o++)
