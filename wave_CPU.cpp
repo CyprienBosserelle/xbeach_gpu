@@ -1344,7 +1344,7 @@ extern "C" void breakerdelayCPU(int nx,int ny,int ntheta,DECNUM dtheta,DECNUM g,
 			DECNUM Hi=H[i];
 			DECNUM ki=k[i];
 			DECNUM hhi=max(hh[i],hmin);
-			DECNUM ci=max(c[i],sqrt(hmin*g));
+			DECNUM ci=max(c[i],sqrtf(hmin*g));
 			DECNUM R;
 			DECNUM ustw,uwf,vwf,ustr,usd,uorb;
 			

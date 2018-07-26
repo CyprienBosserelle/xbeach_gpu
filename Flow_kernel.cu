@@ -164,7 +164,7 @@ __global__ void ubnd(int nx, int ny, DECNUM dx, DECNUM dt, DECNUM g, DECNUM rho,
 
 
 }
-__global__ void ubnd1D(int nx, int ny, DECNUM dx, DECNUM dt, DECNUM g, DECNUM rho, DECNUM totaltime, DECNUM time, DECNUM timenext, DECNUM zsbnd, DECNUM Trep, DECNUM * qbndold, DECNUM * qbndnew, DECNUM *zs, DECNUM * uu, DECNUM * vv, DECNUM *vu, DECNUM * umean, DECNUM * vmean, DECNUM * zb, DECNUM * cg, DECNUM * hum, DECNUM * zo, DECNUM *Fx, DECNUM *hh)
+__global__ void ubnd1D(int nx, int ny, DECNUM dx, DECNUM dt, DECNUM g, DECNUM rho, DECNUM totaltime, DECNUM time, DECNUM timenext, DECNUM zsbndi, DECNUM zsbndn, DECNUM Trep, DECNUM * qbndold, DECNUM * qbndnew, DECNUM *zs, DECNUM * uu, DECNUM * vv, DECNUM *vu, DECNUM * umean, DECNUM * vmean, DECNUM * zb, DECNUM * cg, DECNUM * hum, DECNUM * zo, DECNUM *Fx, DECNUM *hh)
 {
 	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
 	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
@@ -178,6 +178,7 @@ __global__ void ubnd1D(int nx, int ny, DECNUM dx, DECNUM dt, DECNUM g, DECNUM rh
 		unsigned int yminus = mminus(iy, ny);
 		unsigned int yplus = pplus(iy, ny);
 
+		DECNUM zsbnd = zsbndi + (zsbndn - zsbndi)*(((float)iy) / ((float)ny));
 		DECNUM ui, vi, thetai, vert;
 		
 		DECNUM ht, htr;
@@ -308,7 +309,7 @@ __global__ void discharge_bnd_v(int nx, int ny, DECNUM dx, DECNUM eps, DECNUM dt
 	}
 }
 
-__global__ void ubndsimple(int nx, int ny, DECNUM g, DECNUM zsbnd, DECNUM *zb, DECNUM *zs, DECNUM *hh, DECNUM * uu, DECNUM * vv)
+__global__ void ubndsimple(int nx, int ny, DECNUM g, DECNUM zsbndi , DECNUM zsbndn, DECNUM *zb, DECNUM *zs, DECNUM *hh, DECNUM * uu, DECNUM * vv)
 {
 	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
 	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
@@ -318,6 +319,7 @@ __global__ void ubndsimple(int nx, int ny, DECNUM g, DECNUM zsbnd, DECNUM *zb, D
 	{
 		//if ((hh[i]) >= 0.0f) // should be eps not 0.0
 		{
+			DECNUM zsbnd = zsbndi + (zsbndn - zsbndi)*(iy / ny);
 			//u.n[left]=-2.0*(sqrt (G*max(h[],0.)) - sqrt(G*max(bndWL - zb[], 0.)))+u.x[];
 			//uu[i]= -2.0f*(sqrt(g*max(hh[i], 0.0f)) - sqrtf(g*max(zsbnd - (zb[i]*-1.0f), 0.0f))) + uu[i];
 			zs[i] = zsbnd;
@@ -327,7 +329,7 @@ __global__ void ubndsimple(int nx, int ny, DECNUM g, DECNUM zsbnd, DECNUM *zb, D
 	}
 }
 
-__global__ void ubnd1Dnowaves(int nx, int ny, DECNUM dx, DECNUM dt, DECNUM g, DECNUM rho, DECNUM totaltime, DECNUM time, DECNUM timenext, DECNUM zsbnd,  DECNUM *zs, DECNUM * uu, DECNUM * vv, DECNUM *vu, DECNUM * umean, DECNUM * vmean, DECNUM * zb, DECNUM * hum, DECNUM * zo,  DECNUM *hh)
+__global__ void ubnd1Dnowaves(int nx, int ny, DECNUM dx, DECNUM dt, DECNUM g, DECNUM rho, DECNUM totaltime, DECNUM time, DECNUM timenext, DECNUM zsbndi, DECNUM zsbndn, DECNUM *zs, DECNUM * uu, DECNUM * vv, DECNUM *vu, DECNUM * umean, DECNUM * vmean, DECNUM * zb, DECNUM * hum, DECNUM * zo, DECNUM *hh)
 {
 	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
 	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
@@ -341,6 +343,7 @@ __global__ void ubnd1Dnowaves(int nx, int ny, DECNUM dx, DECNUM dt, DECNUM g, DE
 		unsigned int yminus = mminus(iy, ny);
 		unsigned int yplus = pplus(iy, ny);
 
+		DECNUM zsbnd = zsbndi + (zsbndn - zsbndi)*(((float)iy) / ((float)ny));;
 		DECNUM ui, vi, thetai, vert;
 
 		DECNUM ht, htr;

@@ -55,7 +55,7 @@ public:
 	int iend = -1;
 	int jstart = -1;
 	int jend = -1;
-	
+	std::string Riverfile;
 
 };
 
@@ -104,7 +104,7 @@ public:
 	double D50=0.00038, D90=0.00053; // sand grain size in m
 	double rhosed = 2650.0; // sand density in kg/m3
 	double wws=0.0509; //// sand fall velocity (should be calculated) m/s
-	double drydzmax=1.0, wetdzmax=2.0; // max slope in avalannching model
+	double drydzmax=1.0, wetdzmax=0.3; // max slope in avalannching model
 	double maxslpchg=0.01; // max change within a step to avoid avalanching tsunami
 	double por=0.4; // sand porosity (should not be constant)
 	double morfac=1.0; // morphological factor 0 no changes in morphology 1 normal changes in morpho >1 accelerated morphological changes (beware this doesn't accelerate the bnd you have to do this manually)
@@ -135,8 +135,8 @@ public:
 	std::vector<std::string> outvars; //list of names of teh variables to output
 
 	//River discharge
-	//std::vector<River> rivers;
-	//std::vector<std::string> Riverfiles;
+	std::vector<Rivernodes> riversloc;
+	std::vector<std::string> Riverfiles;
 	//std::vector<Rivernodes> Riverlocs;
 
 	//Wave bnd parameters
@@ -148,6 +148,9 @@ public:
 	double nmax = 0.8;
 	double fcutoff = 0.0; // max 40.0;
 	int nspr = 0;
+
+	//Rivers
+	int nriver = 0;  // Number of river input (source point or at the bnd)
 };
 
 
@@ -172,7 +175,7 @@ public:
 
 class SLBnd {
 public:
-	double time, wlev;
+	double time, wlev0, wlev1;
 };
 
 

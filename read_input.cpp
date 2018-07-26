@@ -275,12 +275,11 @@ std::vector<SLBnd> readWLfile(std::string WLfilename)
 	{
 		//std::cout << line << std::endl;
 
-		// skip empty lines
-		if (!line.empty())
+		// skip empty lines and lines starting with #
+		if (!line.empty() && line.substr(0, 1).compare("#") != 0)
 		{
 			//Data should be in teh format :
-			//BASIN,CY,YYYYMMDDHH,TECHNUM/MIN,TECH,TAU,LatN/S,LonE/W,VMAX,MSLP,TY,RAD,WINDCODE,RAD1,RAD2,RAD3,RAD4,RADP,RRP,MRD,GUSTS,EYE,SUBREGION,MAXSEAS,INITIALS,DIR,SPEED,STORMNAME,DEPTH,SEAS,SEASCODE,SEAS1,SEAS2,SEAS3,SEAS4,USERDEFINED,userdata
-
+			
 			//by default we expect tab delimitation
 			lineelements = split(line, '\t');
 			if (lineelements.size() < 2)
@@ -308,7 +307,13 @@ std::vector<SLBnd> readWLfile(std::string WLfilename)
 
 			
 			slbndline.time = std::stod(lineelements[0]);
-			slbndline.wlev = std::stod(lineelements[1]);
+			slbndline.wlev0 = std::stod(lineelements[1]);
+			slbndline.wlev1 = std::stod(lineelements[1]);
+			if (lineelements.size() > 2)
+			{
+				slbndline.wlev1 = std::stod(lineelements[2]);
+				//printf("Wlev1=%f\n ", slbndline.wlev1);
+			}
 			
 			//slbndline = readBSHline(line);
 			slbnd.push_back(slbndline);
@@ -344,11 +349,9 @@ std::vector<WindBnd> readWNDfile(std::string WNDfilename, double grdalpha)
 		//std::cout << line << std::endl;
 
 		// skip empty lines
-		if (!line.empty())
+		if (!line.empty() && line.substr(0, 1).compare("#") != 0)
 		{
-			//Data should be in teh format :
-			//BASIN,CY,YYYYMMDDHH,TECHNUM/MIN,TECH,TAU,LatN/S,LonE/W,VMAX,MSLP,TY,RAD,WINDCODE,RAD1,RAD2,RAD3,RAD4,RADP,RRP,MRD,GUSTS,EYE,SUBREGION,MAXSEAS,INITIALS,DIR,SPEED,STORMNAME,DEPTH,SEAS,SEASCODE,SEAS1,SEAS2,SEAS3,SEAS4,USERDEFINED,userdata
-
+			
 			//by default we expect tab delimitation
 			lineelements = split(line, '\t');
 			if (lineelements.size() < 3)
@@ -1041,6 +1044,15 @@ XBGPUParam readparamstr(std::string line, XBGPUParam param)
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
+		Rivernodes thisriver;
+		std::vector<std::string> nodes = split(parametervalue, ',');
+		thisriver.istart = std::stoi(nodes[0]);
+		thisriver.iend = std::stoi(nodes[1]);
+		thisriver.jstart = std::stoi(nodes[2]);
+		thisriver.jend = std::stoi(nodes[3]);
+
+		param.riversloc.push_back(thisriver);
+
 		/*std::vector<std::string> nodes = split(parametervalue, ',');
 		River thisriver;
 		thisriver.istart = std::stoi(nodes[0]);
@@ -1386,7 +1398,7 @@ XBGPUParam checkparamsanity(XBGPUParam XParam, std::vector<SLBnd> slbnd, std::ve
 		XParam.TSnodesout.resize(minsize);
 	}
 
-	//Chaeck that if timeseries output nodes are specified that they are within nx and ny
+	//Check that if timeseries output nodes are specified that they are within nx and ny
 	if (XParam.TSnodesout.size() > 0)
 	{
 		for (int o = 0; o < XParam.TSnodesout.size(); o++)
@@ -1493,10 +1505,61 @@ std::string trim(const std::string& str, const std::string& whitespace)
 	return str.substr(strBegin, strRange);
 }
 
+void readbathyHead(std::string filename, int &nx, int &ny, double &dx, double &grdalpha)
+{
+	
 
+	std::ifstream fs(filename);
 
+	if (fs.fail()) {
+		std::cerr << filename << " bathy file (md file) could not be opened" << std::endl;
+		write_text_to_log_file("ERROR: bathy file could not be opened ");
+		exit(1);
+	}
 
-extern "C" void readbathyHead(std::string filename, int &nx, int &ny, double &dx, double &grdalpha )
+	std::string line;
+	std::vector<std::string> lineelements;
+
+	std::getline(fs, line);
+	// skip empty lines
+	if (!line.empty())
+	{
+
+		//by default we expect tab delimitation
+		lineelements = split(line, '\t');
+		if (lineelements.size() < 5)
+		{
+			// Is it space delimited?
+			lineelements.clear();
+			lineelements = split(line, ' ');
+		}
+
+		if (lineelements.size() < 5)
+		{
+			//Well it has to be comma delimited then
+			lineelements.clear();
+			lineelements = split(line, ',');
+		}
+		if (lineelements.size() < 5)
+		{
+			// Giving up now! Could not read the files
+			//issue a warning and exit
+			std::cerr << filename << "ERROR Wind bnd file format error. only " << lineelements.size() << " where 5 were expected. Exiting." << std::endl;
+			write_text_to_log_file("ERROR:  Wind bnd file (" + filename + ") format error. only " + std::to_string(lineelements.size()) + " where 5 were expected. Exiting.");
+			write_text_to_log_file(line);
+			exit(1);
+		}
+
+		nx = std::stoi(lineelements[0]);
+		ny = std::stoi(lineelements[1]);
+		dx = std::stod(lineelements[2]);
+		grdalpha = std::stod(lineelements[4]);
+	}
+
+	fs.close();
+}
+
+extern "C" void readbathyHeadOld(std::string filename, int &nx, int &ny, double &dx, double &grdalpha )
 {
 	//read input data:
 	//printf("bathy: %s\n", filename);
