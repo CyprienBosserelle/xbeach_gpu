@@ -781,6 +781,110 @@ __global__ void xadvecupwind2(int nx, int ny, int ntheta, DECNUM dtheta, DECNUM 
 
 }
 
+__global__ void xadvecupwind2SD(int nx, int ny, int ntheta, DECNUM dtheta, DECNUM dx, DECNUM dt,DECNUM * thetamean, DECNUM * wci, DECNUM *ee, DECNUM *cg, DECNUM *cxsth, DECNUM *uu, DECNUM * xadvec)
+{
+	//Same as xadvecupwind2 but using single dir formulation which is much faster
+	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
+	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
+	unsigned int i = ix + iy*nx;
+	int tx = threadIdx.x;
+	int ty = threadIdx.y;
+
+	DECNUM dxplus_i = 1.0f / dx;
+	DECNUM dxcent_i = 1.0f / (2 * dx);
+	DECNUM xxadvec;
+	DECNUM costhet;
+	DECNUM thetmi;
+	DECNUM arrinx, arrminx, arrmaxx;
+	DECNUM cgx, cgxmin;
+	__shared__ DECNUM ccg[16][16];
+	__shared__ DECNUM ccgxmin[16][16];
+	__shared__ DECNUM ccgxmax[16][16];
+	__shared__ DECNUM uui[16][16];
+
+	__shared__ DECNUM uuixmin[16][16];
+	__shared__ DECNUM uuixmax[16][16];
+
+
+	if (ix < nx && iy < ny)
+	{
+		unsigned int xminus = mminus(ix, nx);//max(ix-1,0);
+		unsigned int xplus = pplus(ix, nx);//min(ix+1,nx-1);
+		unsigned int xplus2 = pplus2(ix, nx);//min(ix+1,nx-1);
+		unsigned int xminus2 = mminus2(ix, nx);//max(ix-1,0);
+		unsigned int yminus = mminus(iy, ny);//max(iy-1,0);
+		unsigned int yplus = pplus(iy, ny);//min(iy+1,ny-1);
+
+
+		ccg[tx][ty] = cg[i];
+		ccgxmin[tx][ty] = cg[xminus + iy*nx];
+		ccgxmax[tx][ty] = cg[xplus + iy*nx];
+
+
+		uui[tx][ty] = uu[i] * wci[i];
+		uuixmin[tx][ty] = uu[xminus + iy*nx] * wci[i];
+		uuixmax[tx][ty] = uu[xplus + iy*nx] * wci[i];
+
+		__syncthreads();
+
+		//thetmi = thetamean[i];
+
+		costhet = cos(thetamean[i]);
+		cgx = 0.5f*(ccg[tx][ty] * costhet + uui[tx][ty] + ccgxmax[tx][ty] * costhet + uuixmax[tx][ty]);
+		cgxmin = 0.5f*(ccg[tx][ty] * costhet + uui[tx][ty] + ccgxmin[tx][ty] * costhet + uuixmin[tx][ty]);
+
+		for (int itheta = 0; itheta < ntheta; itheta++)
+		{
+			
+
+			
+			xxadvec = 0;
+
+
+
+			if (cgx > 0.0f)
+			{
+				arrinx = (1.5f*ee[i + itheta*nx*ny] - 0.5f*ee[xminus + iy*nx + itheta*nx*ny]);
+				if (arrinx < 0.0f)
+				{
+					arrinx = ee[i + itheta*nx*ny];
+				}
+				arrinx = arrinx*cgx;
+			}
+			else
+			{
+				arrinx = 1.5f*ee[xplus + iy*nx + itheta*nx*ny] - 0.5f*ee[xplus2 + iy*nx + itheta*nx*ny];
+				if (arrinx < 0.0f)
+				{
+					arrinx = ee[xplus + iy*nx + itheta*nx*ny];
+				}
+				arrinx = arrinx*cgx;
+			}
+			if (cgxmin > 0.0f)
+			{
+				arrminx = 1.5f*ee[xminus + iy*nx + itheta*nx*ny] - 0.5f*ee[xminus2 + iy*nx + itheta*nx*ny];
+				if (arrminx < 0.0f)
+				{
+					arrminx = ee[xminus + iy*nx + itheta*nx*ny];
+				}
+				arrminx = arrminx*cgxmin;
+			}
+			else
+			{
+				arrminx = 1.5f*ee[i + itheta*nx*ny] - 0.5f*ee[xplus + iy*nx + itheta*nx*ny];
+				if (arrminx < 0.0f)
+				{
+					arrminx = ee[i + itheta*nx*ny];
+				}
+				arrminx = arrminx*cgxmin;
+			}
+
+			xxadvec = (arrinx - arrminx)*dxplus_i;
+			xadvec[i + itheta*nx*ny] = xxadvec;
+		}
+	}
+
+}
 
 
 __global__ void yadvecupwind(int nx, int ny, int ntheta, DECNUM dtheta, DECNUM dx, DECNUM dt, DECNUM * wci, DECNUM *ee, DECNUM *cg, DECNUM *sxnth, DECNUM *vv, DECNUM * yadvec){
@@ -911,6 +1015,107 @@ __global__ void yadvecupwind2(int nx, int ny, int ntheta, DECNUM dtheta, DECNUM 
 			yyadvec = 0;
 			cgy = 0.5f*(ccg[tx][ty] * sinthet + vvi[tx][ty] + ccgymax[tx][ty] * sinthet + vviymax[tx][ty]);
 			cgymin = 0.5f*(ccg[tx][ty] * sinthet + vvi[tx][ty] + ccgymin[tx][ty] * sinthet + vviymin[tx][ty]);
+
+
+			if (cgy > 0.0f)
+			{
+				arriny = 1.5f*ee[i + itheta*nx*ny] - 0.5f*ee[ix + yminus*nx + itheta*nx*ny];
+				if (arriny < 0.0f)
+				{
+					arriny = ee[i + itheta*nx*ny];
+				}
+				arriny = arriny*cgy;
+			}
+			else
+			{
+				arriny = 1.5f*ee[ix + yplus*nx + itheta*nx*ny] - 0.5f*ee[ix + yplus2*nx + itheta*nx*ny];
+				if (arriny < 0.0f)
+				{
+					arriny = ee[ix + yplus*nx + itheta*nx*ny];
+				}
+				arriny = arriny*cgy;
+			}
+			if (cgymin > 0.0f)
+			{
+				arrminy = 1.5f*ee[ix + yminus*nx + itheta*nx*ny] - 0.5f*ee[ix + yminus2*nx + itheta*nx*ny];
+				if (arrminy < 0.0f)
+				{
+					arrminy = ee[ix + yminus*nx + itheta*nx*ny];
+				}
+				arrminy = arrminy*cgymin;
+			}
+			else
+			{
+				arrminy = 1.5f*ee[i + itheta*nx*ny] - 0.5f*ee[ix + yplus*nx + itheta*nx*ny];
+				if (arrminy < 0.0f)
+				{
+					arrminy = ee[i + itheta*nx*ny];
+				}
+				arrminy = arrminy*cgymin;
+			}
+			yyadvec = (arriny - arrminy)*dxplus_i;
+			yadvec[i + itheta*nx*ny] = yyadvec;
+		}
+	}
+
+
+}
+
+__global__ void yadvecupwind2SD(int nx, int ny, int ntheta, DECNUM dtheta, DECNUM dx, DECNUM dt, DECNUM * thetamean, DECNUM * wci, DECNUM *ee, DECNUM *cg, DECNUM *sxnth, DECNUM *vv, DECNUM * yadvec)
+{
+
+	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
+	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
+	unsigned int i = ix + iy*nx;
+	int tx = threadIdx.x;
+	int ty = threadIdx.y;
+
+	DECNUM dxplus_i = 1.0f / dx;
+	DECNUM dxcent_i = 1.0f / (2.0f*dx);
+	DECNUM yyadvec;
+	DECNUM sinthet;
+	DECNUM  arriny, arrminy, arrmaxy;
+	DECNUM cgy, cgymin;
+	__shared__ DECNUM ccg[16][16];
+	__shared__ DECNUM ccgymin[16][16];
+	__shared__ DECNUM ccgymax[16][16];
+
+	__shared__ DECNUM vvi[16][16];
+	__shared__ DECNUM vviymin[16][16];
+	__shared__ DECNUM vviymax[16][16];
+
+
+	if (ix < nx && iy < ny)
+	{
+
+		unsigned int xminus = mminus(ix, nx);
+		unsigned int xplus = pplus(ix, nx);
+		unsigned int yminus = mminus(iy, ny);
+		unsigned int yplus = pplus(iy, ny);
+		unsigned int yminus2 = mminus2(iy, ny);
+		unsigned int yplus2 = pplus2(iy, ny);
+
+
+
+		ccg[tx][ty] = cg[i];
+		ccgymin[tx][ty] = cg[ix + (yminus)*nx];
+		ccgymax[tx][ty] = cg[ix + (yplus)*nx];
+
+		vvi[tx][ty] = wci[i] * vv[i];
+		vviymin[tx][ty] = wci[i] * vv[ix + (yminus)*nx];
+		vviymax[tx][ty] = wci[i] * vv[ix + (yplus)*nx];
+		__syncthreads();
+
+		sinthet = sinf(thetamean[i]);
+		cgy = 0.5f*(ccg[tx][ty] * sinthet + vvi[tx][ty] + ccgymax[tx][ty] * sinthet + vviymax[tx][ty]);
+		cgymin = 0.5f*(ccg[tx][ty] * sinthet + vvi[tx][ty] + ccgymin[tx][ty] * sinthet + vviymin[tx][ty]);
+
+		for (int itheta = 0; itheta < ntheta; itheta++)
+		{
+
+			
+			yyadvec = 0;
+			
 
 
 			if (cgy > 0.0f)
@@ -1835,6 +2040,34 @@ __global__ void meandir(int nx, int ny, int ntheta, DECNUM rho, DECNUM g, DECNUM
 		E[i] = sume*dtheta;
 
 		H[i] = sqrtf(sume*dtheta / (rho*g / 8));//sqrt(E[i]/(1/8*rho*g));
+	}
+}
+
+__global__ void meanSingledir(int nx, int ny, int ntheta, DECNUM rho, DECNUM g, DECNUM dtheta, DECNUM * cxsth, DECNUM * sxnth, DECNUM * ee, DECNUM * thet, DECNUM * thetamean, DECNUM * E, DECNUM * H)
+{
+	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
+	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
+	unsigned int i = ix + iy*nx;
+
+
+	if (ix < nx && iy < ny)
+	{
+		DECNUM sumethet = 0;
+		DECNUM ttm = 0;
+		DECNUM sume = 0;
+		for (int itheta = 0; itheta < ntheta; itheta++)
+		{
+			sume = sume + ee[i + itheta*nx*ny];
+			sumethet = sumethet + ee[i + itheta*nx*ny] * thet[itheta];
+		}
+		sume = max(sume, 0.00001f);
+		__syncthreads;
+		ttm = (sumethet / ntheta) / (sume / ntheta);
+		thetamean[i] = ttm;
+		E[i] = sume*dtheta;
+
+		H[i] = sqrtf(sume*dtheta / (rho*g / 8));//sqrt(E[i]/(1/8*rho*g));
+				
 	}
 }
 

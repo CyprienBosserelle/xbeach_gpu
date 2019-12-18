@@ -1001,11 +1001,13 @@ void wavestep(XBGPUParam Param)
 
 	if (Param.roller == 1)
 	{
-		xadvecupwind2 << <gridDim, blockDim, 0 >> >(nx, ny, ntheta, Param.dtheta, Param.dx, dt, wci_g, rr_g, c_g, cxsth_g, uu_g, xadvec_g);
+		//xadvecupwind2 << <gridDim, blockDim, 0 >> >(nx, ny, ntheta, Param.dtheta, Param.dx, dt, wci_g, rr_g, c_g, cxsth_g, uu_g, xadvec_g);
+		xadvecupwind2SD << <gridDim, blockDim, 0 >> >(nx, ny, ntheta, Param.dtheta, Param.dx, dt, thetamean_g, wci_g, rr_g, c_g, cxsth_g, uu_g, xadvec_g);
 		//CUT_CHECK_ERROR("eulerupwind xadvec execution failed\n");
 		CUDA_CHECK(cudaThreadSynchronize());
 
-		yadvecupwind2 << <gridDim, blockDim, 0 >> >(nx, ny, ntheta, Param.dtheta, Param.dx, dt, wci_g, rr_g, c_g, sxnth_g, vv_g, yadvec_g);
+		//yadvecupwind2 << <gridDim, blockDim, 0 >> >(nx, ny, ntheta, Param.dtheta, Param.dx, dt, wci_g, rr_g, c_g, sxnth_g, vv_g, yadvec_g);
+		yadvecupwind2SD << <gridDim, blockDim, 0 >> >(nx, ny, ntheta, Param.dtheta, Param.dx, dt, thetamean_g, wci_g, rr_g, c_g, sxnth_g, vv_g, yadvec_g);
 		//CUT_CHECK_ERROR("eulerupwind yadvec execution failed\n");
 		CUDA_CHECK(cudaThreadSynchronize());
 
