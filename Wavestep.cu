@@ -10,7 +10,7 @@ void CUDA_CHECK(cudaError CUDerr)
 		write_text_to_log_file("Cuda error in file " + std::string(__FILE__) + " in line " + std::to_string(__LINE__) + " " + std::string(cudaGetErrorString(CUDerr)));
 
 		fprintf(stderr, "Cuda error in file '%s' in line %i : %s.\n", __FILE__, __LINE__, cudaGetErrorString(CUDerr));
-		
+
 		write_text_to_log_file("Cuda error in file " + std::string(__FILE__) + " in line " + std::to_string(__LINE__) + " " + std::string(cudaGetErrorString(CUDerr)));
 		exit(EXIT_FAILURE);
 
@@ -29,7 +29,7 @@ XBGPUParam waveinitGPU(XBGPUParam Param, std::vector<Wavebndparam> wavebnd)
 	ny = Param.ny;
 
 
-	
+
 	if (Param.dtheta > 0.0)
 	{
 		Param.ntheta = round((Param.thetamax - Param.thetamin) / Param.dtheta);
@@ -43,7 +43,7 @@ XBGPUParam waveinitGPU(XBGPUParam Param, std::vector<Wavebndparam> wavebnd)
 		Param.dtheta = (Param.thetamax - Param.thetamin) / Param.ntheta;
 	}
 
-	
+
 	ntheta = Param.ntheta;
 	dtheta = Param.dtheta;
 
@@ -60,7 +60,7 @@ XBGPUParam waveinitGPU(XBGPUParam Param, std::vector<Wavebndparam> wavebnd)
 	{
 		nwavbnd = ceil(Param.rtlength / Param.dtbc)+1; // +1  needed here
 	}
-		
+
 	theta = (DECNUM *)malloc(ntheta*sizeof(DECNUM));
 
 	Stfile = (double *)malloc(ntheta*ny*nwavbnd*sizeof(double));
@@ -122,7 +122,7 @@ XBGPUParam waveinitGPU(XBGPUParam Param, std::vector<Wavebndparam> wavebnd)
 	{
 		//readXbbndstep(nx, ny, ntheta, Param.wavebndfile.c_str(), 1, Trepold, qfile, Stfile);
 		readXbbndstep(Param, wavebnd, 0, Trep, qfile, Stfile);
-				
+
 	}
 	if (Param.wavebndtype == 3)
 	{
@@ -327,7 +327,7 @@ XBGPUParam waveinitGPU(XBGPUParam Param, std::vector<Wavebndparam> wavebnd)
 
 	//Clac Stat
 
-	
+
 	for (int i = 0; i < ntheta; i++)                             //! Fill St
 	{
 		//St[i]=Stold[i];
@@ -375,7 +375,7 @@ XBGPUParam waveinitGPU(XBGPUParam Param, std::vector<Wavebndparam> wavebnd)
 	}
 
 
-	//run dispersion relation	
+	//run dispersion relation
 
 	return Param;
 
@@ -521,17 +521,17 @@ void wavebnd(XBGPUParam Param, std::vector<Wavebndparam> wavebndvec)
 
 	double difft = wavebndvec[WAVstepinbnd].time - totaltime;
 
-	
+
 	if (difft < 0.0)
 	{
 		WAVstepinbnd++;
 
-		
+
 		if (Param.wavebndtype == 2)
 		{
 			//Read new STfile and qfile XBeach style
 			readXbbndstep(Param, wavebndvec, WAVstepinbnd - 1, Trep, qfile, Stfile);
-			
+
 		}
 
 		if (Param.wavebndtype == 3)
@@ -551,7 +551,7 @@ void wavebnd(XBGPUParam Param, std::vector<Wavebndparam> wavebndvec)
 			int nfHR, ndHR;
 
 			makjonswap(Param, wavebndvec, WAVstepinbnd - 1, nfHR, ndHR, HRfreq, HRdir, HRSpec);
-			
+
 			//Then generate wave group timeseries based on that spectra
 			//void GenWGnLBW(XBGPUParam Param, int nf, int ndir, double * HRfreq, double * HRdir, double * HRSpec, float Trep, double * qfile, double * Stfile)
 			GenWGnLBW(Param, nfHR, ndHR, HRfreq, HRdir, HRSpec, Trep, qfile, Stfile);
@@ -741,7 +741,7 @@ void wavebnd(XBGPUParam Param, std::vector<Wavebndparam> wavebndvec)
 		{
 			St[ni + i*ny] = interptime(Stnew[ni + i*ny], Stold[ni + i*ny], timenext, timesincelast);
 		}
-		
+
 	}
 
 	if (Param.flow == 1)
@@ -879,13 +879,15 @@ void wavestep(XBGPUParam Param)
 	CUDA_CHECK(cudaMalloc((void **)&yadvec_g, nx*ny*ntheta*sizeof(DECNUM)));
 	CUDA_CHECK(cudaMalloc((void **)&thetaadvec_g, nx*ny*ntheta*sizeof(DECNUM)));
 
-	xadvecupwind2 << <gridDim, blockDim, 0 >> >(nx, ny, ntheta, Param.dtheta, Param.dx, dt, wci_g, ee_g, cg_g, cxsth_g, uu_g, xadvec_g);
+	//xadvecupwind2 << <gridDim, blockDim, 0 >> >(nx, ny, ntheta, Param.dtheta, Param.dx, dt, wci_g, ee_g, cg_g, cxsth_g, uu_g, xadvec_g);
+	xadvecupwind2SD << <gridDim, blockDim, 0 >> >(nx, ny, ntheta, Param.dtheta, Param.dx, dt, thetamean_g, wci_g, ee_g, cg_g, cxsth_g, uu_g, xadvec_g);
 	//CUT_CHECK_ERROR("eulerupwind xadvec execution failed\n");
 	CUDA_CHECK(cudaThreadSynchronize());
 
 
 
-	yadvecupwind2 << <gridDim, blockDim, 0 >> >(nx, ny, ntheta, Param.dtheta, Param.dx, dt, wci_g, ee_g, cg_g, sxnth_g, vv_g, yadvec_g);
+	//yadvecupwind2 << <gridDim, blockDim, 0 >> >(nx, ny, ntheta, Param.dtheta, Param.dx, dt, wci_g, ee_g, cg_g, sxnth_g, vv_g, yadvec_g);
+	yadvecupwind2SD << <gridDim, blockDim, 0 >> >(nx, ny, ntheta, Param.dtheta, Param.dx, dt, thetamean_g, wci_g, ee_g, cg_g, sxnth_g, vv_g, yadvec_g);
 	//CUT_CHECK_ERROR("eulerupwind yadvec execution failed\n");
 	CUDA_CHECK(cudaThreadSynchronize());
 
@@ -978,7 +980,7 @@ void wavestep(XBGPUParam Param)
 
 
 
-	// 
+	//
 	//  Total dissipation from breaking  and bottom friction
 	//
 
@@ -1017,7 +1019,7 @@ void wavestep(XBGPUParam Param)
 
 		//thetaadvecuw<<<gridDim, blockDim, 0>>>(nx,ny,ntheta,dtheta,eect_g,thetaadvec_g);
 		////CUT_CHECK_ERROR("eulerupwind thetaadvecuw execution failed\n");
-		//CUDA_CHECK( cudaThreadSynchronize() );	
+		//CUDA_CHECK( cudaThreadSynchronize() );
 
 		thetaadvecuw2ho << <gridDim, blockDim, 0 >> >(nx, ny, ntheta, Param.dtheta, Param.dx, dt, Param.wci, rr_g, ctheta_g, thetaadvec_g);
 		//CUT_CHECK_ERROR("eulerupwind thetaadvec execution failed\n");
@@ -1044,9 +1046,9 @@ void wavestep(XBGPUParam Param)
 	//CUDA_CHECK( cudaMemcpy(D_g, uu, nx*ny*sizeof(DECNUM ), cudaMemcpyHostToDevice) );
 
 
-	// 
+	//
 	//  Distribution of dissipation over directions and frequencies
-	//                               
+	//
 	dissipation << <gridDim, blockDim, 0 >> >(nx, ny, ntheta, Param.dtheta, Param.eps, dt, Param.g, Param.beta, wci_g, hh_g, ee_g, D_g, E_g, rr_g, c_g, cxsth_g, sxnth_g, uu_g, vv_g, DR_g, R_g);
 	//CUT_CHECK_ERROR("dissipation execution failed\n");
 	CUDA_CHECK(cudaThreadSynchronize());
@@ -1062,9 +1064,9 @@ void wavestep(XBGPUParam Param)
 
 
 
-	// 
+	//
 	//  Compute mean wave direction
-	// 
+	//
 
 	meandir << <gridDim, blockDim, 0 >> >(nx, ny, ntheta, Param.rho, Param.g, Param.dtheta, ee_g, theta_g, thetamean_g, E_g, H_g);
 	//CUT_CHECK_ERROR("meandir execution failed\n");
@@ -1095,7 +1097,7 @@ void wavestep(XBGPUParam Param)
 	//CUT_CHECK_ERROR("radstress execution failed\n");
 	CUDA_CHECK(cudaThreadSynchronize());
 
-	//	
+	//
 	// Wave forces
 	//
 	wavforce << <gridDim, blockDim, 0 >> >(nx, ny, ntheta, Param.dx, Param.dtheta, Sxx_g, Sxy_g, Syy_g, Fx_g, Fy_g, hh_g);
