@@ -992,6 +992,14 @@ XBGPUParam readparamstr(std::string line, XBGPUParam param)
 		//std::cerr << "Bathymetry file found!" << std::endl;
 	}
 
+	parameterstr = "cfmap";
+	parametervalue = findparameter(parameterstr, line);
+	if (!parametervalue.empty())
+	{
+		param.cfmap = parametervalue;
+		//std::cerr << "Bathymetry file found!" << std::endl;
+	}
+
 	parameterstr = "wavebndfile";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())

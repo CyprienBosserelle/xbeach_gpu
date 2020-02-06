@@ -114,7 +114,9 @@ public:
 
 	// File
 	std::string Bathymetryfile;// bathymetry file name
-	std::string SedThkfile; // Structure file 
+	std::string SedThkfile; // Structure file
+	std::string cfmap; // Structure file
+
 	std::string wavebndfile;// wave bnd file
 	int wavebndtype = 2; // 1 is quasistationary wave spectrum; 2 is for infrgravity and long bound waves Xbeach type
 	std::string slbnd; // tide/surge bnd file

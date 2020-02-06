@@ -2020,13 +2020,38 @@ int main(int argc, char **argv)
 	printf("...done\n");
 	write_text_to_log_file("...done");
 
+	//// read cf map file
+	
 
+	if (!XParam.cfmap.empty())
+	{
+		printf("cfmap file found\n");
+		write_text_to_log_file("cfmap file found");
+		int STnx, STny;
+		double STdx, STgrdalpha;
+
+		readbathyHead(XParam.cfmap, STnx, STny, STdx, STgrdalpha);
+		
+		if (STnx != nx || STny != ny)
+		{
+			printf("Error cfmap dimension mismatch. Model will run with constant cf.\n");
+			write_text_to_log_file("ERROR: Scfmap dimension mismatch. Model will run with constant cf.");
+		}
+		else
+		{
+			readbathy(XParam.cfmap, cfm);
+		}
+		
+		
+		
+	}
+	
 	//// read Hard layer file
 
 	if (!XParam.SedThkfile.empty())
 	{
-		printf("Hard layer file found\n");
-		write_text_to_log_file("Hard layer file found");
+		printf("Sediment thickness file found\n");
+		write_text_to_log_file("Sediment thickness file found");
 		int STnx, STny;
 		double STdx, STgrdalpha;
 
@@ -2038,9 +2063,9 @@ int main(int argc, char **argv)
 			write_text_to_log_file("ERROR: Sediment thickness file (Hard layer file) dimension mismatch. Model will run with constant sediment thickness.");
 		}
 
-		
-		
-		
+
+
+
 	}
 	else
 	{
@@ -2051,11 +2076,10 @@ int main(int argc, char **argv)
 		{
 			for (int i = 0; i < nx; i++)
 			{
-				stdep[i + j*nx] = 5.0f;
+				stdep[i + j * nx] = 5.0f;
 			}
 		}
 	}
-
 	
 	
 	//calculate coriolis force
