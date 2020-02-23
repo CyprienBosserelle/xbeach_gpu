@@ -701,7 +701,7 @@ void mainloopGPU(XBGPUParam Param, std::vector<SLBnd> slbnd, std::vector<WindBnd
 
 		if (Param.swave == 1 )
 		{
-			wavebnd(Param, wavebndparam); // Calculate the boundary condition for this step
+			Param=wavebnd(Param, wavebndparam); // Calculate the boundary condition for this step
 		}
 
 		if (Param.flow == 1)
@@ -955,7 +955,7 @@ void mainloopCPU(XBGPUParam Param, std::vector<SLBnd> slbnd, std::vector<WindBnd
 
 		if (Param.swave == 1 )
 		{
-			wavebnd(Param,wavebndparam); // Calculate the boundary condition for this step
+			Param=wavebnd(Param,wavebndparam); // Calculate the boundary condition for this step
 		}
 
 		if (Param.flow == 1)

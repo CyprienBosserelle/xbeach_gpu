@@ -2043,7 +2043,7 @@ __global__ void meandir(int nx, int ny, int ntheta, DECNUM rho, DECNUM g, DECNUM
 	}
 }
 
-__global__ void meanSingledir(int nx, int ny, int ntheta, DECNUM rho, DECNUM g, DECNUM dtheta, DECNUM * cxsth, DECNUM * sxnth, DECNUM * ee, DECNUM * thet, DECNUM * thetamean, DECNUM * E, DECNUM * H)
+__global__ void meanSingledir(int nx, int ny, int ntheta, DECNUM rho, DECNUM g, DECNUM dtheta, DECNUM theta0, DECNUM * c, DECNUM * ee,  DECNUM * thetamean, DECNUM * E, DECNUM * H)
 {
 	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
 	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
@@ -2055,18 +2055,25 @@ __global__ void meanSingledir(int nx, int ny, int ntheta, DECNUM rho, DECNUM g, 
 		DECNUM sumethet = 0;
 		DECNUM ttm = 0;
 		DECNUM sume = 0;
+		DECNUM c1;
+
+		c1 = c[0];
+
+
 		for (int itheta = 0; itheta < ntheta; itheta++)
 		{
 			sume = sume + ee[i + itheta*nx*ny];
-			sumethet = sumethet + ee[i + itheta*nx*ny] * thet[itheta];
+		//	sumethet = sumethet + ee[i + itheta*nx*ny] * thet[itheta];
 		}
 		sume = max(sume, 0.00001f);
 		__syncthreads;
-		ttm = (sumethet / ntheta) / (sume / ntheta);
-		thetamean[i] = ttm;
+		//ttm = (sumethet / ntheta) / (sume / ntheta);
+		//theta0 = (1.5f * pi) - Dp * atanf(1.0f) / 45.0f; // already pbeen pre-calculated
+		c1 = c[0];
+		thetamean[i] = asin(max(-1.0f,min(1.0f,sinf(theta0*c[i]/c1))));
 		E[i] = sume*dtheta;
 
-		H[i] = sqrtf(sume*dtheta / (rho*g / 8));//sqrt(E[i]/(1/8*rho*g));
+		H[i] = sqrtf(sume*dtheta / (rho*g / 8.0f));//sqrt(E[i]/(1/8*rho*g));
 				
 	}
 }

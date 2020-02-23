@@ -85,6 +85,10 @@ XBGPUParam waveinitGPU(XBGPUParam Param, std::vector<Wavebndparam> wavebnd)
 		//printf("theta=%f\tcxsth=%f\tsxnth=%f\n", theta[i], cxsth[i], sxnth[i]);
 	}
 
+
+	
+
+
 	dang = theta[1] - theta[0];
 	//dtheta=dang;
 
@@ -140,11 +144,19 @@ XBGPUParam waveinitGPU(XBGPUParam Param, std::vector<Wavebndparam> wavebnd)
 		int nfHR, ndHR;
 
 		makjonswap(Param, wavebnd, 0, nfHR, ndHR, HRfreq, HRdir, HRSpec);
+
+		Param.theta0 = wavebnd[0].Dp;
+
 		//create2dnc(nfHR, ndHR, HRfreq[1] - HRfreq[0], HRdir[1] - HRdir[0], 0.0, HRfreq, HRdir, HRSpec);
 		//Then generate wave group timeseries based on that spectra
 		//void GenWGnLBW(XBGPUParam Param, int nf, int ndir, double * HRfreq, double * HRdir, double * HRSpec, float Trep, double * qfile, double * Stfile)
 		GenWGnLBW(Param, nfHR, ndHR, HRfreq, HRdir, HRSpec, Trep, qfile, Stfile);
 		//create2dnc(nfHR, ndHR, HRfreq[1] - HRfreq[0], HRdir[1] - HRdir[0], 0.0, HRfreq, HRdir, HRSpec);
+
+
+
+
+
 
 		//////////////////////////////////////
 		//Save to Netcdf file
@@ -509,7 +521,7 @@ void wavebndOLD(XBGPUParam Param)
 
 }
 
-void wavebnd(XBGPUParam Param, std::vector<Wavebndparam> wavebndvec)
+XBGPUParam wavebnd(XBGPUParam Param, std::vector<Wavebndparam> wavebndvec)
 {
 	int nx, ny;
 	double timenext, timesincelast;
@@ -552,6 +564,7 @@ void wavebnd(XBGPUParam Param, std::vector<Wavebndparam> wavebndvec)
 
 			makjonswap(Param, wavebndvec, WAVstepinbnd - 1, nfHR, ndHR, HRfreq, HRdir, HRSpec);
 
+			Param.theta0 = wavebndvec[WAVstepinbnd - 1].Dp;
 			//Then generate wave group timeseries based on that spectra
 			//void GenWGnLBW(XBGPUParam Param, int nf, int ndir, double * HRfreq, double * HRdir, double * HRSpec, float Trep, double * qfile, double * Stfile)
 			GenWGnLBW(Param, nfHR, ndHR, HRfreq, HRdir, HRSpec, Trep, qfile, Stfile);
@@ -750,6 +763,7 @@ void wavebnd(XBGPUParam Param, std::vector<Wavebndparam> wavebndvec)
 		CUDA_CHECK(cudaMemcpy(qbndnew_g, qbndnew, 4 * ny*sizeof(DECNUM), cudaMemcpyHostToDevice));
 	}
 
+	return Param;
 }
 
 void wavestep(XBGPUParam Param)
@@ -1068,8 +1082,10 @@ void wavestep(XBGPUParam Param)
 	//  Compute mean wave direction
 	//
 
-	meandir << <gridDim, blockDim, 0 >> >(nx, ny, ntheta, Param.rho, Param.g, Param.dtheta, ee_g, theta_g, thetamean_g, E_g, H_g);
+	//meandir << <gridDim, blockDim, 0 >> >(nx, ny, ntheta, Param.rho, Param.g, Param.dtheta, ee_g, theta_g, thetamean_g, E_g, H_g);
 	//CUT_CHECK_ERROR("meandir execution failed\n");
+	
+	meanSingledir << <gridDim, blockDim, 0 >> > (nx, ny, ntheta, Param.rho, Param.g, Param.dtheta, Param.theta0, c_g, ee_g, thetamean_g, E_g, H_g);
 	CUDA_CHECK(cudaThreadSynchronize());
 
 

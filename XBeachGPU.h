@@ -150,6 +150,8 @@ public:
 	double nmax = 0.8;
 	double fcutoff = 0.0; // max 40.0;
 	int nspr = 0;
+	double theta0 = 0.0;
+	double c1 = 0.0;
 
 	//Rivers
 	int nriver = 0;  // Number of river input (source point or at the bnd)
@@ -348,7 +350,7 @@ template <class T> const T& max (const T& a, const T& b);
 
 
 XBGPUParam waveinitGPU(XBGPUParam Param, std::vector<Wavebndparam> wavebnd);
-void wavebnd(XBGPUParam Param, std::vector<Wavebndparam> wavebndvec);
+XBGPUParam wavebnd(XBGPUParam Param, std::vector<Wavebndparam> wavebndvec);
 void flowbnd(XBGPUParam Param, std::vector<SLBnd> slbnd, std::vector<WindBnd> wndbnd, std::vector<Wavebndparam> wavebndvec);
 void wavestep(XBGPUParam Param);
 void flowstep(XBGPUParam Param);
