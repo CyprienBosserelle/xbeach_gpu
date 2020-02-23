@@ -2070,7 +2070,7 @@ __global__ void meanSingledir(int nx, int ny, int ntheta, DECNUM rho, DECNUM g, 
 		//ttm = (sumethet / ntheta) / (sume / ntheta);
 		//theta0 = (1.5f * pi) - Dp * atanf(1.0f) / 45.0f; // already pbeen pre-calculated
 		c1 = c[0];
-		thetamean[i] = asin(max(-1.0f,min(1.0f,sinf(theta0*c[i]/c1))));
+		thetamean[i] = asin(max(-1.0f,min(1.0f,sinf(theta0)*c[i]/c1)));
 		E[i] = sume*dtheta;
 
 		H[i] = sqrtf(sume*dtheta / (rho*g / 8.0f));//sqrt(E[i]/(1/8*rho*g));
