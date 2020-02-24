@@ -2096,7 +2096,7 @@ __global__ void thetameancalcsingledir(int nx, int ny, int ntheta, DECNUM rho, D
 		//ttm = (sumethet / ntheta) / (sume / ntheta);
 		//theta0 = (1.5f * pi) - Dp * atanf(1.0f) / 45.0f; // already pbeen pre-calculated
 		c1 = c[0];
-		thetamean[i] = asin(max(-1.0f, min(1.0f, sinf(theta0 + atan2f(dhdy[i], dhdx[i])) * c[i] / c1)));
+		thetamean[i] = asin(max(-1.0f, min(1.0f, sinf(theta0 + atan2f(dhdy[i], dhdx[i])*sqrtf(dhdy[i]* dhdy[i]+ dhdx[i]* dhdx[i])) * c[i] / c1)));
 		
 
 	}
