@@ -1084,8 +1084,8 @@ void wavestep(XBGPUParam Param)
 
 	//meandir << <gridDim, blockDim, 0 >> >(nx, ny, ntheta, Param.rho, Param.g, Param.dtheta, ee_g, theta_g, thetamean_g, E_g, H_g);
 	//CUT_CHECK_ERROR("meandir execution failed\n");
-	
-	meanSingledir << <gridDim, blockDim, 0 >> > (nx, ny, ntheta, Param.rho, Param.g, Param.dtheta, Param.theta0, c_g, ee_g, thetamean_g, E_g, H_g);
+	//meanSingledir(int nx, int ny, int ntheta, DECNUM rho, DECNUM g, DECNUM dtheta, DECNUM theta0, DECNUM* c, DECNUM* dhdx, DECNUM* dhdy, DECNUM* ee, DECNUM* thetamean, DECNUM* E, DECNUM* H)
+	meanSingledir << <gridDim, blockDim, 0 >> > (nx, ny, ntheta, Param.rho, Param.g, Param.dtheta, Param.theta0, c_g, dhdx_g, dhdy_g, ee_g, thetamean_g, E_g, H_g);
 	CUDA_CHECK(cudaThreadSynchronize());
 
 
