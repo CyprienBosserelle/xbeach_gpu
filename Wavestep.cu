@@ -854,6 +854,8 @@ void wavestep(XBGPUParam Param)
 	CUDA_CHECK(cudaThreadSynchronize());
 
 
+	thetameancalcsingledir << <gridDim, blockDim, 0 >> > (nx, ny, ntheta, Param.rho, Param.g, Param.dtheta, Param.theta0, c_g, dhdx_g, dhdy_g, thetamean_g);
+	CUDA_CHECK(cudaThreadSynchronize());
 
 	//////////
 	//CUDA_CHECK( cudaMemcpy(ctheta,ctheta_g,  ny*nx*ntheta*sizeof(DECNUM ), cudaMemcpyDeviceToHost) );
