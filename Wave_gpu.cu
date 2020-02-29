@@ -1349,6 +1349,36 @@ void flowstep(XBGPUParam Param)
 	CUDA_CHECK(cudaDeviceSynchronize());
 
 	*/
+	if (Param.river.size() > 0)
+	{
+		//
+
+
+
+		for (int r = 0; r < Param.river.size(); r++)
+		{
+			float qnow = 0.0f;
+			int bndstep = 0;
+			double difft = Param.river[r].flowinput[bndstep].time - totaltime;
+			while (difft <= 0.0) // danger?
+			{
+				bndstep++;
+				difft = Param.river[r].flowinput[bndstep].time - totaltime;
+			}
+
+			qnow = interptime(Param.river[r].flowinput[bndstep].flow, Param.river[r].flowinput[max(bndstep - 1, 0)].flow, Param.river[r].flowinput[bndstep].time - Param.river[r].flowinput[max(bndstep - 1, 0)].time, totaltime - Param.river[r].flowinput[max(bndstep - 1, 0)].time);
+			
+
+	
+		
+			discharge_bnd_v << <gridDim, blockDim, 0 >> > (nx, ny, Param.dx, Param.eps, Param.dt, qnow, Param.river[r].istart, Param.river[r].jstart, Param.river[r].iend, Param.river[r].jend, zs_g, hh_g);
+			CUDA_CHECK(cudaDeviceSynchronize());
+		}
+
+	}
+		
+
+
 
 	//
 	// Update water level using continuity eq.
@@ -1932,6 +1962,25 @@ int main(int argc, char **argv)
 	}
 
 	WAVstepinbnd = 1;
+
+
+	// Read river files if any
+	if (XParam.river.size() > 0)
+	{
+		printf("Found %d river bnd...", XParam.river.size());
+		write_text_to_log_file("Found river bnd...");
+		for (int r = 0; r < XParam.river.size(); r++)
+		{
+			
+
+			printf("Opening river bnd...");
+			XParam.river[r].flowinput = readRiverfile(XParam.river[r].Riverfile);
+		}
+	}
+	
+	
+	printf("done\n");
+	write_text_to_log_file("done");
 
 
 	///////////////////////////////////////////////////////////////////

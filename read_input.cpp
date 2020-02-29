@@ -256,6 +256,69 @@ extern "C" void readStatbnd(int nx, int ny, int ntheta, DECNUM rho, DECNUM g, co
 
 }
 
+
+std::vector<RiverFlow> readRiverfile(std::string filename)
+{
+	std::vector<RiverFlow> thisriverflow;
+
+	std::ifstream fs(filename);
+
+	if (fs.fail()) {
+		std::cerr << filename << " River bnd file could not be opened" << std::endl;
+		write_text_to_log_file("ERROR: Water level bnd file could not be opened ");
+		exit(1);
+	}
+
+	std::string line;
+	std::vector<std::string> lineelements;
+	RiverFlow flowline;
+
+	while (std::getline(fs, line))
+	{
+		if (!line.empty() && line.substr(0, 1).compare("#") != 0)
+		{
+			//
+			lineelements = split(line, '\t');
+			if (lineelements.size() < 2)
+			{
+				// Is it space delimited?
+				lineelements.clear();
+				lineelements = split(line, ' ');
+			}
+
+			if (lineelements.size() < 2)
+			{
+				//Well it has to be comma delimited then
+				lineelements.clear();
+				lineelements = split(line, ',');
+			}
+			if (lineelements.size() < 2)
+			{
+				// Giving up now! Could not read the files
+				//issue a warning and exit
+				std::cerr << filename << "ERROR River bnd file format error. only " << lineelements.size() << " where 2 were expected. Exiting." << std::endl;
+				write_text_to_log_file("ERROR:  River bnd file (" + filename + ") format error. only " + std::to_string(lineelements.size()) + " where 2 were expected. Exiting.");
+				write_text_to_log_file(line);
+				exit(1);
+			}
+
+			flowline.time = std::stod(lineelements[0]);
+			flowline.flow = std::stod(lineelements[1]);
+
+			thisriverflow.push_back(flowline);
+		}
+	}
+	fs.close();
+
+	//std::cout << slbnd[0].wlev << std::endl;
+
+
+	return thisriverflow;
+}
+
+
+
+
 std::vector<SLBnd> readWLfile(std::string WLfilename)
 {
 	std::vector<SLBnd> slbnd;
@@ -1048,18 +1111,21 @@ XBGPUParam readparamstr(std::string line, XBGPUParam param)
 		//std::cerr << "Bathymetry file found!" << std::endl;
 	}
 
-	parameterstr = "riverloc";
+	parameterstr = "river";
 	parametervalue = findparameter(parameterstr, line);
 	if (!parametervalue.empty())
 	{
-		Rivernodes thisriver;
+		Riverparam thisriver;
 		std::vector<std::string> nodes = split(parametervalue, ',');
 		thisriver.istart = std::stoi(nodes[0]);
 		thisriver.iend = std::stoi(nodes[1]);
 		thisriver.jstart = std::stoi(nodes[2]);
 		thisriver.jend = std::stoi(nodes[3]);
 
-		param.riversloc.push_back(thisriver);
+		//Should check that the i and j corordinates are in the right order and make sense
+		thisriver.disarea = (thisriver.iend - thisriver.istart + 1) * (thisriver.jend - thisriver.jstart + 1) * (param.dx* param.dx);
+		thisriver.Riverfile = nodes[4];
+		param.river.push_back(thisriver);
 
 		/*std::vector<std::string> nodes = split(parametervalue, ',');
 		River thisriver;

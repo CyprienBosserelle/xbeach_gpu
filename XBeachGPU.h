@@ -48,16 +48,26 @@ public:
 	int i, j;
 };
 
+class RiverFlow {
+public:
+	double time, flow;
+};
 
-class Rivernodes {
+
+
+
+class Riverparam {
 public:
 	int istart = -1;
 	int iend = -1;
 	int jstart = -1;
 	int jend = -1;
+	double disarea;
 	std::string Riverfile;
-
+	std::vector<RiverFlow> flowinput;
 };
+
+
 
 class XBGPUParam{
 public:
@@ -137,8 +147,8 @@ public:
 	std::vector<std::string> outvars; //list of names of teh variables to output
 
 	//River discharge
-	std::vector<Rivernodes> riversloc;
-	std::vector<std::string> Riverfiles;
+	std::vector<Riverparam> river;
+	//std::vector<std::string> Riverfiles;
 	//std::vector<Rivernodes> Riverlocs;
 
 	//Wave bnd parameters
@@ -154,14 +164,11 @@ public:
 	double c1 = 0.0;
 
 	//Rivers
-	int nriver = 0;  // Number of river input (source point or at the bnd)
+	//int nriver = 0;  // Number of river input (source point or at the bnd)
 };
 
 
-class RiverFlow{
-public:
-	double time, flow;
-};
+
 
 /*
 class River{
@@ -333,6 +340,7 @@ XBGPUParam checkparamsanity(XBGPUParam XParam, std::vector<SLBnd> slbnd, std::ve
 std::vector<SLBnd> readWLfile(std::string WLfilename);
 std::vector<WindBnd> readWNDfile(std::string WNDfilename, double grdalpha);
 std::vector<Wavebndparam> ReadCstBnd(XBGPUParam XParam);
+std::vector<RiverFlow> readRiverfile(std::string filename);
 double interptime(double next, double prev, double timenext, double time);
 double interp1D(int nx, double *x, double *y, double xx);
 double interp1DMono(int nx, double *x, double *y, double xx);
