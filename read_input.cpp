@@ -1123,7 +1123,7 @@ XBGPUParam readparamstr(std::string line, XBGPUParam param)
 		thisriver.jend = std::stoi(nodes[3]);
 
 		//Should check that the i and j corordinates are in the right order and make sense
-		thisriver.disarea = (thisriver.iend - thisriver.istart + 1) * (thisriver.jend - thisriver.jstart + 1) * (param.dx* param.dx);
+		thisriver.disarea = ((float)thisriver.iend - (float)thisriver.istart + 1.0) * ((float)thisriver.jend - (float)thisriver.jstart + 1.0) * (param.dx* param.dx);
 		thisriver.Riverfile = nodes[4];
 		param.river.push_back(thisriver);
 
