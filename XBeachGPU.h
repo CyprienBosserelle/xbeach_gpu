@@ -100,6 +100,8 @@ public:
 	double thetamax = 90 * pi / 180;
 	double dtheta=0.0; // Defaul values are insane so either one has to be specified/overruled the other will be calculated automatically
 	int ntheta=0; // Default for bnd that are cst or generated on the fly is ntheta =1 and dtheta = thetamax-thetamin
+	bool singledir = false;// Switch for single dir formulation.
+
 	//Sediment parameters
 	double D50=0.00038, D90=0.00053; // sand grain size in m
 	double rhosed = 2650.0; // sand density in kg/m3
