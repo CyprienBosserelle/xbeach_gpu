@@ -1221,6 +1221,16 @@ XBGPUParam readparamstr(std::string line, XBGPUParam param)
 		param.nspr = std::stoi(parametervalue);
 	}
 
+	parameterstr = "singledir";
+	parametervalue = findparameter(parameterstr, line);
+	if (!parametervalue.empty())
+	{
+		int check = std::stoi(parametervalue);
+
+
+		param.singledir = check>0?true:false;
+	}
+
 	return param;
 }
 
