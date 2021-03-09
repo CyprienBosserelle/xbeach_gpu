@@ -170,7 +170,7 @@ __global__ void ubnd1D(int nx, int ny, DECNUM dx, DECNUM dt, DECNUM g, DECNUM rh
 	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
 	unsigned int i = ix + iy*nx;
 
-	if (ix == 0)
+	if (ix == 0 && iy < ny)
 	{
 		unsigned int xminus = mminus(ix, nx);
 		unsigned int xplus = pplus(ix, nx);
@@ -315,7 +315,7 @@ __global__ void ubndsimple(int nx, int ny, DECNUM g, DECNUM zsbndi , DECNUM zsbn
 	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
 	unsigned int i = ix + iy*nx;
 
-	if (ix == 0)
+	if (ix == 0 && iy < ny)
 	{
 		//if ((hh[i]) >= 0.0f) // should be eps not 0.0
 		{
@@ -335,7 +335,7 @@ __global__ void ubnd1Dnowaves(int nx, int ny, DECNUM dx, DECNUM dt, DECNUM g, DE
 	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
 	unsigned int i = ix + iy*nx;
 
-	if (ix == 0)
+	if (ix == 0 && iy < ny)
 	{
 		unsigned int xminus = mminus(ix, nx);
 		unsigned int xplus = pplus(ix, nx);
@@ -1069,8 +1069,9 @@ __global__ void vdvdy_adv(int nx, int ny, DECNUM dx, DECNUM * hv, DECNUM * hvm, 
 			
 		}
 		
+		vdvdy[i] = vvdvdy;
 	}
-	vdvdy[i] = vvdvdy;
+	
 }
 
 __global__ void vdvdy_fixbnd(int nx, int ny, DECNUM dx, DECNUM * hv, DECNUM * hvm, DECNUM * vv, DECNUM * vdvdy)
@@ -1094,9 +1095,9 @@ __global__ void vdvdy_fixbnd(int nx, int ny, DECNUM dx, DECNUM * hv, DECNUM * hv
 		{
 			vvdvdy = vdvdy[i] + qin / hvm[i] * (vv[i] - vv[ix + (yminus)*nx]) / (dx);
 		}
-
+		vdvdy[i] = vvdvdy;
 	}
-	vdvdy[i] = vvdvdy;
+	
 }
 
 
