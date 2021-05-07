@@ -1069,8 +1069,9 @@ __global__ void vdvdy_adv(int nx, int ny, DECNUM dx, DECNUM * hv, DECNUM * hvm, 
 			
 		}
 		
-		vdvdy[i] = vvdvdy;
+		
 	}
+	vdvdy[i] = vvdvdy;
 	
 }
 
@@ -1082,7 +1083,7 @@ __global__ void vdvdy_fixbnd(int nx, int ny, DECNUM dx, DECNUM * hv, DECNUM * hv
 
 	DECNUM qin, dv, vvdvdy;
 	
-	if (ix < nx && ix>0 && iy > 0 && iy == (ny - 1))
+	if (ix < nx && ix>0 && iy == (ny - 1))
 	{
 		unsigned int xminus = mminus(ix, nx);
 		unsigned int xplus = pplus(ix, nx);
