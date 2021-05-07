@@ -207,7 +207,7 @@ XBGPUParam waveinitGPU(XBGPUParam Param, std::vector<Wavebndparam> wavebnd)
 		}
 
 
-		createbndnc(tslenbc, ny, Param.ntheta, Param.dx, Param.dtheta, 0.0, wavebnd[0].Hs, Trep, wavebnd[0].Tp, wavebnd[0].Dp, ttfx, yyfx, thetafx, eetemp, qxtemp, qytemp);
+		//createbndnc(tslenbc, ny, Param.ntheta, Param.dx, Param.dtheta, 0.0, wavebnd[0].Hs, Trep, wavebnd[0].Tp, wavebnd[0].Dp, ttfx, yyfx, thetafx, eetemp, qxtemp, qytemp);
 		//void createbndnc(int tslen, int ny, int ntheta, double dy, double dtheta, double totaltime, double Hs, double Trep, double Tp, double Dp, double * timevec, double *yy, double *theta, double * ee, double * qx, double * qy)
 
 		//Trep = 15.0;//
@@ -291,7 +291,7 @@ XBGPUParam waveinitGPU(XBGPUParam Param, std::vector<Wavebndparam> wavebnd)
 		}
 
 
-		createbndnc(tslenbc, ny, Param.ntheta, Param.dx, Param.dtheta, 0.0, wavebnd[0].Hs, Trep, wavebnd[0].Tp, wavebnd[0].Dp, ttfx, yyfx, thetafx, eetemp, qxtemp, qytemp);
+		//createbndnc(tslenbc, ny, Param.ntheta, Param.dx, Param.dtheta, 0.0, wavebnd[0].Hs, Trep, wavebnd[0].Tp, wavebnd[0].Dp, ttfx, yyfx, thetafx, eetemp, qxtemp, qytemp);
 		//void createbndnc(int tslen, int ny, int ntheta, double dy, double dtheta, double totaltime, double Hs, double Trep, double Tp, double Dp, double * timevec, double *yy, double *theta, double * ee, double * qx, double * qy)
 
 		//Trep = 15.0;//
@@ -619,7 +619,7 @@ XBGPUParam wavebnd(XBGPUParam Param, std::vector<Wavebndparam> wavebndvec)
 			}
 
 
-			writebndnc(tslenbc, ny, Param.ntheta, Param.dx, Param.dtheta, wavebndvec[WAVstepinbnd - 1].time, wavebndvec[WAVstepinbnd - 1].Hs, Trep, wavebndvec[WAVstepinbnd - 1].Tp, wavebndvec[WAVstepinbnd - 1].Dp, ttfx, yyfx, thetafx, eetemp, qxtemp, qytemp);
+			//writebndnc(tslenbc, ny, Param.ntheta, Param.dx, Param.dtheta, wavebndvec[WAVstepinbnd - 1].time, wavebndvec[WAVstepinbnd - 1].Hs, Trep, wavebndvec[WAVstepinbnd - 1].Tp, wavebndvec[WAVstepinbnd - 1].Dp, ttfx, yyfx, thetafx, eetemp, qxtemp, qytemp);
 			//void writebndnc(int tslen, int ny, int ntheta, double dy, double dtheta, double totaltime, double Hs, double Trep, double Tp, double Dp, double * timevec, double *yy, double *theta, double * ee, double * qx, double * qy)
 
 			//Trep = 15.0;//
@@ -695,7 +695,7 @@ XBGPUParam wavebnd(XBGPUParam Param, std::vector<Wavebndparam> wavebndvec)
 			}
 
 
-			writebndnc(tslenbc, ny, Param.ntheta, Param.dx, Param.dtheta, wavebndvec[WAVstepinbnd - 1].time, wavebndvec[WAVstepinbnd - 1].Hs, Trep, wavebndvec[WAVstepinbnd - 1].Tp, wavebndvec[WAVstepinbnd - 1].Dp, ttfx, yyfx, thetafx, eetemp, qxtemp, qytemp);
+			//writebndnc(tslenbc, ny, Param.ntheta, Param.dx, Param.dtheta, wavebndvec[WAVstepinbnd - 1].time, wavebndvec[WAVstepinbnd - 1].Hs, Trep, wavebndvec[WAVstepinbnd - 1].Tp, wavebndvec[WAVstepinbnd - 1].Dp, ttfx, yyfx, thetafx, eetemp, qxtemp, qytemp);
 			//void createbndnc(int tslen, int ny, int ntheta, double dy, double dtheta, double totaltime, double Hs, double Trep, double Tp, double Dp, double * timevec, double *yy, double *theta, double * ee, double * qx, double * qy)
 
 			//Trep = 15.0;//

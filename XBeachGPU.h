@@ -29,7 +29,8 @@
 
 #include <complex>
 #include <valarray>
-#include "fftw3.h"
+//#include "fftw3.h"
+#include <cufftw.h>
 //using namespace std;
 
 
