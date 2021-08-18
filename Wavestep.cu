@@ -761,7 +761,8 @@ XBGPUParam wavebnd(XBGPUParam Param, std::vector<Wavebndparam> wavebndvec)
 	{
 		CUDA_CHECK(cudaMemcpy(qbndold_g, qbndold, 4 * ny*sizeof(DECNUM), cudaMemcpyHostToDevice));
 		CUDA_CHECK(cudaMemcpy(qbndnew_g, qbndnew, 4 * ny*sizeof(DECNUM), cudaMemcpyHostToDevice));
-	}CUDA_CHECK(cudaDeviceSynchronize());
+	}
+	CUDA_CHECK(cudaDeviceSynchronize());
 
 	return Param;
 }
