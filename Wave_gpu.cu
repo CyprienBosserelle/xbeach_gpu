@@ -997,7 +997,7 @@ void mainloopCPU(XBGPUParam Param, std::vector<SLBnd> slbnd, std::vector<WindBnd
 			divavg_varCPU(nx, ny, nstepout, zsmean_g);
 			divavg_varCPU(nx, ny, nstepout, Cmean_g);
 
-			printf("Writing output, totaltime:%d s\n", totaltime);
+			printf("Writing output, totaltime:%2.2f s\n", totaltime);
 			//printf("test Hs: %f\n",H_g[0+16*nx]);
 			writestep2nc(Param, (float)totaltime, zb_g, zs_g, uu_g, vv_g, H_g, xadvec_g, thetamean_g, D_g, urms_g, ueu_g, vev_g, Cc_g, dzb_g, Fx_g, Fy_g, hh_g, Hmean_g, uumean_g, vvmean_g, hhmean_g, zsmean_g, Cmean_g);
 			
@@ -1021,7 +1021,8 @@ void flowbnd(XBGPUParam Param, std::vector<SLBnd> slbnd, std::vector<WindBnd> wn
 {
 	
 	double zsbndi, zsbndn;
-	int stepinbnd;
+	//int stepinbnd;
+	// SLstepinbnd is a Global variable... yuk! 
 	int nx, ny;
 	
 	double timenext, timesincelast;
@@ -1693,7 +1694,7 @@ int main(int argc, char **argv)
 
 	// This is just for temporary use
 	int nx, ny;
-	float dx, grdalpha;
+	float dx;
 	double dt;
 	
 	
@@ -1765,8 +1766,8 @@ int main(int argc, char **argv)
 
 	wdt = 0.0;
 
-	FILE * fid;
-	FILE * fiz;
+	//FILE * fid;
+	//FILE * fiz;
 
 	std::string bathyext;
 	//read bathy input data:
@@ -2032,7 +2033,7 @@ int main(int argc, char **argv)
 	printf("Set initial condition...");
 	write_text_to_log_file("Set initial condition...");
 
-	int jread;
+	//int jread;
 	//int jreadzs;
 	for (int fnod = ny; fnod >= 1; fnod--)
 	{

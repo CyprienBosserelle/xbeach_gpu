@@ -601,10 +601,10 @@ __global__ void xadvecupwind(int nx, int ny, int ntheta, DECNUM dtheta, DECNUM d
 	int ty = threadIdx.y;
 
 	DECNUM dxplus_i = 1.0f / dx;
-	DECNUM dxcent_i = 1.0f / (2 * dx);
+	//DECNUM dxcent_i = 1.0f / (2 * dx);
 	DECNUM xxadvec;
 	DECNUM costhet;
-	DECNUM arrinx, arrminx, arrmaxx;
+	DECNUM arrinx, arrminx;
 	DECNUM cgx, cgxmin;
 	__shared__ DECNUM ccg[16][16];
 	__shared__ DECNUM ccgxmin[16][16];
@@ -687,10 +687,10 @@ __global__ void xadvecupwind2(int nx, int ny, int ntheta, DECNUM dtheta, DECNUM 
 	int ty = threadIdx.y;
 
 	DECNUM dxplus_i = 1.0f / dx;
-	DECNUM dxcent_i = 1.0f / (2 * dx);
+	//DECNUM dxcent_i = 1.0f / (2 * dx);
 	DECNUM xxadvec;
 	DECNUM costhet;
-	DECNUM arrinx, arrminx, arrmaxx;
+	DECNUM arrinx, arrminx;
 	DECNUM cgx, cgxmin;
 	__shared__ DECNUM ccg[16][16];
 	__shared__ DECNUM ccgxmin[16][16];
@@ -791,11 +791,11 @@ __global__ void xadvecupwind2SD(int nx, int ny, int ntheta, DECNUM dtheta, DECNU
 	int ty = threadIdx.y;
 
 	DECNUM dxplus_i = 1.0f / dx;
-	DECNUM dxcent_i = 1.0f / (2 * dx);
+	//DECNUM dxcent_i = 1.0f / (2 * dx);
 	DECNUM xxadvec;
 	DECNUM costhet;
-	DECNUM thetmi;
-	DECNUM arrinx, arrminx, arrmaxx;
+	//DECNUM thetmi;
+	DECNUM arrinx, arrminx;
 	DECNUM cgx, cgxmin;
 	__shared__ DECNUM ccg[16][16];
 	__shared__ DECNUM ccgxmin[16][16];
@@ -896,10 +896,10 @@ __global__ void yadvecupwind(int nx, int ny, int ntheta, DECNUM dtheta, DECNUM d
 	int ty = threadIdx.y;
 
 	DECNUM dxplus_i = 1.0f / dx;
-	DECNUM dxcent_i = 1.0f / (2.0f*dx);
+	//DECNUM dxcent_i = 1.0f / (2.0f*dx);
 	DECNUM yyadvec;
 	DECNUM sinthet;
-	DECNUM  arriny, arrminy, arrmaxy;
+	DECNUM  arriny, arrminy;
 	DECNUM cgy, cgymin;
 	__shared__ DECNUM ccg[16][16];
 	__shared__ DECNUM ccgymin[16][16];
@@ -973,10 +973,10 @@ __global__ void yadvecupwind2(int nx, int ny, int ntheta, DECNUM dtheta, DECNUM 
 	int ty = threadIdx.y;
 
 	DECNUM dxplus_i = 1.0f / dx;
-	DECNUM dxcent_i = 1.0f / (2.0f*dx);
+	//DECNUM dxcent_i = 1.0f / (2.0f*dx);
 	DECNUM yyadvec;
 	DECNUM sinthet;
-	DECNUM  arriny, arrminy, arrmaxy;
+	DECNUM  arriny, arrminy;
 	DECNUM cgy, cgymin;
 	__shared__ DECNUM ccg[16][16];
 	__shared__ DECNUM ccgymin[16][16];
@@ -1071,10 +1071,10 @@ __global__ void yadvecupwind2SD(int nx, int ny, int ntheta, DECNUM dtheta, DECNU
 	int ty = threadIdx.y;
 
 	DECNUM dxplus_i = 1.0f / dx;
-	DECNUM dxcent_i = 1.0f / (2.0f*dx);
+	//DECNUM dxcent_i = 1.0f / (2.0f*dx);
 	DECNUM yyadvec;
 	DECNUM sinthet;
-	DECNUM  arriny, arrminy, arrmaxy;
+	DECNUM  arriny, arrminy;
 	DECNUM cgy, cgymin;
 	__shared__ DECNUM ccg[16][16];
 	__shared__ DECNUM ccgymin[16][16];
@@ -1167,8 +1167,7 @@ __global__ void eectheta(int nx, int ny, int ntheta, DECNUM *ee, DECNUM *ctheta,
 	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
 	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
 	unsigned int i = ix + iy*nx;
-	int tx = threadIdx.x;
-	int ty = threadIdx.y;
+	
 
 	if (ix < nx && iy < ny)
 	{
@@ -1185,8 +1184,7 @@ __global__ void thetaadvecuw(int nx, int ny, int ntheta, DECNUM dtheta, DECNUM *
 	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
 	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
 	unsigned int i = ix + iy*nx;
-	int tx = threadIdx.x;
-	int ty = threadIdx.y;
+	
 	DECNUM arrint, arrmint, arrmaxt;
 
 	DECNUM tthetaadvec;
@@ -1216,13 +1214,12 @@ __global__ void thetaadvecupwind(int nx, int ny, int ntheta, DECNUM dtheta, DECN
 	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
 	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
 	unsigned int i = ix + iy*nx;
-	int tx = threadIdx.x;
-	int ty = threadIdx.y;
+	
 
-	DECNUM dxplus_i = 1.0f / dx;
-	DECNUM dxcent_i = 1.0f / (2.0f*dx);
+	//DECNUM dxplus_i = 1.0f / dx;
+	//DECNUM dxcent_i = 1.0f / (2.0f*dx);
 	DECNUM tthetaadvec;
-	DECNUM costhet, sinthet;
+	//DECNUM costhet, sinthet;
 	DECNUM arrint, arrmint, arrmaxt;
 
 	if (ix < nx && iy < ny)
@@ -1298,10 +1295,9 @@ __global__ void thetaadvecuw1ho(int nx, int ny, int ntheta, DECNUM dtheta, DECNU
 	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
 	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
 	unsigned int i = ix + iy*nx;
-	int tx = threadIdx.x;
-	int ty = threadIdx.y;
+	
 
-	DECNUM dxplus_i = 1.0f / dx;
+	//DECNUM dxplus_i = 1.0f / dx;
 	DECNUM dxcent_i = 1.0f / (2.0f*dx);
 	DECNUM tthetaadvec, cthetab;
 	DECNUM costhet, sinthet;
