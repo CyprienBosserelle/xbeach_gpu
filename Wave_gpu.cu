@@ -224,7 +224,7 @@ DECNUM *zeros;
 DECNUM * Hmean_g, *uumean_g, *vvmean_g, *hhmean_g, *zsmean_g, *Cmean_g,*zsmax_g;
 DECNUM *dtflow_g;
 DECNUM *Hmean, *uumean, *vvmean, *hhmean, *zsmean, *Cmean, *zsmax;
-
+DECNUM * ueumean, * vevmean, * ueumean_g, * vevmean_g;
 
 
 
@@ -449,6 +449,14 @@ void mainloopGPU(XBGPUParam Param, std::vector<SLBnd> slbnd, std::vector<WindBnd
 	OutputVarMapCPU["Cmean"] = Cmean;
 	OutputVarMapGPU["Cmean"] = Cmean_g;
 	OutputVarMaplen["Cmean"] = nx*ny;
+
+	OutputVarMapCPU["ueumean"] = ueumean;
+	OutputVarMapGPU["ueumean"] = ueumean_g;
+	OutputVarMaplen["ueumean"] = nx * ny;
+
+	OutputVarMapCPU["vevmean"] = vevmean;
+	OutputVarMapGPU["vevmean"] = vevmean_g;
+	OutputVarMaplen["vevmean"] = nx * ny;
 
 	OutputVarMapCPU["sigm"] = sigm;
 	OutputVarMapGPU["sigm"] = sigm_g;
@@ -756,6 +764,14 @@ void mainloopGPU(XBGPUParam Param, std::vector<SLBnd> slbnd, std::vector<WindBnd
 		//CUT_CHECK_ERROR("Add avg execution failed\n");
 		CUDA_CHECK(cudaDeviceSynchronize());
 
+		addavg_var << <gridDim, blockDim, 0 >> > (nx, ny, ueumean_g, ueu_g);
+		//CUT_CHECK_ERROR("Add avg execution failed\n");
+		CUDA_CHECK(cudaDeviceSynchronize());
+
+		addavg_var << <gridDim, blockDim, 0 >> > (nx, ny, vevmean_g, vev_g);
+		//CUT_CHECK_ERROR("Add avg execution failed\n");
+		CUDA_CHECK(cudaDeviceSynchronize());
+
 
 		//////////////////////////////////////////
 		//BIG
@@ -811,6 +827,14 @@ void mainloopGPU(XBGPUParam Param, std::vector<SLBnd> slbnd, std::vector<WindBnd
 			CUDA_CHECK(cudaDeviceSynchronize());
 
 			divavg_var << <gridDim, blockDim, 0 >> >(nx, ny, nstep, Cmean_g);
+			//CUT_CHECK_ERROR("Div avg execution failed\n");
+			CUDA_CHECK(cudaDeviceSynchronize());
+
+			divavg_var << <gridDim, blockDim, 0 >> > (nx, ny, nstep, ueumean_g);
+			//CUT_CHECK_ERROR("Div avg execution failed\n");
+			CUDA_CHECK(cudaDeviceSynchronize());
+
+			divavg_var << <gridDim, blockDim, 0 >> > (nx, ny, nstep, vevmean_g);
 			//CUT_CHECK_ERROR("Div avg execution failed\n");
 			CUDA_CHECK(cudaDeviceSynchronize());
 
@@ -926,6 +950,14 @@ void mainloopGPU(XBGPUParam Param, std::vector<SLBnd> slbnd, std::vector<WindBnd
 			//CUT_CHECK_ERROR("Reset avg execution failed\n");
 			CUDA_CHECK(cudaDeviceSynchronize());
 
+			resetavg_var << <gridDim, blockDim, 0 >> > (nx, ny, ueumean_g);
+			//CUT_CHECK_ERROR("Reset avg execution failed\n");
+			CUDA_CHECK(cudaDeviceSynchronize());
+
+			resetavg_var << <gridDim, blockDim, 0 >> > (nx, ny, vevmean_g);
+			//CUT_CHECK_ERROR("Reset avg execution failed\n");
+			CUDA_CHECK(cudaDeviceSynchronize());
+
 			nstep = 0;
 		}
 	}
@@ -983,6 +1015,8 @@ void mainloopCPU(XBGPUParam Param, std::vector<SLBnd> slbnd, std::vector<WindBnd
 		addavg_varCPU(nx, ny, hhmean_g, hh_g);
 		addavg_varCPU(nx, ny, zsmean_g, zs_g);
 		addavg_varCPU(nx, ny, Cmean_g, Cc_g);
+		addavg_varCPU(nx, ny, ueumean_g, Cc_g);
+		addavg_varCPU(nx, ny, vevmean_g, Cc_g);
 
 		if (nstep == istepout && nstepout > 0)
 		{
@@ -996,10 +1030,12 @@ void mainloopCPU(XBGPUParam Param, std::vector<SLBnd> slbnd, std::vector<WindBnd
 			divavg_varCPU(nx, ny, nstepout, hhmean_g);
 			divavg_varCPU(nx, ny, nstepout, zsmean_g);
 			divavg_varCPU(nx, ny, nstepout, Cmean_g);
+			divavg_varCPU(nx, ny, nstepout, ueumean_g);
+			divavg_varCPU(nx, ny, nstepout, vevmean_g);
 
 			printf("Writing output, totaltime:%2.2f s\n", totaltime);
 			//printf("test Hs: %f\n",H_g[0+16*nx]);
-			writestep2nc(Param, (float)totaltime, zb_g, zs_g, uu_g, vv_g, H_g, xadvec_g, thetamean_g, D_g, urms_g, ueu_g, vev_g, Cc_g, dzb_g, Fx_g, Fy_g, hh_g, Hmean_g, uumean_g, vvmean_g, hhmean_g, zsmean_g, Cmean_g);
+			writestep2nc(Param, (float)totaltime, zb_g, zs_g, uu_g, vv_g, H_g, xadvec_g, thetamean_g, D_g, urms_g, ueu_g, vev_g, Cc_g, dzb_g, Fx_g, Fy_g, hh_g, Hmean_g, uumean_g, vvmean_g, hhmean_g, zsmean_g, Cmean_g, ueumean_g, vevmean_g);
 			
 			//Clear avg vars
 			resetavg_varCPU(nx, ny, Hmean_g);
@@ -1008,6 +1044,8 @@ void mainloopCPU(XBGPUParam Param, std::vector<SLBnd> slbnd, std::vector<WindBnd
 			resetavg_varCPU(nx, ny, hhmean_g);
 			resetavg_varCPU(nx, ny, zsmean_g);
 			resetavg_varCPU(nx, ny, Cmean_g);
+			resetavg_varCPU(nx, ny, ueumean_g);
+			resetavg_varCPU(nx, ny, vevmean_g);
 		}
 
 	}
@@ -2176,7 +2214,8 @@ int main(int argc, char **argv)
 	arrmax = (DECNUM *)malloc(nx*ny*sizeof(DECNUM));
 	arrmin = (DECNUM *)malloc(nx*ny*sizeof(DECNUM));
 
-
+	ueumean = (DECNUM*)malloc(nx * ny * sizeof(DECNUM));
+	vevmean = (DECNUM*)malloc(nx * ny * sizeof(DECNUM));
 	
 
 	omega = 2 * pi / Trep;
@@ -2352,7 +2391,8 @@ int main(int argc, char **argv)
 		CUDA_CHECK(cudaMalloc((void **)&arrmin_g, nx*ny*sizeof(DECNUM)));
 		CUDA_CHECK(cudaMalloc((void **)&arrmax_g, nx*ny*sizeof(DECNUM)));
 		CUDA_CHECK(cudaMalloc((void **)&dtflow_g, nx*ny*sizeof(DECNUM)));
-
+		CUDA_CHECK(cudaMalloc((void**)& ueumean_g, nx* ny * sizeof(DECNUM)));
+		CUDA_CHECK(cudaMalloc((void**)& vevmean_g, nx* ny * sizeof(DECNUM)));
 
 		
 
@@ -2473,7 +2513,8 @@ int main(int argc, char **argv)
 		Sxy_g = (DECNUM *)malloc(nx*ny*sizeof(DECNUM));
 		Syy_g = (DECNUM *)malloc(nx*ny*sizeof(DECNUM));
 
-
+		vevmean_g = (DECNUM*)malloc(nx * ny * sizeof(DECNUM));
+		ueumean_g = (DECNUM*)malloc(nx * ny * sizeof(DECNUM));
 	}
 
 	if (XParam.GPUDEVICE >= 0)
@@ -2574,6 +2615,9 @@ int main(int argc, char **argv)
 		CUDA_CHECK(cudaMemcpy(zsmean_g, uu, nx*ny*sizeof(DECNUM), cudaMemcpyHostToDevice));
 		CUDA_CHECK(cudaMemcpy(Cmean_g, uu, nx*ny*sizeof(DECNUM), cudaMemcpyHostToDevice));
 
+		CUDA_CHECK(cudaMemcpy(ueumean_g, uu, nx* ny * sizeof(DECNUM), cudaMemcpyHostToDevice));
+		CUDA_CHECK(cudaMemcpy(vevmean_g, uu, nx* ny * sizeof(DECNUM), cudaMemcpyHostToDevice));
+
 		CUDA_CHECK(cudaMemset(zsmax_g, 0.0f, nx*ny*sizeof(DECNUM)));
 
 		/*CUDA_CHECK( cudaMemcpy(xxp_g, xxp, npart*sizeof(DECNUM ), cudaMemcpyHostToDevice) );
@@ -2654,6 +2698,9 @@ int main(int argc, char **argv)
 				Cmean_g[ii + jj*nx] = uu[ii + jj*nx];
 
 				zsmean_g[ii + jj*nx] = 0.0f;
+
+				ueumean_g[ii + jj * nx] = uu[ii + jj * nx];
+				vevmean_g[ii + jj * nx] = uu[ii + jj * nx];
 			}
 		}
 	}
@@ -2882,6 +2929,12 @@ int main(int argc, char **argv)
 
 	OutputVarMapCPU["vvmean"] = vvmean;
 	OutputVarMapndim["vvmean"] = 3;
+
+	OutputVarMapCPU["ueumean"] = ueumean;
+	OutputVarMapndim["ueumean"] = 3;
+
+	OutputVarMapCPU["vevmean"] = vevmean;
+	OutputVarMapndim["vevmean"] = 3;
 
 	OutputVarMapCPU["zsmean"] = zsmean;
 	OutputVarMapndim["zsmean"] = 3;

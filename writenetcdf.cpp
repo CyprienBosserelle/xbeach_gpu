@@ -239,7 +239,7 @@ extern "C" void writencvarstep(XBGPUParam XParam, std::string varst, float * var
 }
 
 
-extern "C" void creatncfile(XBGPUParam XParam, DECNUM totaltime, DECNUM *zb, DECNUM *zs, DECNUM * uu, DECNUM * vv, DECNUM * H, DECNUM * Tp, DECNUM * Dp, DECNUM * D, DECNUM * Urms, DECNUM * ueu, DECNUM * vev, DECNUM * C, DECNUM *Fx, DECNUM *Fy, DECNUM * hh, DECNUM *Hmean, DECNUM *uumean, DECNUM *vvmean, DECNUM *hhmean, DECNUM *zsmean, DECNUM *Cmean)
+extern "C" void creatncfile(XBGPUParam XParam, DECNUM totaltime, DECNUM *zb, DECNUM *zs, DECNUM * uu, DECNUM * vv, DECNUM * H, DECNUM * Tp, DECNUM * Dp, DECNUM * D, DECNUM * Urms, DECNUM * ueu, DECNUM * vev, DECNUM * C, DECNUM *Fx, DECNUM *Fy, DECNUM * hh, DECNUM *Hmean, DECNUM *uumean, DECNUM *vvmean, DECNUM *hhmean, DECNUM *zsmean, DECNUM *Cmean, DECNUM* ueumean, DECNUM* vevmean)
 {               
 	int status;
 	int nx = XParam.nx;
@@ -251,7 +251,7 @@ extern "C" void creatncfile(XBGPUParam XParam, DECNUM totaltime, DECNUM *zb, DEC
 	int  var_dimids[3], var_dimzb[2];
 	
 	int dzb_id,zb_id,zs_id,uu_id,vv_id,H_id,Tp_id,Dp_id,D_id,Urms_id,ueu_id,vev_id,time_id,xx_id,yy_id,xxp_id,yyp_id,Ceq_id;
-	int Fx_id, Fy_id, hh_id,Hmean_id,uumean_id,vvmean_id,hhmean_id,zsmean_id,Cmean_id;
+	int Fx_id, Fy_id, hh_id,Hmean_id,uumean_id,vvmean_id,hhmean_id,zsmean_id,Cmean_id, ueumean_id, vevmean_id;
 	nxx=nx;
 	nyy=ny;
 	//nnpart=npart;
@@ -340,6 +340,8 @@ extern "C" void creatncfile(XBGPUParam XParam, DECNUM totaltime, DECNUM *zb, DEC
 	status = nc_def_var (ncid, "Hmean", NC_FLOAT, 3, var_dimids, &Hmean_id);
 	status = nc_def_var (ncid, "uumean", NC_FLOAT, 3, var_dimids, &uumean_id);
 	status = nc_def_var (ncid, "vvmean", NC_FLOAT, 3, var_dimids, &vvmean_id);
+	status = nc_def_var(ncid, "ueumean", NC_FLOAT, 3, var_dimids, &ueumean_id);
+	status = nc_def_var(ncid, "vevmean", NC_FLOAT, 3, var_dimids, &vevmean_id);
 	status = nc_def_var (ncid, "hhmean", NC_FLOAT, 3, var_dimids, &hhmean_id);
 	status = nc_def_var (ncid, "zsmean", NC_FLOAT, 3, var_dimids, &zsmean_id);
 	status = nc_def_var (ncid, "Cmean", NC_FLOAT, 3, var_dimids, &Cmean_id);
@@ -384,6 +386,8 @@ extern "C" void creatncfile(XBGPUParam XParam, DECNUM totaltime, DECNUM *zb, DEC
 	status = nc_put_vara_float(ncid, Hmean_id, start, count, Hmean);
 	status = nc_put_vara_float(ncid, uumean_id, start, count, uumean);
 	status = nc_put_vara_float(ncid, vvmean_id, start, count, vvmean);
+	status = nc_put_vara_float(ncid, ueumean_id, start, count, ueumean);
+	status = nc_put_vara_float(ncid, vevmean_id, start, count, vevmean);
 	status = nc_put_vara_float(ncid, hhmean_id, start, count, hhmean);
 	status = nc_put_vara_float(ncid, zsmean_id, start, count, zsmean);	
 	status = nc_put_vara_float(ncid, Cmean_id, start, count, Cmean);
@@ -395,7 +399,7 @@ extern "C" void creatncfile(XBGPUParam XParam, DECNUM totaltime, DECNUM *zb, DEC
 	free(xval);
 	free(yval);
 }
-extern "C" void writestep2nc(XBGPUParam XParam, DECNUM totaltime,DECNUM *zb,DECNUM *zs,DECNUM * uu, DECNUM * vv, DECNUM * H,DECNUM * Tp,DECNUM * Dp,DECNUM * D,DECNUM * Urms,DECNUM *ueu,DECNUM * vev,DECNUM * C,DECNUM *dzb, DECNUM *Fx, DECNUM *Fy,DECNUM *hh,DECNUM *Hmean,DECNUM *uumean,DECNUM *vvmean,DECNUM *hhmean,DECNUM *zsmean,DECNUM *Cmean)
+extern "C" void writestep2nc(XBGPUParam XParam, DECNUM totaltime,DECNUM *zb,DECNUM *zs,DECNUM * uu, DECNUM * vv, DECNUM * H,DECNUM * Tp,DECNUM * Dp,DECNUM * D,DECNUM * Urms,DECNUM *ueu,DECNUM * vev,DECNUM * C,DECNUM *dzb, DECNUM *Fx, DECNUM *Fy,DECNUM *hh,DECNUM *Hmean,DECNUM *uumean,DECNUM *vvmean,DECNUM *hhmean,DECNUM *zsmean,DECNUM *Cmean, DECNUM* ueumean, DECNUM* vevmean)
 {
 	int status;
 
@@ -405,7 +409,7 @@ extern "C" void writestep2nc(XBGPUParam XParam, DECNUM totaltime,DECNUM *zb,DECN
 
    	int ncid,time_dim,recid;
 	size_t nxx,nyy;
-	int dzb_id,zb_id,zs_id,uu_id,vv_id,H_id,Tp_id,Dp_id,D_id,Urms_id,ueu_id,vev_id,time_id,xxp_id,yyp_id,C_id,Fx_id,Fy_id,hh_id,Hmean_id,uumean_id,vvmean_id,hhmean_id,zsmean_id,Cmean_id;
+	int dzb_id,zb_id,zs_id,uu_id,vv_id,H_id,Tp_id,Dp_id,D_id,Urms_id,ueu_id,vev_id,time_id,xxp_id,yyp_id,C_id,Fx_id,Fy_id,hh_id,Hmean_id,uumean_id,vvmean_id,hhmean_id,zsmean_id,Cmean_id, ueumean_id, vevmean_id;
 	static size_t start[] = {0, 0, 0}; // start at first value 
     	static size_t count[] = {1, ny, nx};
  	//static size_t pstart[] = {0, 0}; // start at first value 
@@ -452,6 +456,8 @@ extern "C" void writestep2nc(XBGPUParam XParam, DECNUM totaltime,DECNUM *zb,DECN
 	status = nc_inq_varid(ncid, "hhmean", &hhmean_id);
 	status = nc_inq_varid(ncid, "zsmean", &zsmean_id);
 	status = nc_inq_varid(ncid, "Cmean", &Cmean_id);
+	status = nc_inq_varid(ncid, "ueumean", &ueumean_id);
+	status = nc_inq_varid(ncid, "vevmean", &vevmean_id);
 	//status = nc_inq_varid(ncid, "xxp", &xxp_id);
 	//status = nc_inq_varid(ncid, "yyp", &yyp_id);
 	
@@ -488,6 +494,9 @@ extern "C" void writestep2nc(XBGPUParam XParam, DECNUM totaltime,DECNUM *zb,DECN
 	status = nc_put_vara_float(ncid, hhmean_id, start, count, hhmean);
 	status = nc_put_vara_float(ncid, zsmean_id, start, count, zsmean);	
 	status = nc_put_vara_float(ncid, Cmean_id, start, count, Cmean);
+
+	status = nc_put_vara_float(ncid, ueumean_id, start, count, ueumean);
+	status = nc_put_vara_float(ncid, vevmean_id, start, count, vevmean);
 	//status = nc_put_vara_float(ncid, xxp_id, pstart, pcount, xxp);
 	//status = nc_put_vara_float(ncid, yyp_id, pstart, pcount, yyp);
 
