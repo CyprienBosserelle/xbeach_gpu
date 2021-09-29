@@ -2065,6 +2065,16 @@ int main(int argc, char **argv)
 		readXBbathy(XParam.Bathymetryfile, XParam.nx, XParam.ny, zb);
 	}
 
+	if (XParam.posdown == 0)
+	{
+		for (int jnod = 0; jnod < ny; jnod++)
+		{
+			for (int inod = 0; inod < nx; inod++)
+			{
+				zb[inod + jnod * nx] = zb[inod + jnod * nx] * -1.0;
+			}
+		}
+	}
 	
 
 	// set initital condition and read bathy file

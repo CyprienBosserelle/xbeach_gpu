@@ -678,6 +678,13 @@ XBGPUParam readparamstr(std::string line, XBGPUParam param)
 	{
 		param.Bathymetryfile = parametervalue;
 	}
+
+	parameterstr = "posdown";
+	parametervalue = findparameter(parameterstr, line);
+	if (!parametervalue.empty())
+	{
+		param.posdown = std::stoi(parametervalue);
+	}
 		
 	
 	//

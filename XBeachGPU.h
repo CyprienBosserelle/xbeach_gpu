@@ -166,6 +166,7 @@ public:
 	double theta0 = 0.0;
 	double c1 = 0.0;
 
+	int posdown = 1;
 	//Rivers
 	//int nriver = 0;  // Number of river input (source point or at the bnd)
 };
