@@ -1830,7 +1830,7 @@ int main(int argc, char **argv)
 			write_text_to_log_file("For nc of bathy file please specify grdalpha in the XBG_param.txt (default 0)");
 			
 		}
-		if (bathyext.compare("dep") == 0 || bathyext.compare("bot") == 0)
+		if (bathyext.compare("dep") == 0 || bathyext.compare("bot") == 0 || bathyext.compare("txt"))
 		{
 			//XBeach style file
 			write_text_to_log_file("Reading " + bathyext + " file");
@@ -2060,7 +2060,7 @@ int main(int argc, char **argv)
 	{
 		readnczb(XParam.nx, XParam.ny, XParam.Bathymetryfile, zb);
 	}
-	if (bathyext.compare("bot") == 0 || bathyext.compare("dep") == 0)
+	if (bathyext.compare("bot") == 0 || bathyext.compare("dep") == 0 || bathyext.compare("txt") == 0)
 	{
 		readXBbathy(XParam.Bathymetryfile, XParam.nx, XParam.ny, zb);
 	}
