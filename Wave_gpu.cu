@@ -3120,15 +3120,22 @@ int main(int argc, char **argv)
 	//read2Dnc(nx,ny,"hhfile.nc",uu);
 	//CUDA_CHECK( cudaMemcpy(hh_g, uu, nx*ny*sizeof(DECNUM ), cudaMemcpyHostToDevice) );
 
-
-	// Run the model
-	if (XParam.GPUDEVICE >= 0)
+	if (XParam.flow == 1 || XParam.swave == 1)
 	{
-		mainloopGPU(XParam, slbnd, wndbnd, wavebnd);
+		// Run the model
+		if (XParam.GPUDEVICE >= 0)
+		{
+			mainloopGPU(XParam, slbnd, wndbnd, wavebnd);
+		}
+		else
+		{
+			mainloopCPU(XParam, slbnd, wndbnd, wavebnd);
+		}
 	}
 	else
 	{
-		mainloopCPU(XParam, slbnd, wndbnd, wavebnd);
+		printf("nothing to do! flow==0 and swave==0  \n");
+		write_text_to_log_file("nothing to do! flow==0 and swave==0 ");
 	}
 
 
