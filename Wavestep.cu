@@ -814,8 +814,8 @@ void wavestep(XBGPUParam Param)
 	//CUDA_CHECK( cudaMalloc((void **)&k_g, nx*ny*sizeof(DECNUM )) );
 
 	// not sure this is worth it we'd rather allocate from main and kill when it is all done...
-	CUDA_CHECK(cudaMalloc((void **)&kh_g, nx*ny*sizeof(DECNUM)));
-	CUDA_CHECK(cudaMalloc((void **)&sinh2kh_g, nx*ny*sizeof(DECNUM)));
+	//CUDA_CHECK(cudaMalloc((void **)&kh_g, nx*ny*sizeof(DECNUM)));
+	//CUDA_CHECK(cudaMalloc((void **)&sinh2kh_g, nx*ny*sizeof(DECNUM)));
 
 
 
@@ -827,12 +827,12 @@ void wavestep(XBGPUParam Param)
 
 	//CUDA_CHECK( cudaMemcpy(C,kh_g,  ny*nx*sizeof(DECNUM ), cudaMemcpyDeviceToHost) );
 
-	CUDA_CHECK(cudaMalloc((void **)&dhdx_g, nx*ny*sizeof(DECNUM)));
-	CUDA_CHECK(cudaMalloc((void **)&dhdy_g, nx*ny*sizeof(DECNUM)));
-	CUDA_CHECK(cudaMalloc((void **)&dudx_g, nx*ny*sizeof(DECNUM)));
-	CUDA_CHECK(cudaMalloc((void **)&dudy_g, nx*ny*sizeof(DECNUM)));
-	CUDA_CHECK(cudaMalloc((void **)&dvdx_g, nx*ny*sizeof(DECNUM)));
-	CUDA_CHECK(cudaMalloc((void **)&dvdy_g, nx*ny*sizeof(DECNUM)));
+	//CUDA_CHECK(cudaMalloc((void **)&dhdx_g, nx*ny*sizeof(DECNUM)));
+	//CUDA_CHECK(cudaMalloc((void **)&dhdy_g, nx*ny*sizeof(DECNUM)));
+	//CUDA_CHECK(cudaMalloc((void **)&dudx_g, nx*ny*sizeof(DECNUM)));
+	//CUDA_CHECK(cudaMalloc((void **)&dudy_g, nx*ny*sizeof(DECNUM)));
+	//CUDA_CHECK(cudaMalloc((void **)&dvdx_g, nx*ny*sizeof(DECNUM)));
+	//CUDA_CHECK(cudaMalloc((void **)&dvdy_g, nx*ny*sizeof(DECNUM)));
 
 
 	// Wave current interaction	(i.e remove wci in shallow water)
@@ -864,12 +864,12 @@ void wavestep(XBGPUParam Param)
 	//CUDA_CHECK( cudaMemcpy(ctheta,ctheta_g,  ny*nx*ntheta*sizeof(DECNUM ), cudaMemcpyDeviceToHost) );
 	//////////
 
-	CUDA_CHECK(cudaFree(dhdx_g));
-	CUDA_CHECK(cudaFree(dhdy_g));
-	CUDA_CHECK(cudaFree(dudx_g));
-	CUDA_CHECK(cudaFree(dudy_g));
-	CUDA_CHECK(cudaFree(dvdx_g));
-	CUDA_CHECK(cudaFree(dvdy_g));
+	//CUDA_CHECK(cudaFree(dhdx_g));
+	//CUDA_CHECK(cudaFree(dhdy_g));
+	//CUDA_CHECK(cudaFree(dudx_g));
+	//CUDA_CHECK(cudaFree(dudy_g));
+	//CUDA_CHECK(cudaFree(dvdx_g));
+	//CUDA_CHECK(cudaFree(dvdy_g));
 
 
 	//
@@ -894,9 +894,9 @@ void wavestep(XBGPUParam Param)
 	//
 	// Upwind Euler timestep propagation
 	//
-	CUDA_CHECK(cudaMalloc((void **)&xadvec_g, nx*ny*ntheta*sizeof(DECNUM)));
-	CUDA_CHECK(cudaMalloc((void **)&yadvec_g, nx*ny*ntheta*sizeof(DECNUM)));
-	CUDA_CHECK(cudaMalloc((void **)&thetaadvec_g, nx*ny*ntheta*sizeof(DECNUM)));
+	//CUDA_CHECK(cudaMalloc((void **)&xadvec_g, nx*ny*ntheta*sizeof(DECNUM)));
+	//CUDA_CHECK(cudaMalloc((void **)&yadvec_g, nx*ny*ntheta*sizeof(DECNUM)));
+	//CUDA_CHECK(cudaMalloc((void **)&thetaadvec_g, nx*ny*ntheta*sizeof(DECNUM)));
 
 	if (!Param.singledir)
 	{
@@ -979,7 +979,7 @@ void wavestep(XBGPUParam Param)
 	//CUDA_CHECK( cudaMemcpy(ctheta,ee_g,  ny*nx*ntheta*sizeof(DECNUM ), cudaMemcpyDeviceToHost) );
 
 	//CUDA_CHECK( cudaMalloc((void **)&H_g, nx*ny*sizeof(DECNUM )) );
-	CUDA_CHECK(cudaMalloc((void **)&E_g, nx*ny*sizeof(DECNUM)));
+	//CUDA_CHECK(cudaMalloc((void **)&E_g, nx*ny*sizeof(DECNUM)));
 	//CUDA_CHECK( cudaMalloc((void **)&D_g, nx*ny*sizeof(DECNUM )) );
 
 	//CUDA_CHECK( cudaMemcpy(ctheta,ee_g,  ny*nx*ntheta*sizeof(DECNUM ), cudaMemcpyDeviceToHost) );
@@ -1079,9 +1079,9 @@ void wavestep(XBGPUParam Param)
 		CUDA_CHECK(cudaDeviceSynchronize());
 	}
 	//CUDA_CHECK( cudaFree(eect_g));
-	CUDA_CHECK(cudaFree(xadvec_g));
-	CUDA_CHECK(cudaFree(yadvec_g));
-	CUDA_CHECK(cudaFree(thetaadvec_g));
+	//CUDA_CHECK(cudaFree(xadvec_g));
+	//CUDA_CHECK(cudaFree(yadvec_g));
+	//CUDA_CHECK(cudaFree(thetaadvec_g));
 
 	//read2Dnc(nx,ny,"D.nc",uu);
 	//CUDA_CHECK( cudaMemcpy(D_g, uu, nx*ny*sizeof(DECNUM ), cudaMemcpyHostToDevice) );
@@ -1136,9 +1136,9 @@ void wavestep(XBGPUParam Param)
 	// Radiation stresses and forcing terms
 	//
 
-	CUDA_CHECK(cudaMalloc((void **)&Sxx_g, nx*ny*sizeof(DECNUM)));
-	CUDA_CHECK(cudaMalloc((void **)&Sxy_g, nx*ny*sizeof(DECNUM)));
-	CUDA_CHECK(cudaMalloc((void **)&Syy_g, nx*ny*sizeof(DECNUM)));
+	//CUDA_CHECK(cudaMalloc((void **)&Sxx_g, nx*ny*sizeof(DECNUM)));
+	//CUDA_CHECK(cudaMalloc((void **)&Sxy_g, nx*ny*sizeof(DECNUM)));
+	//CUDA_CHECK(cudaMalloc((void **)&Syy_g, nx*ny*sizeof(DECNUM)));
 
 	radstress << <gridDim, blockDim, 0 >> >(nx, ny, ntheta, Param.dx, Param.dtheta, ee_g, rr_g, cxsth_g, sxnth_g, cg_g, c_g, Sxx_g, Sxy_g, Syy_g);
 
@@ -1179,12 +1179,12 @@ void wavestep(XBGPUParam Param)
 	CUDA_CHECK(cudaDeviceSynchronize());
 
 
-	CUDA_CHECK(cudaFree(Sxy_g));
-	CUDA_CHECK(cudaFree(Sxx_g));
-	CUDA_CHECK(cudaFree(Syy_g));
+	//CUDA_CHECK(cudaFree(Sxy_g));
+	//CUDA_CHECK(cudaFree(Sxx_g));
+	//CUDA_CHECK(cudaFree(Syy_g));
 	//CUDA_CHECK( cudaFree(cg_g));
 	//CUDA_CHECK( cudaFree(c_g));
-	CUDA_CHECK(cudaFree(tm_g));
+	//CUDA_CHECK(cudaFree(tm_g));
 
 
 
@@ -1201,13 +1201,13 @@ void wavestep(XBGPUParam Param)
 
 
 
-	CUDA_CHECK(cudaFree(E_g));
+	//CUDA_CHECK(cudaFree(E_g));
 	//CUDA_CHECK( cudaFree(H_g));
 	//CUDA_CHECK( cudaFree(D_g));
 
 	//CUDA_CHECK( cudaFree(k_g));
-	CUDA_CHECK(cudaFree(kh_g));
-	CUDA_CHECK(cudaFree(sinh2kh_g));
+	//CUDA_CHECK(cudaFree(kh_g));
+	//CUDA_CHECK(cudaFree(sinh2kh_g));
 
 
 

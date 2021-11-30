@@ -2354,6 +2354,27 @@ int main(int argc, char **argv)
 		CUDA_CHECK(cudaMalloc((void **)&k_g, nx*ny*sizeof(DECNUM)));
 
 
+		CUDA_CHECK(cudaMalloc((void**)&kh_g, nx * ny * sizeof(DECNUM)));
+		CUDA_CHECK(cudaMalloc((void**)&sinh2kh_g, nx * ny * sizeof(DECNUM)));
+
+		CUDA_CHECK(cudaMalloc((void**)&dhdx_g, nx * ny * sizeof(DECNUM)));
+		CUDA_CHECK(cudaMalloc((void**)&dhdy_g, nx * ny * sizeof(DECNUM)));
+		CUDA_CHECK(cudaMalloc((void**)&dudx_g, nx * ny * sizeof(DECNUM)));
+		CUDA_CHECK(cudaMalloc((void**)&dudy_g, nx * ny * sizeof(DECNUM)));
+		CUDA_CHECK(cudaMalloc((void**)&dvdx_g, nx * ny * sizeof(DECNUM)));
+		CUDA_CHECK(cudaMalloc((void**)&dvdy_g, nx * ny * sizeof(DECNUM)));
+
+		CUDA_CHECK(cudaMalloc((void**)&xadvec_g, nx * ny * ntheta * sizeof(DECNUM)));
+		CUDA_CHECK(cudaMalloc((void**)&yadvec_g, nx * ny * ntheta * sizeof(DECNUM)));
+		CUDA_CHECK(cudaMalloc((void**)&thetaadvec_g, nx * ny * ntheta * sizeof(DECNUM)));
+
+		CUDA_CHECK(cudaMalloc((void**)&E_g, nx * ny * sizeof(DECNUM)));
+
+		CUDA_CHECK(cudaMalloc((void**)&Sxx_g, nx * ny * sizeof(DECNUM)));
+		CUDA_CHECK(cudaMalloc((void**)&Sxy_g, nx * ny * sizeof(DECNUM)));
+		CUDA_CHECK(cudaMalloc((void**)&Syy_g, nx * ny * sizeof(DECNUM)));
+
+
 		CUDA_CHECK(cudaMalloc((void **)&ee_g, nx*ny*XParam.ntheta*sizeof(DECNUM)));
 		CUDA_CHECK(cudaMalloc((void **)&rr_g, nx*ny*XParam.ntheta*sizeof(DECNUM)));
 		CUDA_CHECK(cudaMalloc((void **)&St_g, ny*XParam.ntheta*sizeof(DECNUM)));
