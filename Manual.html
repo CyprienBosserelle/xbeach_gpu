@@ -419,42 +419,42 @@ n = 9; Was 10 before
               <tbody>
                 <tr>
                   <td>bathy</td>
-                  <td>[]</td>
+                  <td>""</td>
                   <td>Bathymetry file, positive down [m]. See details below.</td>
                 </tr>
                 <tr>
                   <td>depfile</td>
-                  <td>[]</td>
+                  <td>""</td>
                   <td>Bathymetry file, positive down [m]. See details below.</td>
                 </tr>
                 <tr>
                   <td>wavebndfile</td>
-                  <td>[]</td>
+                  <td>""</td>
                   <td>Filename of the wave boundary file. See below for details.</td>
                 </tr>
                 <tr>
                   <td>SedThkfile</td>
-                  <td>[]</td>
+                  <td>""</td>
                   <td>Sediment thickness file. Same format as the bathymetry file but with sediment layer thickness values in m.</td>
                 </tr>
                 <tr>
                   <td>slbndfile</td>
-                  <td>[]</td>
+                  <td>""</td>
                   <td>Sea level boundary file (see below for details).</td>
                 </tr>
                 <tr>
                   <td>windbndfile</td>
-                  <td>[]</td>
+                  <td>""</td>
                   <td>Wind boundary file (see below for details).</td>
                 </tr>
                 <tr>
                   <td>outfile</td>
-                  <td>[]</td>
+                  <td>XBGPU_output.nc</td>
                   <td>Netcdf output file name for area series output.</td>
                 </tr>
                 <tr>
                   <td>TSOfile</td>
-                  <td>[]</td>
+                  <td>""</td>
                   <td>Output txt file name for Time series output of a single location. There can be as many TSOfile as specific location to output. With this option you will output zs and H at every step in the model.</td>
                 </tr>
                 <tr>
@@ -464,7 +464,7 @@ n = 9; Was 10 before
                 </tr>
                 <tr>
                   <td>outvars</td>
-                  <td>"zb", "zs", "uu", "vv", "H", "thetamean", "D", "urms", "ueu", "vev", "C", "dzb", "Fx", "Fy", "hh", "Hmean", "uumean", "vvmean", "hhmean", "zsmean", "Cmean" </td>
+                  <td>"zb", "zs", "uu", "vv", "H", "thetamean", "D", "urms", "ueu", "vev", "C", "dzb", "Fx", "Fy", "hh", "Hmean", "uumean", "vvmean", "hhmean", "zsmean", "Cmean", "ueumean", "vevmean" </td>
                   <td>Name of output variables. See below for the full list. Any number of variable can be selected. You can specify the same variable twice but you would be a fool. Specifying an empty lits will revert back to default. outvars may be specified multiple time in the param file to add more variable and keep the file clean.</td>
                 </tr>
               </tbody>
