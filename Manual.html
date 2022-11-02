@@ -124,7 +124,7 @@ n = 9; Was 10 before
                 <tr>
                   <td>swave</td>
                   <td>1</td>
-                  <td>switch for using the short wave model. the wave group modulationcomes from the wave boundary.</td>
+                  <td>Switch for using the short wave model. The wave group modulation comes from the wave boundary.</td>
                 </tr>
                 <tr>
                   <td>flow</td>
@@ -134,12 +134,12 @@ n = 9; Was 10 before
                 <tr>
                   <td>sedtrans</td>
                   <td>0</td>
-                  <td>Switch to run the sediment transport module</td>
+                  <td>Switch to run the sediment transport module.</td>
                 </tr>
                 <tr>
                   <td>morphology</td>
                   <td>0</td>
-                  <td>Switch to run the morphology modeule to apply the sediment source and sink to the bathymetry</td>
+                  <td>Switch to run the morphology modeule to apply the sediment source and sink to the bathymetry.</td>
                 </tr>
                 <tr>
                   <td>GPUDEVICE</td>
@@ -147,19 +147,22 @@ n = 9; Was 10 before
                   <td>What GPU device to use default is the firt one availabe (i.e. 0) and 1 for second GPU etc...</td>
                 </tr>
                 <tr>
-                  <td>nx, ny</td>
+                  <td>nx</td>
                   <td>0</td>
-                  <td>Bathymetry grid size. Only required when using XBeach style bathymetry. Will be overwritten when using .md or .nc bathy input</td>
+                  <td>Bathymetry grid size (columns). Only required when using XBeach style bathymetry. Will be overwritten when using .md or .nc bathy input.</td>
+                  <td>ny</td>
+                  <td>0</td>
+                  <td>Bathymetry grid size (rows). Only required when using XBeach style bathymetry. Will be overwritten when using .md or .nc bathy input.</td>
                 </tr>
                 <tr>
                   <td>dx</td>
                   <td>0.0</td>
-                  <td>Bathymetry grid resolution. Only required when using XBeach style bathymetry need to be >0.0. Will be overwritten when using .md or .nc bathy input</td>
+                  <td>Bathymetry grid resolution. Only required when using XBeach style bathymetry need to be >0.0. Will be overwritten when using .md or .nc bathy input.</td>
                 </tr>
                 <tr>
                   <td>grdalfa</td>
                   <td>0.0</td>
-                  <td>Bathymetry grid rotation. Only required when using XBeach style bathymetry or netcdf. Will be overwritten when using .md bathy input and can be included in the netcdf file explicitely</td>
+                  <td>Bathymetry grid rotation. Only required when using XBeach style bathymetry or netcdf. Will be overwritten when using .md bathy input and can be included in the netcdf file explicitly.</td>
                 </tr>
               </tbody>
             </table>
@@ -176,24 +179,28 @@ n = 9; Was 10 before
                 <tr>
                   <td>g</td>
                   <td>9.81</td>
-                  <td>Acceleration of gravity [m/s2] for Mars use 3.71m/s2</td>
+                  <td>Acceleration of gravity [m/s^2]. For Mars use 3.71m/s^2.</td>
                 </tr>
                 <tr>
                   <td>rho</td>
                   <td>1025.0</td>
-                  <td>Density of Water in kg/m3 for rum use 940.0 kg/m3</td>
+                  <td>Density of Water in kg/m^3. For rum use 940.0 kg/m^3.</td>
                 </tr>
-
                 <tr>
                   <td>eps</td>
                   <td>0.01</td>
                   <td>Drying height [m].</td>
                 </tr>
                 <tr>
-                  <td>cf, cfsand, cfreef</td>
+                  <td>cf</td>
                   <td>0.01</td>
-                  <td>Bottom friction (Chezy formulation). a specific value can be given to Sand(cfsand) or Bedrock(cfreef). the location of outcropping bedrock is determined with the sediment thickness file and updated at every Morphology step.</td>
-
+                  <td>Bottom friction (Chezy formulation). A specific value can be given to sand (cfsand) or reef (cfreef).</td>
+                  <td>cfsand</td>
+                  <td>0.01</td>
+                  <td>Bottom friction (Chezy formulation), specific to sand.</td>
+                  <td>cfreef</td>
+                  <td>0.01</td>
+                  <td>Bottom friction (Chezy formulation), specific to reef. The location of outcropping reef is determined with the sediment thickness file and updated at every Morphology step.</td>
                 </tr>
                 <tr>
                   <td>nuh</td>
@@ -203,42 +210,42 @@ n = 9; Was 10 before
                 <tr>
                   <td>nuhfac</td>
                   <td>1.0</td>
-                  <td>viscosity coefficient for roller induced turbulent horizontal viscosity [0 - 1]</td>
+                  <td>Viscosity coefficient for roller induced turbulent horizontal viscosity [0 - 1].</td>
                 </tr>
                 <tr>
                   <td>usesmago</td>
                   <td>1</td>
-                  <td>Uses smagorynsky formulation to calculate viscosity 0: No 1: Yes</td>
+                  <td>Uses Smagorynsky formulation to calculate viscosity 0: No 1: Yes.</td>
                 </tr>
                 <tr>
                   <td>smag</td>
                   <td>0.3</td>
-                  <td>Smagorinsky coeff only used if usesmago = 1</td>
+                  <td>Smagorinsky coefficient, only used if usesmago = 1.</td>
                 </tr>
                 <tr>
                   <td>lat</td>
                   <td>0.0</td>
-                  <td>Latitude of the grid</td>
+                  <td>Latitude of the grid.</td>
                 </tr>
                 <tr>
                   <td>fc</td>
                   <td>0.0</td>
-                  <td>Coriolis force. AUtomatically calculated for earth when setting up lat</td>
+                  <td>Coriolis force. Automatically calculated for earth when setting up lat.</td>
                 </tr>
                 <tr>
                   <td>Cd</td>
                   <td>0.002</td>
-                  <td>Wind drag coeff</td>
+                  <td>Wind drag coefficient.</td>
                 </tr>
                 <tr>
                   <td>wci</td>
                   <td>0.0</td>
-                  <td>Wave current interaction (0: no; 1: yes, 0.1-0.9: When model is not stable)</td>
+                  <td>Wave current interaction (0: no; 1: yes, 0.1-0.9: when model is not stable).</td>
                 </tr>
                 <tr>
                   <td>hwci</td>
                   <td>0.1</td>
-                  <td>min depth for wci. aka no wci in water depth shallower than this</td>
+                  <td>Minimum depth for wave current interaction (wci), i.e. no wci in water depth shallower than this.</td>
                 </tr>
 
               </tbody>
@@ -256,67 +263,74 @@ n = 9; Was 10 before
                 <tr>
                   <td>breakmodel</td>
                   <td>1</td>
-                  <td>Wave dissipation model 1: roelvink 2: Baldock. use 1 for unsteady runs (i.e. with wave group) and use 2 when not forcing wave group</td>
+                  <td>Wave dissipation model 1: Roelvink 2: Baldock. use 1 for unsteady runs (i.e. with wave group) and use 2 when not forcing wave group.</td>
                 </tr>
                 <tr>
                   <td>gamma</td>
                   <td>0.6</td>
-                  <td> Wave breaking gamma param</td>
+                  <td>Wave breaking gamma parameter.</td>
                 </tr>
                 <tr>
                   <td>n</td>
                   <td>8.0</td>
-                  <td> exponential in Roelving breaking model</td>
+                  <td>Exponential in Roelvink breaking model.</td>
                 </tr>
                 <tr>
                   <td>alpha</td>
                   <td>1.0</td>
-                  <td> calibration factorfor wave dissipation (should be 1.0)</td>
+                  <td>Calibration factor for wave dissipation (should be 1.0).</td>
                 </tr>
                 <tr>
                   <td>gammax</td>
                   <td>2.0</td>
-                  <td> maximum ratio Hrms/hh</td>
+                  <td>Maximum ratio Hrms/hh.</td>
                 </tr>
                 <tr>
                   <td>beta</td>
                   <td>0.15</td>
-                  <td> Roller slope dissipation parameter</td>
+                  <td>Roller slope dissipation parameter.</td>
                 </tr>
                 <tr>
-                  <td>fw, fwsand, fwreef</td>
+                  <td>fw</td>
                   <td>0.001</td>
-                  <td> Wave bottom dissipation parameters. A specific value can be given to Sand(cfsand) or Bedrock(cfreef). the location of outcropping bedrock is determined with the sediment thickness file and updated at every Morphology step.</td>
+                  <td>Wave bottom dissipation parameter. A specific value can be given to sand (fwsand) or reef (fwreef).</td>
+                  <td>fwsand</td>
+                  <td>0.001</td>
+                  <td>Wave bottom dissipation parameter, specific to sand.</td>
+                  <td>fwreef</td>
+                  <td>0.001</td>
+                  <td>Wave bottom dissipation parameter, specific to reef. The location of outcropping reef is determined with the sediment thickness file and updated at every Morphology step.</td>
                 </tr>
                 <tr>
                   <td>roller</td>
                   <td>1</td>
-                  <td> Switch for roller model</td>
+                  <td>Switch for roller model.</td>
                 </tr>
                 <tr>
                   <td>thetamin</td>
                   <td>-90</td>
-                  <td> Minimum value for directional space in the wave model. This is only required when using wave boundary type 1, 4 and 5</td>
+                  <td>Minimum value for directional space in the wave model. This is only required when using wave boundary type 1, 4 and 5.</td>
                 </tr>
                 <tr>
                   <td>thetamax</td>
                   <td>90</td>
-                  <td> Maximum value for directional space in the wave model. This is only required when using wave boundary type 1, 4 and 5</td>
+                  <td>Maximum value for directional space in the wave model. This is only required when using wave boundary type 1, 4 and 5.</td>
                 </tr>
                 <tr>
                   <td>dtheta</td>
                   <td>N/A</td>
-                  <td>Directional space resolution [degrees] . Value calculated from ntheta. If specified ntheta will be calculated from dtheta instead</td>
+                  <td>Directional space resolution [degrees]. Value calculated from ntheta. If specified ntheta will be calculated from dtheta instead.</td>
                 </tr>
                 <tr>
                   <td>ntheta</td>
                   <td>1</td>
-                  <td> Number of directional bins. If ntheta is not specified but dtheta is specified by the user then ntheta will be calculated from dtheta. This is only required when using wave boundary type 1, 4 and 5</td>
+                  <td>Number of directional bins. If ntheta is not specified but dtheta is specified by the user then ntheta will be calculated from dtheta. This is only required when using wave boundary type 1, 4 and 5.</td>
                 </tr>
 
               </tbody>
             </table>
-            <h3>Sediment Parameters (Only needed when sedtrans=1)</h3>
+            <h3>Sediment Parameters</h3>
+            <h4>(Only needed when sedtrans=1)</h4>
             <table class="table table-hover">
               <thead>
                 <tr>
@@ -329,62 +343,65 @@ n = 9; Was 10 before
                 <tr>
                   <td>D50</td>
                   <td>0.00038</td>
-                  <td> D50 sediment size in [m]. </td>
+                  <td>D50 sediment size in [m]. </td>
                 </tr>
                 <tr>
                   <td>D90</td>
                   <td>0.00053</td>
-                  <td> D90 sediment size in [m]</td>
+                  <td>D90 sediment size in [m].</td>
                 </tr>
                 <tr>
                   <td>rhosed</td>
                   <td>2650.0</td>
-                  <td> Sand density in kg/m3</td>
+                  <td>Sand density in kg/m^3.</td>
                 </tr>
                 <tr>
                   <td>wws</td>
                   <td>0.0509</td>
-                  <td> sand fall velocity (should be calculated) m/s</td>
+                  <td>Sand fall velocity (should be calculated) m/s.</td>
                 </tr>
                 <tr>
-                  <td>drydzmax=1.0, wetdzmax=2.0</td>
-                  <td>1.0, 2.0</td>
-                  <td>Wet/dry max slope in avalanching model</td>
+                  <td>drydzmax</td>
+                  <td>1.0</td>
+                  <td>Dry maximum slope in avalanching model.</td>
+                  <td>wetdzmax</td>
+                  <td>2.0</td>
+                  <td>Wet maximum slope in avalanching model.</td>
                 </tr>
                 <tr>
                   <td>maxslpchg</td>
                   <td>0.01</td>
-                  <td>max change within a step to avoid avalanching tsunami</td>
+                  <td>Maximum change within a step to avoid avalanching tsunami.</td>
                 </tr>
                 <tr>
                   <td>por</td>
                   <td>0.4</td>
-                  <td>sand porosity (%)</td>
+                  <td>Sand porosity (%).</td>
                 </tr>
                 <tr>
                   <td>morfac</td>
                   <td>1.0</td>
-                  <td> morphological factor 0 no changes in morphology 1 normal changes in morpho >1 accelerated morphological changes (beware this doesn't accelerate the bnd you have to do this manually)</td>
+                  <td>Morphological factor 0 no changes in morphology 1 normal changes in morpho >1 accelerated morphological changes (beware this doesn't accelerate the bnd you have to do this manually).</td>
                 </tr>
                 <tr>
                   <td>sus</td>
                   <td>1.0</td>
-                  <td>calibration coeff for suspended load</td>
+                  <td>Calibration coefficient for suspended load.</td>
                 </tr>
                 <tr>
                   <td>bed</td>
                   <td>1.0</td>
-                  <td>calibration coeff for bed load</td>
+                  <td>Calibration coefficient for bed load.</td>
                 </tr>
                 <tr>
                   <td>facsk</td>
                   <td>0.2</td>
-                  <td>calibration factor for wave skewness </td>
+                  <td>Calibration factor for wave skewness.</td>
                 </tr>
                 <tr>
                   <td>facas</td>
                   <td>0.2</td>
-                  <td>calibration factor for wave asymetry</td>
+                  <td>Calibration factor for wave asymmetry.</td>
                 </tr>
 
               </tbody>
@@ -401,49 +418,54 @@ n = 9; Was 10 before
               </thead>
               <tbody>
                 <tr>
-                  <td>bathy, depfile</td>
-                  <td>[]</td>
-                  <td> Bathymetry file, positive down [m]. See details below </td>
+                  <td>bathy</td>
+                  <td>""</td>
+                  <td>Bathymetry file, positive down [m]. See details below.</td>
+                </tr>
+                <tr>
+                  <td>depfile</td>
+                  <td>""</td>
+                  <td>Bathymetry file, positive down [m]. See details below.</td>
                 </tr>
                 <tr>
                   <td>wavebndfile</td>
-                  <td>[]</td>
-                  <td> Filename of the wave boundary file. See below for details </td>
+                  <td>""</td>
+                  <td>Filename of the wave boundary file. See below for details.</td>
                 </tr>
                 <tr>
                   <td>SedThkfile</td>
-                  <td>[]</td>
-                  <td> Sediment thickness file. Same format as the bathymetry file but with sediment layer thickness values in m</td>
+                  <td>""</td>
+                  <td>Sediment thickness file. Same format as the bathymetry file but with sediment layer thickness values in m.</td>
                 </tr>
                 <tr>
                   <td>slbndfile</td>
-                  <td>[]</td>
-                  <td> Sea level boundary file (see below for details)</td>
+                  <td>""</td>
+                  <td>Sea level boundary file (see below for details).</td>
                 </tr>
                 <tr>
                   <td>windbndfile</td>
-                  <td>[]</td>
-                  <td> Wind boundary file (see below for details)</td>
+                  <td>""</td>
+                  <td>Wind boundary file (see below for details).</td>
                 </tr>
                 <tr>
                   <td>outfile</td>
-                  <td>[]</td>
-                  <td> Netcdf output file name for area serie output</td>
+                  <td>XBGPU_output.nc</td>
+                  <td>Netcdf output file name for area series output.</td>
                 </tr>
                 <tr>
                   <td>TSOfile</td>
-                  <td>[]</td>
-                  <td> Output txt file name for Time serie output of a single location. There can be as many TSOfile as specific location to output. With this option you will output zs and H at every step in the model </td>
+                  <td>""</td>
+                  <td>Output txt file name for Time series output of a single location. There can be as many TSOfile as specific location to output. With this option you will output zs and H at every step in the model.</td>
                 </tr>
                 <tr>
                   <td>TSnode</td>
                   <td>x,y</td>
-                  <td> Location in nodes for extracting a time series. You need as many TSnode=x,y (x and y should be integers smaller than nx and ny respectively) as you have TSOfile=myfile.txt</td>
+                  <td>Location in nodes for extracting a time series. You need as many TSnode=x,y (x and y should be integers smaller than nx and ny respectively) as you have TSOfile=myfile.txt</td>
                 </tr>
                 <tr>
                   <td>outvars</td>
-                  <td> "zb", "zs", "uu", "vv", "H", "thetamean", "D", "urms", "ueu", "vev", "C", "dzb", "Fx", "Fy", "hh", "Hmean", "uumean", "vvmean", "hhmean", "zsmean", "Cmean" </td>
-                  <td> Name of output variables. See below for the full list. Any number of variable can be selected. You can specify the same varibale twice but you would be a fool. specifying an empty lits will revert back to default. outvars may be specifyed multiple time in the param file to add more variable and keep the file clean</td>
+                  <td>"zb", "zs", "uu", "vv", "H", "thetamean", "D", "urms", "ueu", "vev", "C", "dzb", "Fx", "Fy", "hh", "Hmean", "uumean", "vvmean", "hhmean", "zsmean", "Cmean", "ueumean", "vevmean" </td>
+                  <td>Name of output variables. See below for the full list. Any number of variable can be selected. You can specify the same variable twice but you would be a fool. Specifying an empty lits will revert back to default. outvars may be specified multiple time in the param file to add more variable and keep the file clean.</td>
                 </tr>
               </tbody>
             </table>
@@ -460,28 +482,28 @@ n = 9; Was 10 before
                 <tr>
                   <td>CFL</td>
                   <td>0.7</td>
-                  <td> CFL value used to calculate the model timestep. If the model becomes unstable use a smaller value. </td>
+                  <td>CFL value used to calculate the model timestep. If the model becomes unstable use a smaller value.</td>
                 </tr>
                 <tr>
                   <td>endtime</td>
                   <td>0.0</td>
-                  <td> Model end timein s (start time is 0.0). Default value will find the shortest time in boundary input. </td>
+                  <td>Model end time in seconds (start time is 0.0). Default value will find the shortest time in boundary input.</td>
                 </tr>
                 <tr>
                   <td>outputtimestep</td>
                   <td>0.0</td>
-                  <td> Output time step in seconds. If 0.0s then no output is produced. </td>
+                  <td>Output time step in seconds. If 0.0s then no output is produced.</td>
                 </tr>
                 <tr>
                   <td>sedstart</td>
                   <td>3600.0</td>
-                  <td> Delay start for sediment transport (seconds) to allow hydrodynamics warm up. </td>
+                  <td>Delay start for sediment transport (seconds) to allow hydrodynamics warm up.</td>
                 </tr>
               </tbody>
             </table>
 
             <h3>Wave boundary variables</h3>
-            <p>There are 4 different type of wave boundary input. For type 4 (and 5) teh wave groups are internally generated. The wave goup and Low frequency bpound wave generation can be controlled with some of the parameters below. </p>
+            <p>There are 4 different type of wave boundary input. For type 4 (and 5) the wave groups are internally generated. The wave goup and Low frequency bpound wave generation can be controlled with some of the parameters below.</p>
             <table class="table table-hover">
               <thead>
                 <tr>
@@ -494,37 +516,37 @@ n = 9; Was 10 before
                 <tr>
                   <td>wavebndtype</td>
                   <td>2</td>
-                  <td> Wave boundary type [1, 2, 3, 4, or 5]. See below for details </td>
+                  <td>Wave boundary type [1, 2, 3, 4, or 5]. See below for details.</td>
                 </tr>
                 <tr>
                   <td>dtbc</td>
                   <td>1.0</td>
-                  <td> time step for wave group forcing (generation  and reading). Only used for wavebndtype 2, 4 and 5. Automatic for wavebndtype=3</td>
+                  <td>Time step for wave group forcing (generation and reading). Only used for wavebndtype 2, 4 and 5. Automatic for wavebndtype=3.</td>
                 </tr>
                 <tr>
                   <td>sprdthr</td>
                   <td>0.8</td>
-                  <td> Threshold cut off for spectral sample in boundary generation (in % of peak energy). </td>
+                  <td>Threshold cut off for spectral sample in boundary generation (in % of peak energy).</td>
                 </tr>
                 <tr>
                   <td>rtlength</td>
                   <td>3600.0</td>
-                  <td> duration of wave group chunks (seconds) . </td>
+                  <td>Duration of wave group chunks (seconds).</td>
                 </tr>
                 <tr>
                   <td>random</td>
-                  <td>0.0</td>
-                  <td> switch for resetting random sampling. ) means the random sample will be the same evry run . 1 mean the sample is different at evry run . </td>
+                  <td>0</td>
+                  <td>Switch for resetting random sampling. 0 means the random sample will be the same every run. 1 mean the sample is different at evry run.</td>
                 </tr>
                 <tr>
                   <td>nmax</td>
                   <td>0.8</td>
-                  <td> Factor to reduce long wave variance in shallow water.  </td>
+                  <td>Factor to reduce long wave variance in shallow water.</td>
                 </tr>
                 <tr>
                   <td>fcutoff</td>
                   <td>0.0</td>
-                  <td>Low-freq cutoff frequency. </td>
+                  <td>Low-freq cutoff frequency.</td>
                 </tr>
               </tbody>
             </table>
@@ -551,17 +573,17 @@ n = 9; Was 10 before
               <tbody>
                 <tr>
                   <td>1</td>
-                  <td>Constant wave boundary (no wave group)</td>
+                  <td>Constant wave boundary (no wave group).</td>
 
                 </tr>
                 <tr>
                   <td>2</td>
-                  <td>Reuse XBeach boundary files, this requires several specific input file</td>
+                  <td>Reuse XBeach boundary files, this requires several specific input file.</td>
 
                 </tr>
                 <tr>
                   <td>3</td>
-                  <td>Reuse XBGPU boundary. Similar to XBeach but in netcdf format and all self explanatory</td>
+                  <td>Reuse XBGPU boundary. Similar to XBeach but in netcdf format and all self explanatory.</td>
 
                 </tr>
                 <tr >
@@ -571,7 +593,7 @@ n = 9; Was 10 before
                 </tr>
                 <tr class="danger">
                   <td>5</td>
-                  <td>Generate wave group from an input spectrum. (Not fully tested)</td>
+                  <td>Generate wave group from an input spectrum (not fully tested).</td>
 
                 </tr>
               </tbody>
@@ -593,7 +615,7 @@ n = 9; Was 10 before
                 <p>Header speciying: thetamin, thetamax, dtheta, dtbc, rtlength</p>
               </li>
               <li>
-                <p>a time serie with each line containing : time, Trep, qfile, Efile</p>
+                <p>a time series with each line containing : time, Trep, qfile, Efile</p>
               </li>
             </ul>
             <pre><code>
@@ -625,7 +647,7 @@ n = 9; Was 10 before
             </code></pre>
             <p>If no sea level files are specified teh water level will be set to 0.0 throughout the duration of the model.</p>
             <h2>Wind boundary</h2>
-            <p>Wind is applied uniformly accross the grid. By default no wind is applied but the user can specify a file wich contains a time series fo time (s) speed (m/s) and direction(degree true North). The wind direction is automatically corrected to the angle of the grid. The time series can be tab delimited, space delimited or comma delimited. Simply make sure it is consistent. The time vector needs to be monotonically increasing but the time step can be variable (but >0.0). See the example below.</p>
+            <p>Wind is applied uniformly accross the grid. By default no wind is applied but the user can specify a file which contains a time series fo time (s) speed (m/s) and direction (degree true North). The wind direction is automatically corrected to the angle of the grid. The time series can be tab delimited, space delimited or comma delimited. Simply make sure it is consistent. The time vector needs to be monotonically increasing but the time step can be variable (but >0.0). See the example below.</p>
             <pre><code>
 # Wind boundary example
 0.0,5.0,250.0
@@ -646,33 +668,33 @@ n = 9; Was 10 before
             <h1>Output</h1>
             <p>XBGPU is capable of producing 4 types of outputs:</p>
             <ul>
-              <li><strong>Log file</strong> is systematically created as soon as you start the software. The log file contains information generated when the model is setup and as teh model runs. It is teh first place to look if the model terminate unexpectidely</li>
-              <li><strong>Gridded variable </strong> extrated at selected setps and stored in a netcdf variable (see below)</li>
-              <li><strong>Variable timeseries</strong> from selected point(s) output extracted at every model step and stored in a txt file (see below)</li>
+              <li><strong>Log file</strong> is systematically created as soon as you start the software. The log file contains information generated when the model is setup and as the model runs. It is the first place to look if the model terminate unexpectedly.</li>
+              <li><strong>Gridded variable </strong> extrated at selected setps and stored in a netcdf variable (see below).</li>
+              <li><strong>Variable timeseries</strong> from selected point(s) output extracted at every model step and stored in a txt file (see below).</li>
               <li><strong>Reusable boundary in Netcdf format</strong> When generating a wave goups and long bound waves from a JONSWAP spectra or an given spectra. XBGPU porduces a Netcdf output containin all the information necessary to rerun the model using the same wave group. This is usefull when the wave group take a long time to generate.</li>
             </ul>
             <h2>Gridded variables</h2>
             <p>gridded variables can be extracted from the model at regular time interval.</p>
             <ul>
-              <li><code>outputtimestep = 3600.000000;</code> controls the interval between output of the gridded variables. </li>
-              <li><code>outfile = XBGPU_output.nc;</code> controls the name of the Netcdf file that will contain the gridded variables. The file cannot be overwritten by XBGPU so data is appended to the file if it already exits. </li>
-              <li><code>outvars = H,uu,vv,zs,zb</code> controls which gridded variable will be saved (See below). </li>
+              <li><code>outputtimestep = 3600.000000;</code> controls the interval between output of the gridded variables.</li>
+              <li><code>outfile = XBGPU_output.nc;</code> controls the name of the Netcdf file that will contain the gridded variables. The file cannot be overwritten by XBGPU so data is appended to the file if it already exits.</li>
+              <li><code>outvars = H,uu,vv,zs,zb</code> controls which gridded variable will be saved (See below).</li>
             </ul>
             <h3>Output Variables list</h3>
             <ul>
             <li><p><strong> zb</strong>: Bathymetry, [m] positive down</p></li>
 
-          	<li><p><strong> uu</strong>: U velocity [m/s] at u-point of the cell. </p></li>
+          	<li><p><strong> uu</strong>: U velocity [m/s] at u-point of the cell</p></li>
 
-          	<li><p><strong> vv</strong>: V velocity [m/s] at v-point of the cell.</p></li>
+          	<li><p><strong> vv</strong>: V velocity [m/s] at v-point of the cell</p></li>
 
-          	<li><p><strong> zs</strong>: Water level above datum [m].</p></li>
+          	<li><p><strong> zs</strong>: Water level above datum [m]</p></li>
 
           	<li><p><strong> hh</strong>: Water depth [m]</p></li>
 
           	<li><p><strong> H</strong>: RMS wave height [m]</p></li>
 
-          	<li><p><strong> thetamean</strong>: Mean wave direction [Deg to, math convention, 0 is perpendicular to the offshore boundary traveling to the shore ] </p></li>
+          	<li><p><strong> thetamean</strong>: Mean wave direction [Deg to, math convention, 0 is perpendicular to the offshore boundary traveling to the shore]</p></li>
 
           	<li><p><strong> ee</strong>: Wave energy []</p></li>
 
