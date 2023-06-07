@@ -1,0 +1,94 @@
+################################################################################
+### XBGPU parameter settings input file                                      ###
+### Note: for binary parameters such as GPUDEVICE & flow, 1=YES, 0=NO        ###
+################################################################################
+
+### General Parameters #########################################################
+GPUDEVICE            = 0
+dx                   = 5.0
+flow                 = 1
+grdalfa              = 33.0
+morphology           = 0
+nx                   = 193
+ny                   = 257
+sedtrans             = 0
+swave                = 1
+
+### Flow Parameters ############################################################
+Cd                   = 0.002
+cf                   = 0.01
+cfreef               = 0.01
+cfsand               = 0.01
+eps                  = 0.01
+fc                   = 0.0
+g                    = 9.81
+hwci                 = 0.1
+lat                  = 0.0
+nuh                  = 0.5
+nuhfac               = 0
+rho                  = 1025.0
+smag                 = 0.3
+usesmago             = 0
+wci                  = 0
+
+### Wave Parameters ############################################################
+alpha                = 1
+beta                 = 0.1
+breakmodel           = 1
+dtheta               = 10.0
+fw                   = 0.001
+fwreef               = 0.001
+fwsand               = 0.001
+gamma                = 0.55
+gammax               = 1.0
+n                    = 10
+ntheta               = 1
+roller               = 1
+thetamax             = 80
+thetamin             = -80
+
+### Sediment Parameters ########################################################
+D50                  = 0.00038
+D90                  = 0.00053
+bed                  = 1.0
+drydzmax             = 1.0
+facas                = 0.2
+facsk                = 0.2
+maxslpchg            = 0.01
+morfac               = 0.0
+por                  = 0.4
+rhosed               = 2650.0
+sus                  = 1.0
+wetdzmax             = 2.0
+wws                  = 0.0509
+
+### Files ######################################################################
+SedThkfile           = 
+TSOfile              = 
+TSnode               = 
+bathy                = 
+depfile              = DoT_2009Lidar_Crop_MGAz50_mAHD.z
+outfile              = outputs/xboutput.nc
+slbndfile            = zs0input.txt
+wavebndfile          = jonswap1-xbg.inp
+windbndfile          = 
+
+### Time Keeping ###############################################################
+CFL                  = 0.8
+endtime              = 820800
+outputtimestep       = 3600.0
+sedstart             = 3600.0
+
+### Wave boundary variables ####################################################
+dtbc                 = 1.0
+fcutoff              = 0.0
+nmax                 = 0.8
+random               = 1
+rtlength             = 3600.0
+sprdthr              = 0.8
+wavebndtype          = 2
+
+### Output variables ###########################################################
+outvars              = D,E,H,Hmean,hh,k,thetamean,urms,zb,zs
+
+# ** Generated from data/example-XBeach-params.txt by convert_xbeach_params.py **

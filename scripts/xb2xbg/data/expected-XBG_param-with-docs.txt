@@ -1,0 +1,246 @@
+################################################################################
+### XBGPU parameter settings input file                                      ###
+### Note: for binary parameters such as GPUDEVICE & flow, 1=YES, 0=NO        ###
+################################################################################
+
+### General Parameters #########################################################
+
+# What GPU device to use default is the firt one availabe (i.e. 0) and 1 for second GPU etc... (default: 0)
+GPUDEVICE            = 0
+
+# Bathymetry grid resolution. Only required when using XBeach style bathymetry need to be >0.0. Will be overwritten when using .md or .nc bathy input. (default: 0.0)
+dx                   = 5.0
+
+# Switch to use the coupled hydrodynamics model. (default: 1)
+flow                 = 1
+
+# Bathymetry grid rotation. Only required when using XBeach style bathymetry or netcdf. Will be overwritten when using .md bathy input and can be included in the netcdf file explicitly. (default: 0.0)
+grdalfa              = 33.0
+
+# Switch to run the morphology modeule to apply the sediment source and sink to the bathymetry. (default: 0)
+morphology           = 0
+
+# Bathymetry grid size (columns). Only required when using XBeach style bathymetry. Will be overwritten when using .md or .nc bathy input. (default: 0)
+nx                   = 193
+
+# Bathymetry grid size (rows). Only required when using XBeach style bathymetry. Will be overwritten when using .md or .nc bathy input. (default: 0)
+ny                   = 257
+
+# Switch to run the sediment transport module. (default: 0)
+sedtrans             = 0
+
+# Switch for using the short wave model. The wave group modulation comes from the wave boundary. (default: 1)
+swave                = 1
+
+### Flow Parameters ############################################################
+
+# Wind drag coefficient. (default: 0.002)
+Cd                   = 0.002
+
+# Bottom friction (Chezy formulation). A specific value can be given to sand (cfsand) or reef (cfreef). (default: 0.01)
+cf                   = 0.01
+
+# Bottom friction (Chezy formulation), specific to reef. The location of outcropping reef is determined with the sediment thickness file and updated at every Morphology step. (default: 0.01)
+cfreef               = 0.01
+
+# Bottom friction (Chezy formulation), specific to sand. (default: 0.01)
+cfsand               = 0.01
+
+# Drying height [m]. (default: 0.01)
+eps                  = 0.01
+
+# Coriolis force. Automatically calculated for earth when setting up lat. (default: 0.0)
+fc                   = 0.0
+
+# Acceleration of gravity [m/s^2]. For Mars use 3.71m/s^2. (default: 9.81)
+g                    = 9.81
+
+# Minimum depth for wave current interaction (wci), i.e. no wci in water depth shallower than this. (default: 0.1)
+hwci                 = 0.1
+
+# Latitude of the grid. (default: 0.0)
+lat                  = 0.0
+
+# Eddy viscosity [m2/s] (default: 1.0)
+nuh                  = 0.5
+
+# Viscosity coefficient for roller induced turbulent horizontal viscosity [0 - 1]. (default: 1.0)
+nuhfac               = 0
+
+# Density of Water in kg/m^3. For rum use 940.0 kg/m^3. (default: 1025.0)
+rho                  = 1025.0
+
+# Smagorinsky coefficient, only used if usesmago = 1. (default: 0.3)
+smag                 = 0.3
+
+# Uses Smagorynsky formulation to calculate viscosity 0: No 1: Yes. (default: 1)
+usesmago             = 0
+
+# Wave current interaction (0: no; 1: yes, 0.1-0.9: when model is not stable). (default: 0.0)
+wci                  = 0
+
+### Wave Parameters ############################################################
+
+# Calibration factor for wave dissipation (should be 1.0). (default: 1.0)
+alpha                = 1
+
+# Roller slope dissipation parameter. (default: 0.15)
+beta                 = 0.1
+
+# Wave dissipation model 1: Roelvink 2: Baldock. use 1 for unsteady runs (i.e. with wave group) and use 2 when not forcing wave group. (default: 1)
+breakmodel           = 1
+
+# Directional space resolution [degrees]. Value calculated from ntheta. If specified ntheta will be calculated from dtheta instead. (default: ?)
+dtheta               = 10.0
+
+# Wave bottom dissipation parameter. A specific value can be given to sand (fwsand) or reef (fwreef). (default: 0.001)
+fw                   = 0.001
+
+# Wave bottom dissipation parameter, specific to reef. The location of outcropping reef is determined with the sediment thickness file and updated at every Morphology step. (default: 0.001)
+fwreef               = 0.001
+
+# Wave bottom dissipation parameter, specific to sand. (default: 0.001)
+fwsand               = 0.001
+
+# Wave breaking gamma parameter. (default: 0.6)
+gamma                = 0.55
+
+# Maximum ratio Hrms/hh. (default: 2.0)
+gammax               = 1.0
+
+# Exponential in Roelvink breaking model. (default: 8.0)
+n                    = 10
+
+# Number of directional bins. If ntheta is not specified but dtheta is specified by the user then ntheta will be calculated from dtheta. This is only required when using wave boundary type 1, 4 and 5. (default: 1)
+ntheta               = 1
+
+# Switch for roller model. (default: 1)
+roller               = 1
+
+# Maximum value for directional space in the wave model. This is only required when using wave boundary type 1, 4 and 5. (default: 90)
+thetamax             = 80
+
+# Minimum value for directional space in the wave model. This is only required when using wave boundary type 1, 4 and 5. (default: -90)
+thetamin             = -80
+
+### Sediment Parameters ########################################################
+
+# D50 sediment size in [m]. (default: 0.00038)
+D50                  = 0.00038
+
+# D90 sediment size in [m]. (default: 0.00053)
+D90                  = 0.00053
+
+# Calibration coefficient for bed load. (default: 1.0)
+bed                  = 1.0
+
+# Dry maximum slope in avalanching model. (default: 1.0)
+drydzmax             = 1.0
+
+# Calibration factor for wave asymmetry. (default: 0.2)
+facas                = 0.2
+
+# Calibration factor for wave skewness. (default: 0.2)
+facsk                = 0.2
+
+# Maximum change within a step to avoid avalanching tsunami. (default: 0.01)
+maxslpchg            = 0.01
+
+# Morphological factor 0 no changes in morphology 1 normal changes in morpho >1 accelerated morphological changes (beware this doesn't accelerate the bnd you have to do this manually). (default: 1.0)
+morfac               = 0.0
+
+# Sand porosity (%). (default: 0.4)
+por                  = 0.4
+
+# Sand density in kg/m^3. (default: 2650.0)
+rhosed               = 2650.0
+
+# Calibration coefficient for suspended load. (default: 1.0)
+sus                  = 1.0
+
+# Wet maximum slope in avalanching model. (default: 2.0)
+wetdzmax             = 2.0
+
+# Sand fall velocity (should be calculated) m/s. (default: 0.0509)
+wws                  = 0.0509
+
+### Files ######################################################################
+
+# Sediment thickness file. Same format as the bathymetry file but with sediment layer thickness values in m. (default: ?)
+SedThkfile           = 
+
+# Output txt file name for Time series output of a single location. There can be as many TSOfile as specific location to output. With this option you will output zs and H at every step in the model. (default: ?)
+TSOfile              = 
+
+# Location in nodes for extracting a time series. You need as many TSnode=x,y (x and y should be integers smaller than nx and ny respectively) as you have TSOfile=myfile.txt (default: ?)
+TSnode               = 
+
+# Bathymetry file, positive down [m]. See details below. (default: ?)
+bathy                = 
+
+# Bathymetry file, positive down [m]. See details below. (default: ?)
+depfile              = DoT_2009Lidar_Crop_MGAz50_mAHD.z
+
+# Netcdf output file name for area series output. (default: ?)
+outfile              = outputs/xboutput.nc
+
+# Sea level boundary file (see below for details). (default: ?)
+slbndfile            = zs0input.txt
+
+# Filename of the wave boundary file. See below for details. (default: ?)
+wavebndfile          = jonswap1-xbg.inp
+
+# Wind boundary file (see below for details). (default: ?)
+windbndfile          = 
+
+### Time Keeping ###############################################################
+
+# CFL value used to calculate the model timestep. If the model becomes unstable use a smaller value. (default: 0.7)
+CFL                  = 0.8
+
+# Model end time in seconds (start time is 0.0). Default value will find the shortest time in boundary input. (default: 0.0)
+endtime              = 820800
+
+# Output time step in seconds. If 0.0s then no output is produced. (default: 0.0)
+outputtimestep       = 3600.0
+
+# Delay start for sediment transport (seconds) to allow hydrodynamics warm up. (default: 3600.0)
+sedstart             = 3600.0
+
+### Wave boundary variables ####################################################
+
+# Time step for wave group forcing (generation and reading). Only used for wavebndtype 2, 4 and 5. Automatic for wavebndtype=3. (default: 1.0)
+dtbc                 = 1.0
+
+# Low-freq cutoff frequency. (default: 0.0)
+fcutoff              = 0.0
+
+# Factor to reduce long wave variance in shallow water. (default: 0.8)
+nmax                 = 0.8
+
+# Switch for resetting random sampling. 0 means the random sample will be the same every run. 1 mean the sample is different at evry run. (default: 0)
+random               = 1
+
+# Duration of wave group chunks (seconds). (default: 3600.0)
+rtlength             = 3600.0
+
+# Threshold cut off for spectral sample in boundary generation (in % of peak energy). (default: 0.8)
+sprdthr              = 0.8
+
+# Wave boundary type [1, 2, 3, 4, or 5]. See below for details. (default: 2)
+wavebndtype          = 2
+
+### Output variables ###########################################################
+# D:  Wave energy dissipation rate
+# E:  Wave energy integrated over directional bins []
+# H:  RMS wave height [m]
+# Hmean:  Mean RMS wave height since last output [m]
+# hh:  Water depth [m]
+# k:  Wave number [rad/m]
+# thetamean:  Mean wave direction [Deg to, math convention, 0 is perpendicular to the offshore boundary traveling to the shore]
+# urms:  RMS bottom orbital velocity [m/s]
+# zb:  Bathymetry, [m] positive down
+# zs:  Water level above datum [m]
+outvars              = D,E,H,Hmean,hh,k,thetamean,urms,zb,zs
+
+# ** Generated from data/example-XBeach-params.txt by convert_xbeach_params.py **
