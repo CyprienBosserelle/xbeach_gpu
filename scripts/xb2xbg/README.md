@@ -39,9 +39,11 @@ Python script to convert XBeach parameter files for use with XBeach-GPU. It can 
 
     python convert_xbeach_params.py --xb-params-path=data/example-XBeach-params.txt
 
-    python convert_xbeach_params.py --xb-params-path=example-XBeach-params.txt --xbg-params-root=xbg-params-out-dir  # . is the default directory to which XBG_param.txt is written
+    python convert_xbeach_params.py --xb-params-path=data/example-XBeach-params.txt \
+    --xbg-params-root=xbg-params-out-dir  # . is the default directory to which XBG_param.txt is written
 
-    python convert_xbeach_params.py --xb-params-path=data/example-XBeach-params.txt --gen-defaults  # default XBG parameters will be generated instead of those converted from XB
+    python convert_xbeach_params.py --xb-params-path=data/example-XBeach-params.txt \
+    --gen-defaults  # default XBG parameters will be generated instead of those converted from XB
 
     python convert_xbeach_params.py --xb-params-path=data/example-XBeach-params.txt --verbose
 
@@ -49,7 +51,8 @@ Python script to convert XBeach parameter files for use with XBeach-GPU. It can 
 
     python convert_xbeach_params.py --xb-params-path=data/example-XBeach-params.txt --verbose --use-all-known-output-variables
 
-    python convert_xbeach_params.py --xb-params-path=data/example-XBeach-params.txt --directional-spread-coefficient=300--verbose  # directional spread coefficient for use in jonswap file conversion defaults to 400
+    python convert_xbeach_params.py --xb-params-path=data/example-XBeach-params.txt 
+    \--directional-spread-coefficient=300--verbose  # directional spread coefficient for use in jonswap file conversion defaults to 400
 
 #### Run Unit Tests
 

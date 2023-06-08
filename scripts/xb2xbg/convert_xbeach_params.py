@@ -2,18 +2,6 @@
 Convert XBeach params.txt file to XBG_param.txt
 
 Assumes Python 3.6 or higher and param library (see requirements.txt)
-
-TODO:
-- TSnode
-- bathymetry file names, e.g. *.txt => *.bot or *.dep
-- any params in read_input.cpp line 1158 not in docs? (nspr, riverloc)
-- look at XB_log.txt to see what XB does with parameters if in doubt
-- change Any types in type hints to Union
-- check what's permitted in UT data when in software collection
-- change to Args and Returns in function doc strings
-- Instead of the user supplying directional_spread_coefficient, can we
-  simply convert XBeach's value, e.g. 10 to 400?
-- jonswap conversion UT
 """
 
 import argparse
