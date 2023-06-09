@@ -44,7 +44,8 @@ Python script to convert XBeach parameter files for use with XBeach-GPU. It can 
     python convert_xbeach_params.py --xb-params-path=data/example-XBeach-params.txt --verbose
 
     # also add docs per parameter and output variable where they exist
-    python convert_xbeach_params.py --xb-params-path=data/example-XBeach-params.txt --verbose       --gen-doc
+    python convert_xbeach_params.py --xb-params-path=data/example-XBeach-params.txt --verbose
+    --gen-doc
 
     # XB input files will have "data" prepended to what is found in XB parameters file
     # and XBG output files (XBG parameters, jonswap) will go into the data directory
