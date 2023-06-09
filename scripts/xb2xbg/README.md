@@ -2,7 +2,6 @@
 Python script to convert XBeach parameter files for use with XBeach-GPU. It can also be used to generate default XBeach-GPU parameters.
 
 #### Usage
-    python convert_xbeach_params.py --help
     usage: convert_xbeach_params.py [-h] [--xb-params-path XB_PARAMS_PATH]
                                     [--xb-file-root XB_FILE_ROOT]
                                     [--xbg-params-root XBG_PARAMS_ROOT]
@@ -18,10 +17,10 @@ Python script to convert XBeach parameter files for use with XBeach-GPU. It can 
     --xb-params-path XB_PARAMS_PATH, -b XB_PARAMS_PATH
                             XB params input file path
     --xb-file-root XB_FILE_ROOT, -r XB_FILE_ROOT
-                            XB input file (e.g. bcfile) root. We want to allow XB
-                            params and input file paths to vary; if specified,
-                            will apply to all input files within a XB parameters
-                            file.
+                            XB input file (e.g. bcfile) root. We allow XB
+                            parameter file location and input file locations to
+                            vary; if specified, will apply to all input files
+                            within XB parameters file.
     --xbg-params-root XBG_PARAMS_ROOT, -p XBG_PARAMS_ROOT
                             XBG params output file root
     --xbg-user-manual XBG_USER_MANUAL, -m XBG_USER_MANUAL
@@ -33,7 +32,8 @@ Python script to convert XBeach parameter files for use with XBeach-GPU. It can 
                             overrides --xb-params)
     --verbose, -v         Verbose output mode
     --use-all-known-output-variables, -u
-                            Allow all known XBG output variables to be used
+                            Allow all known XBG output variables to be used,
+                            irrespective of uncertainty of relationship to XB
 
 #### Example Invocations
 
