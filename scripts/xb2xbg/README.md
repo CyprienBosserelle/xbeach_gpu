@@ -37,25 +37,38 @@ Python script to convert XBeach parameter files for use with XBeach-GPU. It can 
 
 #### Example Invocations
 
+    # convert XB parameters, generating XBG_params.txt
     python convert_xbeach_params.py --xb-params-path=data/example-XBeach-params.txt
 
-    python convert_xbeach_params.py --xb-params-path=data/example-XBeach-params.txt \
-    --xbg-params-root=xbg-params-out-dir  # . is the default directory to which XBG_param.txt is written
-
-    python convert_xbeach_params.py --xb-params-path=data/example-XBeach-params.txt \
-    --gen-defaults  # default XBG parameters will be generated instead of those converted from XB
-
+    # as above, but with verbose output
     python convert_xbeach_params.py --xb-params-path=data/example-XBeach-params.txt --verbose
 
-    python convert_xbeach_params.py --xb-params-path=data/example-XBeach-params.txt --verbose --gen-doc
+    # also add docs per parameter and output variable where they exist
+    python convert_xbeach_params.py --xb-params-path=data/example-XBeach-params.txt --verbose       --gen-doc
 
-    python convert_xbeach_params.py --xb-params-path=data/example-XBeach-params.txt --verbose --use-all-known-output-variables
+    # XB input files will have "data" prepended to what is found in XB parameters file
+    # and XBG output files (XBG parameters, jonswap) will go into the data directory
+    python convert_xbeach_params.py --xb-params-path=data/example-XBeach-params.txt
+    --xbg-params-root=data --xbg-params-root=data
 
-    python convert_xbeach_params.py --xb-params-path=data/example-XBeach-params.txt 
-    \--directional-spread-coefficient=300--verbose  # directional spread coefficient for use in jonswap file conversion defaults to 400
+    # default XBG parameters will be generated instead of those values that would normally
+    # be converted from XB
+    python convert_xbeach_params.py --xb-params-path=data/example-XBeach-params.txt
+    --gen-defaults
+
+    # directional spread coefficient for use in jonswap file conversion; defaults to 400
+    python convert_xbeach_params.py --xb-params-path=data/example-XBeach-params.txt
+    --directional-spread-coefficient=300 --verbose
+
+    # any output variables in XBG where there is some uncertainty re: relationship to XB
+    # will be generated anyway; use with caution
+    python convert_xbeach_params.py --xb-params-path=data/example-XBeach-params.txt --verbose
+    --use-all-known-output-variables
 
 #### Run Unit Tests
 
     pytest -v --disable-warnings
+
+or
 
     nosetests -v

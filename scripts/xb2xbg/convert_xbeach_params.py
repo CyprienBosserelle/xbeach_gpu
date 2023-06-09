@@ -657,9 +657,9 @@ def create_arg_parser() -> argparse.ArgumentParser:
                         dest="xb_file_root",
                         default=None,
                         help="XB input file (e.g. bcfile) root. "
-                             "We want to allow XB params and input "
-                             "file paths to vary; if specified, will "
-                             "apply to all input files within a XB parameters file.")
+                             "We allow XB parameter file location and input "
+                             "file locations to vary; if specified, will "
+                             "apply to all input files within XB parameters file.")
     
     parser.add_argument("--xbg-params-root", "-p",
                         dest="xbg_params_root",
@@ -699,7 +699,8 @@ def create_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument("--use-all-known-output-variables", "-u",
                         dest="use_all_known_output_variables",
                         action="store_true",
-                        help="Allow all known XBG output variables to be used")
+                        help="Allow all known XBG output variables to be used, "
+                             "irrespective of uncertainty of relationship to XB")
 
     return parser
 
