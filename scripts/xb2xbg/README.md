@@ -57,5 +57,5 @@ Python script to convert XBeach parameter files for use with XBeach-GPU. It can 
 #### Run Unit Tests
 
     pytest -v --disable-warnings
-or
+
     nosetests -v
