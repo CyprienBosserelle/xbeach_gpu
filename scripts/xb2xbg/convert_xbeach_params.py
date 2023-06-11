@@ -659,7 +659,7 @@ def create_arg_parser() -> argparse.ArgumentParser:
                         help="XB input file (e.g. bcfile) root. "
                              "We allow XB parameter file location and input "
                              "file locations to vary; if specified, will "
-                             "apply to all input files within XB parameters file.")
+                             "apply to all input files within XB parameters file")
     
     parser.add_argument("--xbg-params-root", "-p",
                         dest="xbg_params_root",
