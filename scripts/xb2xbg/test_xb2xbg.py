@@ -1,5 +1,5 @@
 """
-Unit tests for convert_xbeach_params.py
+Unit tests for xb2xbg.py
 
 The core functions responsible for XB & XBG parameter/variable extraction
 and transformation have test cases, using an example XB parameter file
@@ -11,11 +11,11 @@ with confidence.
 
 import os
 
-from convert_xbeach_params import manual_url
-from convert_xbeach_params import extract_xbg_params, ParamObjectBuilder
-from convert_xbeach_params import read_xbeach_params
-from convert_xbeach_params import transform_outvars
-from convert_xbeach_params import ParamTransformer
+from xb2xbg import manual_url
+from xb2xbg import extract_xbg_params, ParamObjectBuilder
+from xb2xbg import read_xbeach_params
+from xb2xbg import transform_outvars
+from xb2xbg import ParamTransformer
 
 # Example XB parameters file name
 EXAMPLE_XB_PARAMS = "example-XBeach-params.txt"
@@ -217,7 +217,3 @@ def full_path_from_filename(filename: str) -> str:
         if filename in files:
             path = os.path.join(root, filename)
     return path
-
-
-if __name__ == "__main__":
-    test_transform_params()
