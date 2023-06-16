@@ -2722,19 +2722,22 @@ int main(int argc, char **argv)
 		//CUDA_CHECK(cudaMemcpy(arrmax, arrmax_g, nx*ny*sizeof(DECNUM), cudaMemcpyDeviceToHost));
 		CUDA_CHECK(cudaMemcpy(arrmin, arrmin_g, nx*ny*sizeof(DECNUM), cudaMemcpyDeviceToHost));
 
-		//CUDA_CHECK(cudaMemcpy(hh, hh_g, nx*ny*sizeof(DECNUM), cudaMemcpyDeviceToHost));
+		CUDA_CHECK(cudaMemcpy(hh, hh_g, nx*ny*sizeof(DECNUM), cudaMemcpyDeviceToHost));
 
-		//float hhmin=hh[0];
+		float hhmin = hh[0];
+		float hhmax = hh[0];
 
-		//for (int ix = 0; ix < nx; ix++)
-		//{
-		//	for (int iy = 0; iy < ny; iy++)
-		//	{
-		//		hhmin = min(hhmin, hh[ix + iy*nx]);
-		//	}
-		//}
+		for (int ix = 0; ix < nx; ix++)
+		{
+			for (int iy = 0; iy < ny; iy++)
+			{
+				hhmin = min(hhmin, hh[ix + iy*nx]);
+				hhmax = max(hhmax, hh[ix + iy * nx]);
+			}
+		}
 
 
+		printf("hmin = %f; hmax = %f;\n,hhmin,hhmax);
 
 		dt = arrmin[0]*0.5;
 
