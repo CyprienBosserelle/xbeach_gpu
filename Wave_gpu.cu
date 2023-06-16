@@ -2737,7 +2737,7 @@ int main(int argc, char **argv)
 		}
 
 
-		printf("hmin = %f; hmax = %f;\n,hhmin,hhmax);
+		printf("hmin = %f; hmax = %f;\n,hhmin,hhmax");
 
 		dt = arrmin[0]*0.5;
 
