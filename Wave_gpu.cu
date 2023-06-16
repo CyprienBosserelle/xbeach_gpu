@@ -2737,7 +2737,7 @@ int main(int argc, char **argv)
 		}
 
 
-		printf("hmin = %f; hmax = %f;\n,hhmin,hhmax");
+		write_text_to_log_file("hmin = " + std::to_string(hhmin) + "; hmax = " + std::to_string(hhmax));
 
 		dt = arrmin[0]*0.5;
 
