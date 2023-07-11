@@ -1674,7 +1674,7 @@ __global__ void continuity(int nx, int ny, DECNUM dx, DECNUM dt, DECNUM eps, DEC
 			dzsdt[i] = dzdt;
 
 
-			zs[i] = zz + dzdt*dt;
+			zs[i] = max(zz + dzdt*dt,zb[1]*-1.0f);
 
 			//hh[i]=max(hh[i]+dzdt*dt,eps);
 		}
@@ -2283,7 +2283,7 @@ __global__ void vv2Ocorr(int nx, int ny, float dx, float dt, DECNUM* vv, DECNUM*
 	}
 }
 
-__global__ void zs2Ocorr(int nx, int ny, float dx, float dt, DECNUM* zs, DECNUM *qx, DECNUM *qy, DECNUM *wrk1, DECNUM*wrk2)
+__global__ void zs2Ocorr(int nx, int ny, float dx, float dt, DECNUM* zs, DECNUM* zb, DECNUM *qx, DECNUM *qy, DECNUM *wrk1, DECNUM*wrk2)
 {
 	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
 	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
@@ -2312,7 +2312,7 @@ __global__ void zs2Ocorr(int nx, int ny, float dx, float dt, DECNUM* zs, DECNUM 
 		unsigned int yplus2 = pplus2(iy, ny);
 		
 
-		zs[i] = zs[i] - dt * ((wrk1[i] - wrk1[xminus+iy*nx]) / dx + (wrk2[i] - wrk2[ix + yminus*nx]) / dx);
+		zs[i] = max(zs[i] - dt * ((wrk1[i] - wrk1[xminus+iy*nx]) / dx + (wrk2[i] - wrk2[ix + yminus*nx]) / dx),zb[i]*-1.0f);
 
 		//Update fluxes although Im not sure if there is a point to do it since Qx and Qy are not used elsewhere 
 		qx[i] = qx[i] + wrk1[i];

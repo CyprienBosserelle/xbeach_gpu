@@ -1397,7 +1397,7 @@ void flowstep(XBGPUParam Param)
 	//
 	// Apply second order correction to zs
 	//
-	zs2Ocorr << <gridDim, blockDim, 0 >> >(nx, ny, Param.dx, Param.dt, zs_g, qx_g, qy_g, viscu_g, viscv_g);
+	zs2Ocorr << <gridDim, blockDim, 0 >> >(nx, ny, Param.dx, Param.dt, zs_g, zb_g, qx_g, qy_g, viscu_g, viscv_g);
 	CUDA_CHECK(cudaDeviceSynchronize());
 
 	//
