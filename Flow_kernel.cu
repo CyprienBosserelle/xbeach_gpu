@@ -1959,7 +1959,7 @@ __global__ void CalcQFlow(int nx, int ny, DECNUM * uu, DECNUM* hu, DECNUM* vv, D
 
 }
 
-__global__ void wrkuu2Ocorr(int nx, int ny, float dx, float dt,float eps, DECNUM* uu, DECNUM* uuold, DECNUM* hum,DECNUM *zs, DECNUM *zb, DECNUM *qx, DECNUM * qy,DECNUM *wrk1, DECNUM*wrk2)
+__global__ void wrkuu2Ocorr(int nx, int ny, float dx, float dt,float hmin2O, DECNUM* uu, DECNUM* uuold, DECNUM* hum,DECNUM *zs, DECNUM *zb, DECNUM *qx, DECNUM * qy,DECNUM *wrk1, DECNUM*wrk2)
 {
 	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
 	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
@@ -1972,7 +1972,7 @@ __global__ void wrkuu2Ocorr(int nx, int ny, float dx, float dt,float eps, DECNUM
 	float delta1, delta2;
 	float mindepth,minzs,minzb;
 
-	float hmin2O = 0.1f;
+	//float hmin2O = 0.1f;
 
 	__shared__ DECNUM uui[16][16];
 	__shared__ DECNUM uoi[16][16];
@@ -2000,7 +2000,7 @@ __global__ void wrkuu2Ocorr(int nx, int ny, float dx, float dt,float eps, DECNUM
 
 		mindepth = minzs + minzb;
 
-		if (ix>0 && mindepth > eps*2.0f)
+		if (ix>0 && mindepth > hmin2O)
 		{
 
 			if ((qx[i] + qx[xminus + iy*nx]) > 0.0f)
@@ -2047,7 +2047,7 @@ __global__ void wrkuu2Ocorr(int nx, int ny, float dx, float dt,float eps, DECNUM
 
 }
 
-__global__ void wrkvv2Ocorr(int nx, int ny, float dx, float dt, float eps, DECNUM* vv, DECNUM* vvold, DECNUM* hvm, DECNUM *zs, DECNUM *zb, DECNUM *qx, DECNUM * qy, DECNUM *wrk1, DECNUM*wrk2)
+__global__ void wrkvv2Ocorr(int nx, int ny, float dx, float dt, float hmin2O, DECNUM* vv, DECNUM* vvold, DECNUM* hvm, DECNUM *zs, DECNUM *zb, DECNUM *qx, DECNUM * qy, DECNUM *wrk1, DECNUM*wrk2)
 {
 	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
 	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
@@ -2062,7 +2062,7 @@ __global__ void wrkvv2Ocorr(int nx, int ny, float dx, float dt, float eps, DECNU
 	__shared__ DECNUM uui[16][16];
 	__shared__ DECNUM uoi[16][16];
 
-	float hmin2O = 0.1f;
+	//float hmin2O = 0.1f;
 
 	if (ix < nx && iy < ny)
 	{
@@ -2083,7 +2083,7 @@ __global__ void wrkvv2Ocorr(int nx, int ny, float dx, float dt, float eps, DECNU
 
 		mindepth = minzs + minzb;
 
-		if (ix>0 && iy>0 && iy <ny-2 && mindepth > eps*2.0f)
+		if (ix>0 && iy>0 && iy <ny-2 && mindepth > hmin2O)
 		{
 
 			if ((qy[i] + qy[ix + yminus*nx]) > 0.0f)
@@ -2131,7 +2131,7 @@ __global__ void wrkvv2Ocorr(int nx, int ny, float dx, float dt, float eps, DECNU
 
 }
 
-__global__ void wrkzs2Ocorr(int nx, int ny, float dx, float dt,float eps, DECNUM* zs, DECNUM* zsold,  DECNUM *uu, DECNUM * vv, DECNUM *zb, DECNUM *wrk1, DECNUM*wrk2)
+__global__ void wrkzs2Ocorr(int nx, int ny, float dx, float dt,float hmin2O, DECNUM* zs, DECNUM* zsold,  DECNUM *uu, DECNUM * vv, DECNUM *zb, DECNUM *wrk1, DECNUM*wrk2)
 {
 	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
 	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
@@ -2146,7 +2146,7 @@ __global__ void wrkzs2Ocorr(int nx, int ny, float dx, float dt,float eps, DECNUM
 	__shared__ DECNUM uui[16][16];
 	__shared__ DECNUM uoi[16][16];
 
-	float hmin2O = 0.1f;
+	//float hmin2O = 0.1f;
 
 	if (ix < nx && iy < ny)
 	{
@@ -2168,7 +2168,7 @@ __global__ void wrkzs2Ocorr(int nx, int ny, float dx, float dt,float eps, DECNUM
 		mindepth = minzs + minzb;
 
 		
-		if (ix>0 && mindepth > eps*2.0f)
+		if (ix>0 && mindepth > hmin2O)
 		{
 			if ((uu[i]) > 0.0f)
 			{
