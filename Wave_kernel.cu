@@ -2209,9 +2209,16 @@ __global__ void wavforce(int nx, int ny, int ntheta, DECNUM dx, DECNUM dtheta, D
 		//}
 
 
-		Fx[i] = FFx[tx][ty];
+		// Taper F in very shallow water
+		DECNUM fac = 1.0f;
 
-		Fy[i] = FFy[tx][ty];
+		DECNUM hmin = 0.1f;
+
+		fac = max(min(hh[i] / hmin - 0.01f, 1.0f), 0.0f);
+
+		Fx[i] = FFx[tx][ty]*fac;
+
+		Fy[i] = FFy[tx][ty]*fac;
 	}
 
 
