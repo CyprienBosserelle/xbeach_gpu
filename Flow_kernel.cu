@@ -1538,7 +1538,7 @@ __global__ void eulerustep(int nx, int ny, DECNUM dx, DECNUM dt, DECNUM g, DECNU
 		}
 		if (ix > 0)
 		{
-			uu[i] = uui[tx][ty];
+			uu[i] = min(uui[tx][ty],16.0f);
 
 		}
 	}
@@ -1594,7 +1594,7 @@ __global__ void eulervstep(int nx, int ny, DECNUM dx, DECNUM dt, DECNUM g, DECNU
 		}
 		if (ix > 0)// && iy>0 && iy<ny)
 		{
-			vv[i] = vvi[tx][ty];
+			vv[i] = min(vvi[tx][ty],16.0f);
 		}//vdvdy[i]=tauby;
 
 	}
