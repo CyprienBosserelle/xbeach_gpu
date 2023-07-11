@@ -1972,6 +1972,8 @@ __global__ void wrkuu2Ocorr(int nx, int ny, float dx, float dt,float eps, DECNUM
 	float delta1, delta2;
 	float mindepth,minzs,minzb;
 
+	float hmin2O = 0.1f;
+
 	__shared__ DECNUM uui[16][16];
 	__shared__ DECNUM uoi[16][16];
 
@@ -2023,7 +2025,7 @@ __global__ void wrkuu2Ocorr(int nx, int ny, float dx, float dt,float eps, DECNUM
 		mindepth = minzs + minzb;
 
 		
-		if (ix>0 && iy>0 && mindepth > eps*2.0f)
+		if (ix>0 && iy>0 && mindepth > hmin2O)
 		{
 
 			if ((qy[xplus + iy*nx] + qy[i]) > 0.0f)
@@ -2060,7 +2062,7 @@ __global__ void wrkvv2Ocorr(int nx, int ny, float dx, float dt, float eps, DECNU
 	__shared__ DECNUM uui[16][16];
 	__shared__ DECNUM uoi[16][16];
 
-
+	float hmin2O = 0.1f;
 
 	if (ix < nx && iy < ny)
 	{
@@ -2107,7 +2109,7 @@ __global__ void wrkvv2Ocorr(int nx, int ny, float dx, float dt, float eps, DECNU
 
 		mindepth = minzs + minzb;
 
-		if (ix>0 && iy>0 && iy <ny - 2 && mindepth > eps*2.0f)
+		if (ix>0 && iy>0 && iy <ny - 2 && mindepth > hmin2O)
 		{
 
 			if ((qx[ix + yplus*nx] + qx[i]) > 0.0f)
@@ -2144,7 +2146,7 @@ __global__ void wrkzs2Ocorr(int nx, int ny, float dx, float dt,float eps, DECNUM
 	__shared__ DECNUM uui[16][16];
 	__shared__ DECNUM uoi[16][16];
 
-
+	float hmin2O = 0.1f;
 
 	if (ix < nx && iy < ny)
 	{
@@ -2188,7 +2190,7 @@ __global__ void wrkzs2Ocorr(int nx, int ny, float dx, float dt,float eps, DECNUM
 		mindepth = minzs + minzb;
 
 
-		if (ix>0 && iy>0 && mindepth > eps*2.0f)
+		if (ix>0 && iy>0 && mindepth > hmin2O)
 		{
 			if ((vv[i]) > 0.0f)
 			{
