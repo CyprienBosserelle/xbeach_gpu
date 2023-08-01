@@ -7,6 +7,9 @@ as input. The emphasis here is for anyone changing the script to be
 alerted to the effects of a change to transformation code, and to be
 able to refactor code and make other non-functionality changing modifications
 with confidence.
+
+Note that the generate() function is not tested here, nor are parameter and
+output variables document strings.
 """
 
 import os
@@ -47,7 +50,7 @@ expected_initial_xbg_param_values = { \
     "General Parameters":
         [('GPUDEVICE', 0), ('dx', 0.0), ('flow', 1), ('grdalfa', 0.0),
          ('morphology', 0), ('name', 'GeneralParameters'), ('nx', 0), ('ny', 0),
-         ('sedtrans', 0), ('swave', 1)],
+         ('posdown', 1), ('sedtrans', 0), ('swave', 1)],
     "Flow Parameters":
         [('Cd', 0.002), ('cf', 0.01), ('cfreef', 0.01), ('cfsand', 0.01),
          ('eps', 0.01), ('fc', 0.0), ('g', 9.81), ('hwci', 0.1), ('lat', 0.0),
@@ -82,7 +85,7 @@ expected_final_parameter_values = { \
     "General Parameters":
         [('GPUDEVICE', 0), ('dx', 5.0), ('flow', 1), ('grdalfa', 33.0),
          ('morphology', 0), ('name', 'GeneralParameters'), ('nx', 193), ('ny', 257),
-         ('sedtrans', 0), ('swave', 1)],
+         ('posdown', 0), ('sedtrans', 0), ('swave', 1)],
     "Flow Parameters":
         [('Cd', 0.002), ('cf', 0.01), ('cfreef', 0.01), ('cfsand', 0.01),
          ('eps', 0.01), ('fc', 0.0), ('g', 9.81), ('hwci', 0.1), ('lat', 0.0),
@@ -100,7 +103,7 @@ expected_final_parameter_values = { \
          ('sus', 1.0), ('wetdzmax', 2.0), ('wws', 0.0509)],
     "Files":
         [('SedThkfile', ''), ('TSOfile', ''), ('TSnode', ''), ('bathy', ''),
-         ('depfile', 'DoT_2009Lidar_Crop_MGAz50_mAHD.z'), ('name', 'Files'),
+         ('depfile', 'DoT_2009Lidar_Crop_MGAz50_mAHD.dep'), ('name', 'Files'),
          ('outfile', 'outputs/xboutput.nc'), ('outvars', ''),
          ('slbndfile', 'zs0input.txt'), ('wavebndfile', 'jonswap1-xbg.inp'),
          ('windbndfile', '')],
@@ -116,7 +119,7 @@ expected_final_parameter_values = { \
 expected_transformed_parameter_name_mappings = { \
     "General Parameters":
         {'alfa': 'grdalfa', 'dx': 'dx', 'nx': 'nx', 'ny': 'ny',
-         'sedtrans': 'sedtrans', 'morphology': 'morphology'},
+         'posdwn': 'posdown', 'sedtrans': 'sedtrans', 'morphology': 'morphology'},
     "Flow Parameters":
         {'wci': 'wci', 'g': 'g', 'cf': 'cf', 'eps': 'eps', 'nuh': 'nuh',
          'nuhfac': 'nuhfac', 'smag': 'usesmago'},
@@ -161,7 +164,7 @@ def test_extract_xbg_params():
     extract_xbg_params(manual_url(), builder)
 
     for xbg_params in builder.param_objs:
-        assert xbg_params.param.get_param_values() == \
+        assert xbg_params.values() == \
             expected_initial_xbg_param_values[xbg_params.section_name]
 
     assert sorted(builder.outvars.keys()) == expected_initial_xbg_outvar_names
@@ -195,19 +198,26 @@ def test_transform_params():
     # transform each initial XBG parameter group in the presence
     # of XB input parameters 
     for xbg_params in builder.param_objs:
-        transformer = ParamTransformer(xb_file_root="data", xbg_params_root=None,
+        transformer = ParamTransformer(xb_file_root="data", xbg_output_dir=None,
                                        use_defaults=False,
                                        xbg_params=xbg_params, xb_params=xb_params,
                                        directional_spread_coefficient=400,
+                                       peak_enhancement_factor=3.3,
                                        verbose=False)
         
-        xb_params_transformed = transformer.transform()
+        xb_params_transformed = transformer.transform_params()
 
         assert xb_params_transformed == \
             expected_transformed_parameter_name_mappings[xbg_params.section_name]
 
-        assert xbg_params.param.get_param_values() == \
+        assert xbg_params.values() == \
             expected_final_parameter_values[xbg_params.section_name]
+
+    # clean up    
+    os.unlink("jonswap1-xbg.inp")
+    os.unlink("zs0input.txt")
+    os.unlink("DoT_2009Lidar_Crop_MGAz50_mAHD.dep")
+
 
 # Helpers
      

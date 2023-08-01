@@ -1,9 +1,9 @@
-################################################################################
-### XBGPU parameter settings input file                                      ###
-### Note: for binary parameters such as GPUDEVICE & flow, 1=YES, 0=NO        ###
-################################################################################
+#########################################################################
+### XBGPU parameter settings input file                               ###
+### Note: for binary parameters such as GPUDEVICE & flow, 1=YES, 0=NO ###
+#########################################################################
 
-### General Parameters #########################################################
+### General Parameters ##################################################
 GPUDEVICE            = 0
 dx                   = 5.0
 flow                 = 1
@@ -11,10 +11,11 @@ grdalfa              = 33.0
 morphology           = 0
 nx                   = 193
 ny                   = 257
+posdown              = 0
 sedtrans             = 0
 swave                = 1
 
-### Flow Parameters ############################################################
+### Flow Parameters #####################################################
 Cd                   = 0.002
 cf                   = 0.01
 cfreef               = 0.01
@@ -31,7 +32,7 @@ smag                 = 0.3
 usesmago             = 0
 wci                  = 0
 
-### Wave Parameters ############################################################
+### Wave Parameters #####################################################
 alpha                = 1
 beta                 = 0.1
 breakmodel           = 1
@@ -47,7 +48,7 @@ roller               = 1
 thetamax             = 80
 thetamin             = -80
 
-### Sediment Parameters ########################################################
+### Sediment Parameters #################################################
 D50                  = 0.00038
 D90                  = 0.00053
 bed                  = 1.0
@@ -62,24 +63,24 @@ sus                  = 1.0
 wetdzmax             = 2.0
 wws                  = 0.0509
 
-### Files ######################################################################
+### Files ###############################################################
 SedThkfile           = 
 TSOfile              = 
 TSnode               = 
 bathy                = 
-depfile              = DoT_2009Lidar_Crop_MGAz50_mAHD.z
+depfile              = out/DoT_2009Lidar_Crop_MGAz50_mAHD.dep
 outfile              = outputs/xboutput.nc
-slbndfile            = zs0input.txt
-wavebndfile          = jonswap1-xbg.inp
+slbndfile            = out/zs0input.txt
+wavebndfile          = out/jonswap1-xbg.inp
 windbndfile          = 
 
-### Time Keeping ###############################################################
+### Time Keeping ########################################################
 CFL                  = 0.8
 endtime              = 820800
 outputtimestep       = 3600.0
 sedstart             = 3600.0
 
-### Wave boundary variables ####################################################
+### Wave boundary variables #############################################
 dtbc                 = 1.0
 fcutoff              = 0.0
 nmax                 = 0.8
@@ -88,7 +89,17 @@ rtlength             = 3600.0
 sprdthr              = 0.8
 wavebndtype          = 2
 
-### Output variables ###########################################################
+### Output variables ####################################################
 outvars              = D,E,H,Hmean,hh,k,thetamean,urms,zb,zs
 
-# ** Generated from data/example-XBeach-params.txt by convert_xbeach_params.py **
+# Generated from data/example-XBeach-params.txt by xb2xbg.py with arguments:
+# - directional-spread-coefficient: 400
+# - gen-defaults: False
+# - gen-doc: False
+# - peak-enhancement-factor: 3.3
+# - use-all-known-output-variables: False
+# - verbose: True
+# - xb-file-root: data
+# - xb-params-path: data/example-XBeach-params.txt
+# - xbg-output-dir: out
+# - xbg-user-manual: https://raw.githubusercontent.com/CyprienBosserelle/xbeach_gpu/gh-pages/Manual.html
