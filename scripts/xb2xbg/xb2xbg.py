@@ -224,7 +224,7 @@ class ParamTransformer:
 
         # simple XB -> XBG parameter name mapping...
         self.xb2xbg_names = {
-            "alfa": "grdalfa", "break": "breakmodel", "bcfile": "wavebndfile",
+            "alfa": "grdalpha", "break": "breakmodel", "bcfile": "wavebndfile",
             "dzmax": "maxslpchg", "dryslp": "drydzmax", "morstart": "sedstart",
             "ncfilename": "outfile", "ne_layer": "SedThkfile", "posdwn": "posdown",
             "rt": "rtlength", "smag": "usesmago", "tint": "outputtimestep",

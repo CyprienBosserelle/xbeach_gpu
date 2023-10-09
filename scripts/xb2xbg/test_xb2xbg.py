@@ -48,7 +48,7 @@ expected_xb_params = {
 
 expected_initial_xbg_param_values = { \
     "General Parameters":
-        [('GPUDEVICE', 0), ('dx', 0.0), ('flow', 1), ('grdalfa', 0.0),
+        [('GPUDEVICE', 0), ('dx', 0.0), ('flow', 1), ('grdalpha', 0.0),
          ('morphology', 0), ('name', 'GeneralParameters'), ('nx', 0), ('ny', 0),
          ('posdown', 1), ('sedtrans', 0), ('swave', 1)],
     "Flow Parameters":
@@ -83,7 +83,7 @@ expected_initial_xbg_param_values = { \
 
 expected_final_parameter_values = { \
     "General Parameters":
-        [('GPUDEVICE', 0), ('dx', 5.0), ('flow', 1), ('grdalfa', 33.0),
+        [('GPUDEVICE', 0), ('dx', 5.0), ('flow', 1), ('grdalpha', 33.0),
          ('morphology', 0), ('name', 'GeneralParameters'), ('nx', 193), ('ny', 257),
          ('posdown', 0), ('sedtrans', 0), ('swave', 1)],
     "Flow Parameters":
@@ -118,7 +118,7 @@ expected_final_parameter_values = { \
 
 expected_transformed_parameter_name_mappings = { \
     "General Parameters":
-        {'alfa': 'grdalfa', 'dx': 'dx', 'nx': 'nx', 'ny': 'ny',
+        {'alfa': 'grdalpha', 'dx': 'dx', 'nx': 'nx', 'ny': 'ny',
          'posdwn': 'posdown', 'sedtrans': 'sedtrans', 'morphology': 'morphology'},
     "Flow Parameters":
         {'wci': 'wci', 'g': 'g', 'cf': 'cf', 'eps': 'eps', 'nuh': 'nuh',
