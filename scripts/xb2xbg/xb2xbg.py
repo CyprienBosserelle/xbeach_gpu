@@ -561,8 +561,8 @@ def handle_keyval_pair(s: str, params: Dict[str, Any], state: str) -> str:
     """
     matcher = re.match(r"\s*(.+)=(.+)\s*$", s)
     if matcher is not None:
-        key = matcher.group(1)
-        val = matcher.group(2)
+        key = matcher.group(1).strip()
+        val = matcher.group(2).strip()
         try:
             val = int(val)
         except ValueError:
