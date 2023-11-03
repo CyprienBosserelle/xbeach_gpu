@@ -385,7 +385,9 @@ class ParamTransformer:
                 xb_file_path = full_path(self.xb_file_root, xb_file)
                 xbg_file_path = full_path(self.xbg_output_dir, xb_file)
                 xbg_file_path = xbg_file_path.replace(".z", ".dep")
-                shutil.copy(xb_file_path, xbg_file_path)
+                xbg_file_path = xbg_file_path.replace(".txt", ".dep")
+                if xb_file_path != xbg_file_path:
+                    shutil.copy(xb_file_path, xbg_file_path)
                 if self.verbose:
                     print("** check posdown setting (1 = bathymetry is positive up, "
                         "0 = bathymetry is positive down)", file=sys.stderr)
