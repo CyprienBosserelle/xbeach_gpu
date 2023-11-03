@@ -233,14 +233,14 @@ class ParamTransformer:
         }
         # where something more is needed to transform from XB to XBG variable...
         self.xb2xbg_transformers = {
-            "depfile": self.output_file_path,
+            "depfile": self.xb2xbgfile,
             "breakmodel": self.breakermodel,
             "nx": self.inc_by_1,
             "ny": self.inc_by_1,
             "posdown": self.posdown,
-            "slbndfile": self.output_file_path,
-            "wavebndfile": self.output_file_path,
-            "windbndfile": self.output_file_path
+            "slbndfile": self.xb2xbgfile,
+            "wavebndfile": self.xb2xbgfile,
+            "windbndfile": self.xb2xbgfile
         }
 
         self.params_transformed = {}
@@ -338,8 +338,8 @@ class ParamTransformer:
                   .format(xb_name), file=sys.stderr)
         return transformed
 
-    def output_file_path(self, xb_name: str, xbg_name: str) -> bool:
-        def full_output_path(file_dir, file_path):
+    def xb2xbgfile(self, xb_name: str, xbg_name: str) -> bool:
+        def full_path(file_dir, file_path):
             if file_dir is not None:
                 file_path = os.path.join(file_dir, file_path)
             return file_path
@@ -358,9 +358,9 @@ class ParamTransformer:
                 else:
                     xbg_file = "{}{}".format(xb_file[0:suffix_start], "-xbg")
 
-                xbg_file_path = full_output_path(self.xbg_output_dir, xbg_file)
+                xbg_file_path = full_path(self.xbg_output_dir, xbg_file)
 
-                xb_file_path = full_output_path(self.xb_file_root, xb_file)
+                xb_file_path = full_path(self.xb_file_root, xb_file)
 
                 is_jonwap = False
                 # XB manual is inconsistent re: permitted values of wbctype
@@ -382,8 +382,8 @@ class ParamTransformer:
                 result = is_jonwap
 
             elif xbg_name == "depfile":
-                xb_file_path = full_output_path(self.xb_file_root, xb_file)
-                xbg_file_path = full_output_path(self.xbg_output_dir, xb_file)
+                xb_file_path = full_path(self.xb_file_root, xb_file)
+                xbg_file_path = full_path(self.xbg_output_dir, xb_file)
                 xbg_file_path = xbg_file_path.replace(".z", ".dep")
                 shutil.copy(xb_file_path, xbg_file_path)
                 if self.verbose:
@@ -391,8 +391,8 @@ class ParamTransformer:
                         "0 = bathymetry is positive down)", file=sys.stderr)
 
             elif xbg_name in ["slbndfile", "windbndfile"]:
-                xb_file_path = full_output_path(self.xb_file_root, xb_file)
-                xbg_file_path = full_output_path(self.xbg_output_dir, xb_file)
+                xb_file_path = full_path(self.xb_file_root, xb_file)
+                xbg_file_path = full_path(self.xbg_output_dir, xb_file)
                 if xb_file_path != xbg_file_path:
                     shutil.copy(xb_file_path, xbg_file_path)
 
