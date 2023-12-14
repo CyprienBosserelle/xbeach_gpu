@@ -1536,9 +1536,16 @@ __global__ void eulerustep(int nx, int ny, DECNUM dx, DECNUM dt, DECNUM g, DECNU
 			//viscu[i] = 0.0f;
 
 		}
-		if (ix > 0 && abs(uui[tx][ty])>15.0)
+		if (ix > 0 )
 		{
-			uu[i] = uui[tx][ty] / (abs(uui[tx][ty]) / 16.0f);;
+			if (abs(uui[tx][ty]) > 16.0f)
+			{
+				uu[i] = uui[tx][ty] / (abs(uui[tx][ty]) / 16.0f);
+			}
+			else
+			{
+				uu[i] = uui[tx][ty];
+			}
 
 		}
 	}
@@ -1592,9 +1599,16 @@ __global__ void eulervstep(int nx, int ny, DECNUM dx, DECNUM dt, DECNUM g, DECNU
 			vvi[tx][ty] = 0.0f;
 			//viscv[i] = 0.0f;
 		}
-		if (ix > 0 && abs(vvi[tx][ty]) > 15.0)// && iy>0 && iy<ny)
+		if (ix > 0 )// && iy>0 && iy<ny)
 		{
-			vv[i] = vvi[tx][ty]/(abs(vvi[tx][ty])/16.0f);
+			if (abs(vvi[tx][ty]) > 16.0f)
+			{
+				vv[i] = vvi[tx][ty] / (abs(vvi[tx][ty]) / 16.0f);
+			}
+			else
+			{
+				vv[i] = vvi[tx][ty];
+			}
 		}//vdvdy[i]=tauby;
 
 	}
