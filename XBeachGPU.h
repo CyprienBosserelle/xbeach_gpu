@@ -30,6 +30,7 @@
 #include <complex>
 #include <valarray>
 #include "fftw3.h"
+//#include <cufftw.h>
 //using namespace std;
 
 
@@ -48,16 +49,26 @@ public:
 	int i, j;
 };
 
+class RiverFlow {
+public:
+	double time, flow;
+};
 
-class Rivernodes {
+
+
+
+class Riverparam {
 public:
 	int istart = -1;
 	int iend = -1;
 	int jstart = -1;
 	int jend = -1;
+	double disarea;
 	std::string Riverfile;
-
+	std::vector<RiverFlow> flowinput;
 };
+
+
 
 class XBGPUParam{
 public:
@@ -100,6 +111,8 @@ public:
 	double thetamax = 90 * pi / 180;
 	double dtheta=0.0; // Defaul values are insane so either one has to be specified/overruled the other will be calculated automatically
 	int ntheta=0; // Default for bnd that are cst or generated on the fly is ntheta =1 and dtheta = thetamax-thetamin
+	bool singledir = false;// Switch for single dir formulation.
+
 	//Sediment parameters
 	double D50=0.00038, D90=0.00053; // sand grain size in m
 	double rhosed = 2650.0; // sand density in kg/m3
@@ -114,7 +127,9 @@ public:
 
 	// File
 	std::string Bathymetryfile;// bathymetry file name
-	std::string SedThkfile; // Structure file 
+	std::string SedThkfile; // Structure file
+	std::string cfmap; // Structure file
+
 	std::string wavebndfile;// wave bnd file
 	int wavebndtype = 2; // 1 is quasistationary wave spectrum; 2 is for infrgravity and long bound waves Xbeach type
 	std::string slbnd; // tide/surge bnd file
@@ -135,8 +150,8 @@ public:
 	std::vector<std::string> outvars; //list of names of teh variables to output
 
 	//River discharge
-	std::vector<Rivernodes> riversloc;
-	std::vector<std::string> Riverfiles;
+	std::vector<Riverparam> river;
+	//std::vector<std::string> Riverfiles;
 	//std::vector<Rivernodes> Riverlocs;
 
 	//Wave bnd parameters
@@ -148,16 +163,15 @@ public:
 	double nmax = 0.8;
 	double fcutoff = 0.0; // max 40.0;
 	int nspr = 0;
+	double theta0 = 0.0;
+	double c1 = 0.0;
 
 	//Rivers
-	int nriver = 0;  // Number of river input (source point or at the bnd)
+	//int nriver = 0;  // Number of river input (source point or at the bnd)
 };
 
 
-class RiverFlow{
-public:
-	double time, flow;
-};
+
 
 /*
 class River{
@@ -329,6 +343,7 @@ XBGPUParam checkparamsanity(XBGPUParam XParam, std::vector<SLBnd> slbnd, std::ve
 std::vector<SLBnd> readWLfile(std::string WLfilename);
 std::vector<WindBnd> readWNDfile(std::string WNDfilename, double grdalpha);
 std::vector<Wavebndparam> ReadCstBnd(XBGPUParam XParam);
+std::vector<RiverFlow> readRiverfile(std::string filename);
 double interptime(double next, double prev, double timenext, double time);
 double interp1D(int nx, double *x, double *y, double xx);
 double interp1DMono(int nx, double *x, double *y, double xx);
@@ -346,7 +361,7 @@ template <class T> const T& max (const T& a, const T& b);
 
 
 XBGPUParam waveinitGPU(XBGPUParam Param, std::vector<Wavebndparam> wavebnd);
-void wavebnd(XBGPUParam Param, std::vector<Wavebndparam> wavebndvec);
+XBGPUParam wavebnd(XBGPUParam Param, std::vector<Wavebndparam> wavebndvec);
 void flowbnd(XBGPUParam Param, std::vector<SLBnd> slbnd, std::vector<WindBnd> wndbnd, std::vector<Wavebndparam> wavebndvec);
 void wavestep(XBGPUParam Param);
 void flowstep(XBGPUParam Param);

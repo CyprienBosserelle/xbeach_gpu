@@ -170,7 +170,7 @@ __global__ void ubnd1D(int nx, int ny, DECNUM dx, DECNUM dt, DECNUM g, DECNUM rh
 	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
 	unsigned int i = ix + iy*nx;
 
-	if (ix == 0)
+	if (ix == 0 && iy < ny)
 	{
 		unsigned int xminus = mminus(ix, nx);
 		unsigned int xplus = pplus(ix, nx);
@@ -315,7 +315,7 @@ __global__ void ubndsimple(int nx, int ny, DECNUM g, DECNUM zsbndi , DECNUM zsbn
 	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
 	unsigned int i = ix + iy*nx;
 
-	if (ix == 0)
+	if (ix == 0 && iy < ny)
 	{
 		//if ((hh[i]) >= 0.0f) // should be eps not 0.0
 		{
@@ -335,7 +335,7 @@ __global__ void ubnd1Dnowaves(int nx, int ny, DECNUM dx, DECNUM dt, DECNUM g, DE
 	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
 	unsigned int i = ix + iy*nx;
 
-	if (ix == 0)
+	if (ix == 0 && iy < ny)
 	{
 		unsigned int xminus = mminus(ix, nx);
 		unsigned int xplus = pplus(ix, nx);
@@ -1069,8 +1069,10 @@ __global__ void vdvdy_adv(int nx, int ny, DECNUM dx, DECNUM * hv, DECNUM * hvm, 
 			
 		}
 		
+		
 	}
 	vdvdy[i] = vvdvdy;
+	
 }
 
 __global__ void vdvdy_fixbnd(int nx, int ny, DECNUM dx, DECNUM * hv, DECNUM * hvm, DECNUM * vv, DECNUM * vdvdy)
@@ -1081,7 +1083,7 @@ __global__ void vdvdy_fixbnd(int nx, int ny, DECNUM dx, DECNUM * hv, DECNUM * hv
 
 	DECNUM qin, dv, vvdvdy;
 	
-	if (ix < nx && ix>0 && iy > 0 && iy == (ny - 1))
+	if (ix < nx && ix>0 && iy == (ny - 1))
 	{
 		unsigned int xminus = mminus(ix, nx);
 		unsigned int xplus = pplus(ix, nx);
@@ -1094,9 +1096,9 @@ __global__ void vdvdy_fixbnd(int nx, int ny, DECNUM dx, DECNUM * hv, DECNUM * hv
 		{
 			vvdvdy = vdvdy[i] + qin / hvm[i] * (vv[i] - vv[ix + (yminus)*nx]) / (dx);
 		}
-
+		vdvdy[i] = vvdvdy;
 	}
-	vdvdy[i] = vvdvdy;
+	
 }
 
 
@@ -1534,9 +1536,16 @@ __global__ void eulerustep(int nx, int ny, DECNUM dx, DECNUM dt, DECNUM g, DECNU
 			//viscu[i] = 0.0f;
 
 		}
-		if (ix > 0)
+		if (ix > 0 )
 		{
-			uu[i] = uui[tx][ty];
+			if (abs(uui[tx][ty]) > 16.0f)
+			{
+				uu[i] = uui[tx][ty] / (abs(uui[tx][ty]) / 16.0f);
+			}
+			else
+			{
+				uu[i] = uui[tx][ty];
+			}
 
 		}
 	}
@@ -1590,9 +1599,16 @@ __global__ void eulervstep(int nx, int ny, DECNUM dx, DECNUM dt, DECNUM g, DECNU
 			vvi[tx][ty] = 0.0f;
 			//viscv[i] = 0.0f;
 		}
-		if (ix > 0)// && iy>0 && iy<ny)
+		if (ix > 0 )// && iy>0 && iy<ny)
 		{
-			vv[i] = vvi[tx][ty];
+			if (abs(vvi[tx][ty]) > 16.0f)
+			{
+				vv[i] = vvi[tx][ty] / (abs(vvi[tx][ty]) / 16.0f);
+			}
+			else
+			{
+				vv[i] = vvi[tx][ty];
+			}
 		}//vdvdy[i]=tauby;
 
 	}
@@ -1672,7 +1688,7 @@ __global__ void continuity(int nx, int ny, DECNUM dx, DECNUM dt, DECNUM eps, DEC
 			dzsdt[i] = dzdt;
 
 
-			zs[i] = zz + dzdt*dt;
+			zs[i] = max(zz + dzdt*dt,zb[1]*-1.0f);
 
 			//hh[i]=max(hh[i]+dzdt*dt,eps);
 		}
@@ -1957,7 +1973,7 @@ __global__ void CalcQFlow(int nx, int ny, DECNUM * uu, DECNUM* hu, DECNUM* vv, D
 
 }
 
-__global__ void wrkuu2Ocorr(int nx, int ny, float dx, float dt,float eps, DECNUM* uu, DECNUM* uuold, DECNUM* hum,DECNUM *zs, DECNUM *zb, DECNUM *qx, DECNUM * qy,DECNUM *wrk1, DECNUM*wrk2)
+__global__ void wrkuu2Ocorr(int nx, int ny, float dx, float dt,float hmin2O, DECNUM* uu, DECNUM* uuold, DECNUM* hum,DECNUM *zs, DECNUM *zb, DECNUM *qx, DECNUM * qy,DECNUM *wrk1, DECNUM*wrk2)
 {
 	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
 	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
@@ -1969,6 +1985,8 @@ __global__ void wrkuu2Ocorr(int nx, int ny, float dx, float dt,float eps, DECNUM
 	
 	float delta1, delta2;
 	float mindepth,minzs,minzb;
+
+	//float hmin2O = 0.1f;
 
 	__shared__ DECNUM uui[16][16];
 	__shared__ DECNUM uoi[16][16];
@@ -1996,7 +2014,7 @@ __global__ void wrkuu2Ocorr(int nx, int ny, float dx, float dt,float eps, DECNUM
 
 		mindepth = minzs + minzb;
 
-		if (ix>0 && mindepth > eps*2.0f)
+		if (ix>0 && mindepth > hmin2O)
 		{
 
 			if ((qx[i] + qx[xminus + iy*nx]) > 0.0f)
@@ -2021,7 +2039,7 @@ __global__ void wrkuu2Ocorr(int nx, int ny, float dx, float dt,float eps, DECNUM
 		mindepth = minzs + minzb;
 
 		
-		if (ix>0 && iy>0 && mindepth > eps*2.0f)
+		if (ix>0 && iy>0 && mindepth > hmin2O)
 		{
 
 			if ((qy[xplus + iy*nx] + qy[i]) > 0.0f)
@@ -2043,7 +2061,7 @@ __global__ void wrkuu2Ocorr(int nx, int ny, float dx, float dt,float eps, DECNUM
 
 }
 
-__global__ void wrkvv2Ocorr(int nx, int ny, float dx, float dt, float eps, DECNUM* vv, DECNUM* vvold, DECNUM* hvm, DECNUM *zs, DECNUM *zb, DECNUM *qx, DECNUM * qy, DECNUM *wrk1, DECNUM*wrk2)
+__global__ void wrkvv2Ocorr(int nx, int ny, float dx, float dt, float hmin2O, DECNUM* vv, DECNUM* vvold, DECNUM* hvm, DECNUM *zs, DECNUM *zb, DECNUM *qx, DECNUM * qy, DECNUM *wrk1, DECNUM*wrk2)
 {
 	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
 	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
@@ -2058,7 +2076,7 @@ __global__ void wrkvv2Ocorr(int nx, int ny, float dx, float dt, float eps, DECNU
 	__shared__ DECNUM uui[16][16];
 	__shared__ DECNUM uoi[16][16];
 
-
+	//float hmin2O = 0.1f;
 
 	if (ix < nx && iy < ny)
 	{
@@ -2079,7 +2097,7 @@ __global__ void wrkvv2Ocorr(int nx, int ny, float dx, float dt, float eps, DECNU
 
 		mindepth = minzs + minzb;
 
-		if (ix>0 && iy>0 && iy <ny-2 && mindepth > eps*2.0f)
+		if (ix>0 && iy>0 && iy <ny-2 && mindepth > hmin2O)
 		{
 
 			if ((qy[i] + qy[ix + yminus*nx]) > 0.0f)
@@ -2105,7 +2123,7 @@ __global__ void wrkvv2Ocorr(int nx, int ny, float dx, float dt, float eps, DECNU
 
 		mindepth = minzs + minzb;
 
-		if (ix>0 && iy>0 && iy <ny - 2 && mindepth > eps*2.0f)
+		if (ix>0 && iy>0 && iy <ny - 2 && mindepth > hmin2O)
 		{
 
 			if ((qx[ix + yplus*nx] + qx[i]) > 0.0f)
@@ -2127,7 +2145,7 @@ __global__ void wrkvv2Ocorr(int nx, int ny, float dx, float dt, float eps, DECNU
 
 }
 
-__global__ void wrkzs2Ocorr(int nx, int ny, float dx, float dt,float eps, DECNUM* zs, DECNUM* zsold,  DECNUM *uu, DECNUM * vv, DECNUM *zb, DECNUM *wrk1, DECNUM*wrk2)
+__global__ void wrkzs2Ocorr(int nx, int ny, float dx, float dt,float hmin2O, DECNUM* zs, DECNUM* zsold,  DECNUM *uu, DECNUM * vv, DECNUM *zb, DECNUM *wrk1, DECNUM*wrk2)
 {
 	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
 	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
@@ -2142,7 +2160,7 @@ __global__ void wrkzs2Ocorr(int nx, int ny, float dx, float dt,float eps, DECNUM
 	__shared__ DECNUM uui[16][16];
 	__shared__ DECNUM uoi[16][16];
 
-
+	//float hmin2O = 0.1f;
 
 	if (ix < nx && iy < ny)
 	{
@@ -2164,7 +2182,7 @@ __global__ void wrkzs2Ocorr(int nx, int ny, float dx, float dt,float eps, DECNUM
 		mindepth = minzs + minzb;
 
 		
-		if (ix>0 && mindepth > eps*2.0f)
+		if (ix>0 && mindepth > hmin2O)
 		{
 			if ((uu[i]) > 0.0f)
 			{
@@ -2186,7 +2204,7 @@ __global__ void wrkzs2Ocorr(int nx, int ny, float dx, float dt,float eps, DECNUM
 		mindepth = minzs + minzb;
 
 
-		if (ix>0 && iy>0 && mindepth > eps*2.0f)
+		if (ix>0 && iy>0 && mindepth > hmin2O)
 		{
 			if ((vv[i]) > 0.0f)
 			{
@@ -2281,7 +2299,7 @@ __global__ void vv2Ocorr(int nx, int ny, float dx, float dt, DECNUM* vv, DECNUM*
 	}
 }
 
-__global__ void zs2Ocorr(int nx, int ny, float dx, float dt, DECNUM* zs, DECNUM *qx, DECNUM *qy, DECNUM *wrk1, DECNUM*wrk2)
+__global__ void zs2Ocorr(int nx, int ny, float dx, float dt, DECNUM* zs, DECNUM* zb, DECNUM *qx, DECNUM *qy, DECNUM *wrk1, DECNUM*wrk2)
 {
 	unsigned int ix = blockIdx.x*blockDim.x + threadIdx.x;
 	unsigned int iy = blockIdx.y*blockDim.y + threadIdx.y;
@@ -2310,7 +2328,7 @@ __global__ void zs2Ocorr(int nx, int ny, float dx, float dt, DECNUM* zs, DECNUM 
 		unsigned int yplus2 = pplus2(iy, ny);
 		
 
-		zs[i] = zs[i] - dt * ((wrk1[i] - wrk1[xminus+iy*nx]) / dx + (wrk2[i] - wrk2[ix + yminus*nx]) / dx);
+		zs[i] = max(zs[i] - dt * ((wrk1[i] - wrk1[xminus+iy*nx]) / dx + (wrk2[i] - wrk2[ix + yminus*nx]) / dx),zb[i]*-1.0f);
 
 		//Update fluxes although Im not sure if there is a point to do it since Qx and Qy are not used elsewhere 
 		qx[i] = qx[i] + wrk1[i];

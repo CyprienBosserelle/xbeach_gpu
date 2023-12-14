@@ -158,7 +158,7 @@ void makjonswap(XBGPUParam Param, std::vector<Wavebndparam> wavebnd, int step, i
 	//DECNUM t1=-(pi)/2;
 	//int ntheta=101;
 	//DECNUM *theta;
-	double * HRtheta;
+	//double * HRtheta;
 	ntheta = 90;
 	double dtheta = 2*pi / ntheta;
 	double *theta;
@@ -447,7 +447,7 @@ void GenWGnLBW(XBGPUParam Param, int nf, int ndir,double * HRfreq,double * HRdir
 	// Sept 10, 2006
 	for (int i = 0; i < K; i++)
 	{
-		double L, L0,w,x,y,h,t;
+		double L0,w,x,y,h,t;
 		h = Param.offdepth;
 		L0 = Param.g*(1 / fgen[i])*(1 / fgen[i]) / 2 / pi;
 		w = 2 * pi / ((1 / fgen[i]));//2pi/T
