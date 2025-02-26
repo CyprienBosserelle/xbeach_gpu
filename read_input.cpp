@@ -1305,6 +1305,16 @@ XBGPUParam readparamstr(std::string line, XBGPUParam param)
 		param.singledir = check>0?true:false;
 	}
 
+	parameterstr = "posdown";
+	parametervalue = findparameter(parameterstr, line);
+	if (!parametervalue.empty())
+	{
+		int check = std::stoi(parametervalue);
+
+
+		param.posdown = check > 0 ? true : false;
+	}
+
 	return param;
 }
 

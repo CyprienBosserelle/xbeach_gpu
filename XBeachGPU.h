@@ -97,6 +97,8 @@ public:
 	double wci = 0;// Wave current interaction switch (can also be used as a number between 0 and 1 to reduce the interaction if unstable) 
 	double hwci = 0.1; // hwci=0.010f;//min depth for wci
 
+	bool posdown = true;
+
 	//Wave parameters
 	int breakmodel = 1;// Wave dissipation model 1: roelvink 2: Baldock. use 1 for unsteady runs (i.e. with wave group) and use 2 for steady runs
 	double gammaa = 0.6; // Wave breaking gamma param 

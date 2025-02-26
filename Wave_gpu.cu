@@ -1801,6 +1801,8 @@ int main(int argc, char **argv)
 			
 		XParam.grdalpha = XParam.grdalpha*pi / 180; // grid rotation
 
+		
+
 		//fid = fopen(XParam.Bathymetryfile.c_str(), "r");
 		//fscanf(fid, "%u\t%u\t%lf\t%*f\t%lf", &XParam.nx, &XParam.ny, &XParam.dx, &XParam.grdalpha);
 		printf("nx=%d\tny=%d\tdx=%f\talpha=%f\n", XParam.nx, XParam.ny, XParam.dx, XParam.grdalpha*180/pi);
@@ -2022,12 +2024,25 @@ int main(int argc, char **argv)
 	{
 		readnczb(XParam.nx, XParam.ny, XParam.Bathymetryfile, zb);
 	}
-	if (bathyext.compare("bot") == 0 || bathyext.compare("dep") == 0)
+	if (bathyext.compare("bot") == 0 || bathyext.compare("dep") == 0 || bathyext.compare("txt") == 0)
 	{
 		readXBbathy(XParam.Bathymetryfile, XParam.nx, XParam.ny, zb);
 	}
 
-	
+	if (!XParam.posdown)
+	{
+		for (int fnod = ny; fnod >= 1; fnod--)
+		{
+
+			//fscanf(fid, "%u", &jread);
+			//fscanf(fiz,"%u",&jreadzs);
+
+			for (int inod = 0; inod < nx; inod++)
+			{
+				zb[inod + (fnod - 1) * nx] *= -1.0f;
+			}
+		}
+	}
 
 	// set initital condition and read bathy file
 	printf("Set initial condition...");
