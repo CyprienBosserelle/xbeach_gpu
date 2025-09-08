@@ -728,7 +728,7 @@ void mainloopGPU(XBGPUParam Param, std::vector<SLBnd> slbnd, std::vector<WindBnd
 		}
 
 		//add last value for avg calc
-		addavg_var << <gridDim, blockDim, 0 >> >(nx, ny, Hmean_g, H_g);
+		addavg_varRMS << <gridDim, blockDim, 0 >> >(nx, ny, Hmean_g, H_g);
 		//CUT_CHECK_ERROR("Add avg execution failed\n");
 		CUDA_CHECK(cudaDeviceSynchronize());
 
@@ -790,7 +790,7 @@ void mainloopGPU(XBGPUParam Param, std::vector<SLBnd> slbnd, std::vector<WindBnd
 
 			//Avg mean variables
 
-			divavg_var << <gridDim, blockDim, 0 >> >(nx, ny, nstep, Hmean_g);
+			divavg_varRMS << <gridDim, blockDim, 0 >> >(nx, ny, nstep, Hmean_g);
 			//CUT_CHECK_ERROR("Div avg execution failed\n");
 			CUDA_CHECK(cudaDeviceSynchronize());
 
